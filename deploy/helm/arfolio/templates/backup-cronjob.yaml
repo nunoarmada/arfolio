@@ -1,0 +1,138 @@
+{{- if .Values.backup.enabled }}
+{{- /*
+Nightly encrypted off-site backup: pg_dump -Fc into a scratch volume, then restic. Everything is scoped with
+--host pfm --tag pfm so forget/prune never touches other apps' snapshots in a shared repository.
+A missing backup secret makes the pod fail visibly (no silent "success" that backs nothing up).
+*/ -}}
+{{- $resticSecret := ternary .Values.backup.existingSecret (include "arfolio.secretName" .) .Values.backup.resticPasswordFromBackupSecret }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "arfolio.fullname" . }}-backup
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "backup") | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  timeZone: {{ default .Values.app.timezone .Values.backup.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      ttlSecondsAfterFinished: 604800  # A week: failed jobs stay visible long enough to be noticed.
+      template:
+        metadata:
+          labels:
+            {{- include "arfolio.componentLabels" (dict "root" . "component" "backup") | nindent 12 }}
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          {{- include "arfolio.podCommon" . | nindent 10 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            fsGroup: 70
+            seccompProfile:
+              type: RuntimeDefault
+          {{- include "arfolio.scheduling" . | nindent 10 }}
+          initContainers:
+            - name: dump
+              image: {{ .Values.backup.dumpImage.repository }}:{{ .Values.backup.dumpImage.tag }}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  rm -f /staging/pfm.dump
+                  pg_dump -Fc -h {{ include "arfolio.dbHost" . }} -p {{ include "arfolio.dbPort" . }} -U {{ include "arfolio.dbOwnerUser" . }} -d {{ include "arfolio.dbName" . }} -f /staging/pfm.dump
+                  ls -l /staging/pfm.dump
+              env:
+                {{- with .Values.externalDatabase.sslmode }}
+                {{- if not $.Values.postgresql.enabled }}
+                - {name: PGSSLMODE, value: {{ . | quote }}}
+                {{- end }}
+                {{- end }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "arfolio.ownerPasswordSecretName" . }}
+                      key: {{ include "arfolio.ownerPasswordSecretKey" . }}
+              securityContext:
+                {{- include "arfolio.containerSecurity" . | nindent 16 }}
+              resources:
+                {{- toYaml .Values.backup.resources.dump | nindent 16 }}
+              volumeMounts:
+                - name: staging
+                  mountPath: /staging
+          containers:
+            - name: restic
+              image: {{ .Values.backup.resticImage.repository }}:{{ .Values.backup.resticImage.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  ping() { [ -n "${BACKUP_PING_URL:-}" ] && wget -q -T 10 -O /dev/null "$BACKUP_PING_URL$1" || true; }
+                  trap 'code=$?; [ "$code" -ne 0 ] && { echo "backup FAILED (exit $code)"; ping /fail; }' EXIT
+                  ping /start
+                  if [ -n "$REPOSITORY_SUFFIX" ]; then RESTIC_REPOSITORY="${RESTIC_REPOSITORY%/}/$REPOSITORY_SUFFIX"; fi
+                  export RESTIC_REPOSITORY
+                  restic cat config --retry-lock "$RETRY_LOCK" >/dev/null 2>&1 || restic init
+                  # The repository is Arfolio's own, so clearing stale locks here is safe.
+                  restic unlock >/dev/null 2>&1 || true
+                  restic backup --retry-lock "$RETRY_LOCK" --host pfm --tag pfm /staging/pfm.dump
+                  restic forget --retry-lock "$RETRY_LOCK" --host pfm --tag pfm --prune --keep-daily "$KEEP_DAILY" --keep-weekly "$KEEP_WEEKLY" --keep-monthly "$KEEP_MONTHLY"
+                  restic check --retry-lock "$RETRY_LOCK" --read-data-subset="$CHECK_SUBSET"
+                  echo "backup ok: $(date -u +%FT%TZ)"
+                  ping ""
+              env:
+                - {name: HOME, value: /tmp}
+                - {name: RESTIC_CACHE_DIR, value: /tmp/restic-cache}
+                - {name: AWS_DEFAULT_REGION, value: auto}
+                - {name: REPOSITORY_SUFFIX, value: {{ .Values.backup.repositorySuffix | quote }}}
+                - {name: RETRY_LOCK, value: {{ .Values.backup.retryLock | quote }}}
+                - {name: KEEP_DAILY, value: {{ .Values.backup.keep.daily | quote }}}
+                - {name: KEEP_WEEKLY, value: {{ .Values.backup.keep.weekly | quote }}}
+                - {name: KEEP_MONTHLY, value: {{ .Values.backup.keep.monthly | quote }}}
+                - {name: CHECK_SUBSET, value: {{ .Values.backup.checkReadDataSubset | quote }}}
+                - name: BACKUP_PING_URL
+                  valueFrom:
+                    secretKeyRef: {name: {{ include "arfolio.optionalSecretName" . }}, key: BACKUP_PING_URL, optional: true}
+                - name: RESTIC_REPOSITORY
+                  valueFrom:
+                    secretKeyRef: {name: {{ .Values.backup.existingSecret }}, key: RESTIC_REPOSITORY}
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: {{ $resticSecret }}, key: RESTIC_PASSWORD}
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef: {name: {{ .Values.backup.existingSecret }}, key: AWS_ACCESS_KEY_ID}
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef: {name: {{ .Values.backup.existingSecret }}, key: AWS_SECRET_ACCESS_KEY}
+              securityContext:
+                {{- include "arfolio.containerSecurity" . | nindent 16 }}
+              resources:
+                {{- toYaml .Values.backup.resources.restic | nindent 16 }}
+              volumeMounts:
+                - name: staging
+                  mountPath: /staging
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: staging
+              emptyDir:
+                sizeLimit: 2Gi
+            - name: tmp
+              emptyDir:
+                sizeLimit: 1Gi
+{{- end }}

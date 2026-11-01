@@ -1,0 +1,1 @@
+ALTER TABLE "liability" ADD CONSTRAINT "liability_principal_check" CHECK ("liability"."principal" is null or "liability"."principal" >= 0);

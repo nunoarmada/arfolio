@@ -1,0 +1,62 @@
+name: Release Please
+
+# Keeps a release pull request (version bump and CHANGELOG.md) up to date from Conventional Commits
+# on main, but only after CI succeeded on the pushed commit, so a release image is always built from
+# code that passed CI. Merging the release PR creates the tag and GitHub release; the image is then
+# published by calling release.yml with that CI-tested sha, because a tag created with GITHUB_TOKEN
+# does not trigger other workflows.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# One run at a time, none cancelled mid-way: a half-finished release would leave a tag without image.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    # workflow_run fires for every CI run on main, including failed ones and pull-request runs from
+    # a branch named main in a fork: only a push-triggered, green run proceeds.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      # The image is built from the CI-tested sha only; a release cut at another commit is skipped.
+      - name: Note a release that is not the CI-tested commit
+        if: steps.release.outputs.release_created == 'true' && steps.release.outputs.sha != github.event.workflow_run.head_sha
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: echo "::notice::Release was created at $RELEASE_SHA but CI passed on $TESTED_SHA; no image was built. Run release.yml for the tag manually."
+
+  image:
+    needs: release-please
+    if: >-
+      needs.release-please.outputs.release_created == 'true' &&
+      needs.release-please.outputs.sha == github.event.workflow_run.head_sha
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+      sha: ${{ github.event.workflow_run.head_sha }}
+    permissions:
+      contents: read
+      packages: write

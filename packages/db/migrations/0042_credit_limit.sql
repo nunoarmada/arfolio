@@ -1,0 +1,2 @@
+ALTER TABLE "financial_account" ADD COLUMN "credit_limit" bigint;--> statement-breakpoint
+ALTER TABLE "financial_account" ADD CONSTRAINT "financial_account_credit_limit_check" CHECK ("financial_account"."credit_limit" is null or ("financial_account"."credit_limit" >= 0 and "financial_account"."type" = 'card'));

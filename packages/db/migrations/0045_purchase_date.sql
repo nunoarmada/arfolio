@@ -1,0 +1,2 @@
+ALTER TABLE "transaction" ADD COLUMN "purchase_date" date GENERATED ALWAYS AS (coalesce(transaction_date, booking_date)) STORED NOT NULL;--> statement-breakpoint
+CREATE INDEX "transaction_household_purchase_date_idx" ON "transaction" USING btree ("household_id","purchase_date" DESC NULLS LAST);

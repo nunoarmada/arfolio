@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "paths": {
+      "@arfolio/db": ["../db/src/index.ts"]
+    }
+  },
+  "include": ["src", "test", "vitest.config.ts", "../db/test/global-setup.ts"]
+}

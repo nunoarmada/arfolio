@@ -1,0 +1,6 @@
+apiVersion: v2
+name: arfolio
+description: Arfolio, a white-label household finance app (web, worker, migrations, optional bundled PostgreSQL and backups).
+type: application
+version: 0.1.0
+appVersion: '0.1.0'

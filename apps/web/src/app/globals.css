@@ -1,0 +1,355 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+
+  /* Brand (overridden at runtime from installation config) */
+  --primary: oklch(0.501 0.169 263.9);
+  --primary-foreground: oklch(0.99 0 0);
+  /* Also emitted per brand at runtime (deriveBrand): --primary-hover, --primary-text,
+     --primary-2, --primary-glow. The rest below derive from them in CSS. */
+  --primary-hover: oklch(0.451 0.169 263.9);
+  --primary-text: oklch(0.5 0.169 263.9);
+  --primary-2: oklch(0.501 0.152 281.9);
+  --primary-glow: oklch(0.501 0.169 263.9 / 0.14);
+  /* The mark's tile: light-mode values in both themes (see deriveBrand). */
+  --brand-tile: oklch(0.501 0.169 263.9);
+  --brand-tile-2: oklch(0.501 0.152 281.9);
+  --brand-tile-foreground: #ffffff;
+  --primary-soft: color-mix(in oklab, var(--primary) 10%, var(--surface));
+  --primary-soft-strong: color-mix(in oklab, var(--primary) 18%, var(--surface));
+  --primary-border: color-mix(in oklab, var(--primary) 35%, var(--border));
+  --brand-gradient: linear-gradient(135deg, var(--primary), var(--primary-2));
+
+  /* Surfaces (v2 "Calm Console": canvas, then card, then raised, then overlay) */
+  --background: oklch(0.972 0.003 260); /* app canvas */
+  --sidebar: oklch(0.99 0.002 260); /* sidebar / rail */
+  --surface: oklch(1 0 0); /* cards, sheets, rows */
+  --surface-raised: oklch(1 0 0); /* popovers, sheets */
+  --surface-2: oklch(0.962 0.004 260); /* subtle fills, hover, table header, skeleton base */
+  --surface-3: oklch(0.93 0.005 260); /* pressed, selected neutral */
+  --overlay: oklch(0.15 0.01 260 / 0.4); /* sheet/dialog scrim */
+
+  /* Lines */
+  --border: oklch(0.915 0.004 260); /* dividers, card outlines (decorative) */
+  --border-strong: oklch(0.86 0.006 260); /* totals, sticky column edge */
+  --input: oklch(0.66 0.008 260); /* form control borders, ≥3:1 vs surface */
+
+  /* Text */
+  --foreground: oklch(0.2 0.012 260);
+  --muted-foreground: oklch(0.48 0.012 260); /* ≥4.5:1 on surface-2 */
+  --subtle-foreground: oklch(0.62 0.01 260); /* placeholders, disabled; never essential info */
+
+  /* Semantic */
+  --positive: oklch(0.5 0.13 155); /* income, under budget, synced */
+  --positive-soft: oklch(0.962 0.03 155);
+  --negative: oklch(0.53 0.19 27); /* over budget, negative balance, errors */
+  --negative-soft: oklch(0.962 0.025 27);
+  --warning: oklch(0.51 0.12 65); /* near limit, consent expiring, needs review */
+  --warning-soft: oklch(0.965 0.04 85);
+  --transfer: oklch(0.5 0.05 250); /* internal transfers, neutral movements */
+  --transfer-soft: oklch(0.955 0.012 250);
+  --destructive: var(--negative);
+  --destructive-foreground: oklch(0.99 0 0);
+  --ring: var(--primary);
+
+  /* Charts: categorical, fixed order, ≥3:1 vs surface */
+  --chart-1: oklch(0.56 0.15 255); /* blue */
+  --chart-2: oklch(0.6 0.11 190); /* teal */
+  --chart-3: oklch(0.64 0.14 70); /* amber */
+  --chart-4: oklch(0.54 0.17 305); /* violet */
+  --chart-5: oklch(0.58 0.17 5); /* rose */
+  --chart-6: oklch(0.58 0.13 145); /* green */
+  --chart-7: oklch(0.6 0.16 45); /* orange */
+  --chart-8: oklch(0.55 0.03 260); /* slate, reserved for "Outros"/uncategorised */
+  --chart-grid: var(--border);
+  /* Edge shadows of scroll regions (ScrollRegion). */
+  --edge-shadow: oklch(0.2 0.02 260 / 0.1);
+
+  /* Shape, depth, motion */
+  --radius: 0.75rem; /* 12px */
+  --elev-xs: 0 1px 2px oklch(0.2 0.02 260 / 0.05);
+  --elev-card:
+    0 0 0 1px oklch(0.2 0.02 260 / 0.06), 0 1px 2px oklch(0.2 0.02 260 / 0.04),
+    0 2px 8px -2px oklch(0.2 0.02 260 / 0.06);
+  --elev-raised: 0 0 0 1px oklch(0.2 0.02 260 / 0.06), 0 6px 20px -6px oklch(0.2 0.02 260 / 0.14);
+  --elev-overlay:
+    0 0 0 1px oklch(0.2 0.02 260 / 0.08), 0 24px 48px -12px oklch(0.2 0.02 260 / 0.25);
+  /* v1 names, kept until components move to the v2 set */
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 260 / 0.06);
+  --shadow-md: 0 4px 12px oklch(0.2 0.01 260 / 0.08), 0 1px 3px oklch(0.2 0.01 260 / 0.06);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.01 260 / 0.12), 0 2px 6px oklch(0.2 0.01 260 / 0.06);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+
+  /* Layout */
+  --tabbar-height: 64px;
+  --topbar-height: 56px;
+  --rail-width: 72px;
+  --sidebar-width: 256px;
+  --sidebar-width-collapsed: var(--rail-width);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --primary: oklch(0.68 0.16 263.9);
+  --primary-foreground: oklch(0.18 0.01 260);
+  --primary-hover: oklch(0.72 0.145 263.9);
+  --primary-text: oklch(0.76 0.122 263.9);
+  --primary-2: oklch(0.68 0.144 281.9);
+  --primary-glow: oklch(0.68 0.16 263.9 / 0.22);
+  --primary-soft: color-mix(in oklab, var(--primary) 16%, var(--surface));
+  --primary-soft-strong: color-mix(in oklab, var(--primary) 26%, var(--surface));
+
+  --background: oklch(0.145 0.006 260);
+  --sidebar: oklch(0.165 0.006 260);
+  --surface: oklch(0.19 0.007 260);
+  --surface-raised: oklch(0.215 0.008 260);
+  --surface-2: oklch(0.225 0.008 260);
+  --surface-3: oklch(0.265 0.009 260);
+  --overlay: oklch(0.05 0 0 / 0.6);
+
+  --border: oklch(0.28 0.008 260);
+  --border-strong: oklch(0.34 0.01 260);
+  --input: oklch(0.52 0.01 260);
+
+  --foreground: oklch(0.965 0.003 260);
+  --muted-foreground: oklch(0.73 0.01 260);
+  --subtle-foreground: oklch(0.58 0.01 260);
+
+  --positive: oklch(0.76 0.14 155);
+  --positive-soft: oklch(0.27 0.05 155);
+  --negative: oklch(0.72 0.16 25);
+  --negative-soft: oklch(0.28 0.06 25);
+  --warning: oklch(0.8 0.13 80);
+  --warning-soft: oklch(0.29 0.05 80);
+  --transfer: oklch(0.74 0.05 250);
+  --transfer-soft: oklch(0.27 0.02 250);
+  --destructive-foreground: oklch(0.18 0.01 260);
+
+  --chart-1: oklch(0.72 0.13 255);
+  --chart-2: oklch(0.74 0.1 190);
+  --chart-3: oklch(0.8 0.13 75);
+  --chart-4: oklch(0.72 0.14 305);
+  --chart-5: oklch(0.72 0.15 5);
+  --chart-6: oklch(0.74 0.13 145);
+  --chart-7: oklch(0.75 0.14 45);
+  --chart-8: oklch(0.66 0.02 260);
+
+  --edge-shadow: oklch(0 0 0 / 0.4);
+  --elev-xs: 0 1px 2px oklch(0 0 0 / 0.4);
+  --elev-card:
+    inset 0 1px 0 oklch(1 0 0 / 0.04), 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 8px oklch(0 0 0 / 0.4);
+  --elev-raised:
+    inset 0 1px 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.08), 0 8px 24px oklch(0 0 0 / 0.55);
+  --elev-overlay:
+    inset 0 1px 0 oklch(1 0 0 / 0.06), 0 0 0 1px oklch(1 0 0 / 0.1), 0 28px 56px oklch(0 0 0 / 0.55);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.55);
+}
+
+@theme inline {
+  --font-sans:
+    var(--font-geist), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-overlay: var(--overlay);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-primary-2: var(--primary-2);
+  --color-primary-glow: var(--primary-glow);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-strong: var(--primary-soft-strong);
+  --color-primary-border: var(--primary-border);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-transfer: var(--transfer);
+  --color-transfer-soft: var(--transfer-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-grid: var(--chart-grid);
+
+  /* shadcn aliases so generated components work unmodified */
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--surface-2);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--foreground);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--foreground);
+
+  --radius-sm: 6px; /* chips */
+  --radius-md: 8px; /* inputs, buttons */
+  --radius-lg: var(--radius); /* 12px: cards, row groups */
+  --radius-xl: 16px; /* hero cards, sheets, dialogs */
+
+  --shadow-xs: var(--elev-xs);
+  --shadow-card: var(--elev-card);
+  --shadow-raised: var(--elev-raised);
+  --shadow-overlay: var(--elev-overlay);
+
+  /* v2 type scale (§3.1): text-<name> sets size, line height, weight and tracking. display, kpi
+     and title step up at larger widths, so they are @utility rules below. */
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.625rem;
+  --text-heading--font-weight: 600;
+  --text-heading--letter-spacing: -0.01em;
+  --text-card-title: 0.9375rem;
+  --text-card-title--line-height: 1.375rem;
+  --text-card-title--font-weight: 600;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-label--font-weight: 500;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
+  --text-caption--letter-spacing: 0.01em;
+}
+
+@utility text-display {
+  font-size: 2.5rem;
+  line-height: 2.75rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  @media (width >= 48rem) {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+@utility text-kpi {
+  font-size: 1.625rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  @media (width >= 80rem) {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+}
+@utility text-title {
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  @media (width >= 48rem) {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--topbar-height) + 8px);
+    scroll-padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 8px);
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skeletons appear only after 200ms so quick loads do not flash (design system §5). */
+@keyframes delayed-appear {
+  to {
+    opacity: 1;
+  }
+}
+.skeleton {
+  opacity: 0;
+  animation:
+    delayed-appear 0s linear 200ms forwards,
+    skeleton-shimmer 1.6s ease-in-out 200ms infinite;
+  background-color: var(--surface-2);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklab, var(--surface-3) 70%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-position: 120% 0;
+  border-radius: var(--radius-md);
+}
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -20% 0;
+  }
+}
+
+/* Page transitions are not used; focus ring is never removed. Hero figures drop the slashed zero. */
+.money-hero {
+  font-feature-settings: 'zero' 0;
+  letter-spacing: -0.02em;
+}
+
+/* Codes and keys are read aloud and typed: a slashed zero keeps 0 and O apart. */
+.slashed-zero {
+  font-feature-settings: 'zero' 1;
+}
+
+/* Toasts sit above a sheet's pinned footer while a sheet is open (phones: above the footer,
+   from md up: left of the 480px panel). */
+body:has([role='dialog'][data-state='open']) .toast-region {
+  bottom: calc(env(safe-area-inset-bottom) + 6rem);
+}
+@media (min-width: 768px) {
+  body:has([role='dialog'][data-state='open']) .toast-region {
+    right: calc(480px + 1.5rem);
+    bottom: 1.5rem;
+  }
+}

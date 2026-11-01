@@ -1,0 +1,120 @@
+# Arfolio, self-hosted: Postgres + one-shot migrations + web + worker.
+#   ./scripts/init-env.sh && docker compose up -d      then open http://localhost:3000/setup
+# Web is published on 127.0.0.1 only; put a reverse proxy in front for remote access and set APP_URL
+# to the public https URL. Pin ARFOLIO_VERSION (e.g. 0.1.0) instead of following latest.
+
+x-image: &image
+  image: ghcr.io/nunoarmada/arfolio:${ARFOLIO_VERSION:-latest}
+  # To build from source instead of pulling: uncomment and run `docker compose up -d --build`.
+  # build: .
+
+# Same hardening as the Helm chart: non-root (the image's 1001), read-only root FS, no capabilities.
+x-hardened: &hardened
+  read_only: true
+  tmpfs:
+    - /tmp:size=128m,uid=1001,gid=1001
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://pfm_app:${APP_DB_PASSWORD:?run ./scripts/init-env.sh first}@db:5432/pfm
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run ./scripts/init-env.sh first}
+
+# Optional overrides of the Services page (see .env.example). A null value is passed through from
+# .env or your shell when set, and left unset in the container otherwise.
+x-integration-env: &integration-env
+  ENABLE_BANKING_APP_ID:
+  ENABLE_BANKING_PRIVATE_KEY:
+  ENABLE_BANKING_API_URL:
+  ANTHROPIC_API_KEY:
+  AI_CATEGORISATION_MODEL:
+  AI_REPORT_MODEL:
+  AI_VALUATION_MODEL:
+  MERCHANT_LOGOS:
+  VAPID_PUBLIC_KEY:
+  VAPID_PRIVATE_KEY:
+  VAPID_SUBJECT:
+  PUSH_ALLOWED_HOSTS:
+  MCP_ALLOWED_REDIRECT_URIS:
+  SMTP_URL:
+  MAIL_FROM:
+
+# Look and behaviour (see .env.example). Passed through like the block above: unset keeps the app default.
+x-web-env: &web-env
+  BRAND_NAME:
+  BRAND_PRIMARY_COLOR:
+  BRAND_LOGO_URL:
+  DEFAULT_LOCALE:
+  CLIENT_IP_HEADER:
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ./scripts/init-env.sh first}
+      POSTGRES_DB: pfm
+    volumes:
+      - arfolio-db:/var/lib/postgresql/data
+    healthcheck:
+      # Over TCP: the init-time server only listens on the unix socket.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U postgres -d pfm']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    <<: [*image, *hardened]
+    command: ['migrate']
+    restart: 'no'
+    environment:
+      DATABASE_OWNER_URL: postgres://postgres:${POSTGRES_PASSWORD:?}@db:5432/pfm
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?run ./scripts/init-env.sh first}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: [*image, *hardened]
+    command: ['web']
+    restart: unless-stopped
+    environment:
+      <<: [*app-env, *integration-env, *web-env]
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?run ./scripts/init-env.sh first}
+      SETUP_TOKEN: ${SETUP_TOKEN:?run ./scripts/init-env.sh first}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-${APP_URL:-http://localhost:3000}}
+    ports:
+      - '${ARFOLIO_BIND:-127.0.0.1}:${ARFOLIO_PORT:-3000}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:3000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: [*image, *hardened]
+    command: ['worker']
+    restart: unless-stopped
+    environment:
+      <<: [*app-env, *integration-env]
+      TZ:
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8081/healthz']
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  arfolio-db:

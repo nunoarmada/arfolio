@@ -1,0 +1,1 @@
+ALTER TABLE "transaction" ADD COLUMN "transfer_locked" boolean DEFAULT false NOT NULL;

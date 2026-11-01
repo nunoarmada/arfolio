@@ -1,0 +1,1 @@
+ALTER TABLE "connection" ADD COLUMN "t212_enriched_through" date;

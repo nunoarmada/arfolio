@@ -1,0 +1,2 @@
+ALTER TABLE "sign_in_failure" ADD COLUMN "ip" text DEFAULT '' NOT NULL;--> statement-breakpoint
+CREATE INDEX "sign_in_failure_email_ip_attempted_at_idx" ON "sign_in_failure" USING btree ("email","ip","attempted_at");

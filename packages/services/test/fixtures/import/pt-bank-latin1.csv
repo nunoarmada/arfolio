@@ -1,0 +1,12 @@
+Extrato de conta;;;;;
+Conta;Conta Exemplo;;;;
+Período;01-03-2026 a 31-03-2026;;;;
+;;;;;
+Data Mov.;Data Valor;Descrição;Débito;Crédito;Saldo
+02-03-2026;02-03-2026;COMPRA Mercearia Exemplo 0123;23,45;;1.976,55
+03-03-2026;04-03-2026;TRF Salário Empresa Exemplo;;1.500,00;3.476,55
+
+05-03-2026;05-03-2026;Pagamento Café Central;1.234,56;;2.242,00
+06-03-2026;06-03-2026;COMPRA Café Central;3,50;;2.238,50
+06-03-2026;06-03-2026;COMPRA Café Central;3,50;;2.235,00
+Saldo final;;;;;2.235,00

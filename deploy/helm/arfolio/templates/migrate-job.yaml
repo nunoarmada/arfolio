@@ -1,0 +1,92 @@
+{{- /*
+Runs the database migrations (also creates the app role) before web and worker roll out.
+Helm: pre-upgrade always; pre-install with an external database. With the bundled Postgres a pre-install hook would
+wait for a database that Helm only creates after the hooks, so there it is post-install.
+Argo CD: Sync hook in wave migrate.argoSyncWave (Argo ignores the Helm hook annotations when its own are present).
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "arfolio.fullname" . }}-migrate
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: {{ ternary "post-install,pre-upgrade" "pre-install,pre-upgrade" .Values.postgresql.enabled }}
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: {{ .Values.migrate.argoSyncWave | quote }}
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "arfolio.componentLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      {{- include "arfolio.podCommon" . | nindent 6 }}
+      securityContext:
+        {{- include "arfolio.podSecurity" . | nindent 8 }}
+      {{- include "arfolio.scheduling" . | nindent 6 }}
+      initContainers:
+        - name: wait-for-database
+          image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+          {{- with .Values.externalDatabase.sslmode }}
+          {{- if not $.Values.postgresql.enabled }}
+          env:
+            - {name: PGSSLMODE, value: {{ . | quote }}}
+          {{- end }}
+          {{- end }}
+          command:
+            - sh
+            - -c
+            - |
+              i=0
+              until pg_isready -h {{ include "arfolio.dbHost" . }} -p {{ include "arfolio.dbPort" . }} -U {{ include "arfolio.dbOwnerUser" . }} -d {{ include "arfolio.dbName" . }}; do
+                i=$((i + 1))
+                if [ "$i" -ge 60 ]; then
+                  echo "ERROR: database {{ include "arfolio.dbHost" . }} was not ready after 120s."
+                  exit 1
+                fi
+                sleep 2
+              done
+          securityContext:
+            {{- include "arfolio.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+      containers:
+        - name: migrate
+          image: {{ include "arfolio.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate"]
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "arfolio.ownerPasswordSecretName" . }}
+                  key: {{ include "arfolio.ownerPasswordSecretKey" . }}
+            - name: APP_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "arfolio.secretName" . }}
+                  key: APP_DB_PASSWORD
+            - name: DATABASE_OWNER_URL
+              value: postgres://{{ include "arfolio.dbOwnerUser" . }}:$(POSTGRES_PASSWORD)@{{ include "arfolio.dbHost" . }}:{{ include "arfolio.dbPort" . }}/{{ include "arfolio.dbName" . }}{{ include "arfolio.dbQuery" . }}
+          securityContext:
+            {{- include "arfolio.containerSecurity" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.migrate.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

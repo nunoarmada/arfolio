@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "paths": {
+      "@arfolio/db": ["../../packages/db/src/index.ts"]
+    }
+  },
+  "include": [
+    "src",
+    "vitest.config.ts",
+    "build.mjs",
+    "check-externals.mjs",
+    "check-externals.d.mts",
+    "../../packages/db/test/global-setup.ts"
+  ]
+}

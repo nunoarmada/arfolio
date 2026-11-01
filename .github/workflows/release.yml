@@ -1,0 +1,115 @@
+name: Release
+
+# Publishes only after CI succeeded on main (or on demand), and builds the commit CI tested.
+# A version tag (pushed by hand) or a call from release-please.yml with a version also publishes the
+# release tags X.Y.Z, X.Y and latest. release-please tags with GITHUB_TOKEN, which does not trigger
+# workflows, hence the workflow_call.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  workflow_call:
+    inputs:
+      version:
+        description: Released version without the leading v (for example 1.2.3)
+        type: string
+        required: true
+      sha:
+        description: Commit to build (the commit CI passed on)
+        type: string
+        required: true
+
+concurrency:
+  group: release-${{ inputs.sha || github.event.workflow_run.head_sha || github.sha }}${{ inputs.version && format('-{0}', inputs.version) || '' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    # workflow_run fires for every CI run on main, including failed ones and pull-request runs
+    # from a branch named main in a fork: only a push-triggered, green run releases.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      inputs.version != ''
+    runs-on: ubuntu-latest
+    env:
+      SHA: ${{ inputs.sha || github.event.workflow_run.head_sha || github.sha }}
+      # Set for a called run; a tag push derives it from the tag name below.
+      INPUT_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image name, short SHA and tags
+        id: vars
+        run: |
+          set -euo pipefail
+          echo "short=${SHA::7}" >> "$GITHUB_OUTPUT"
+          # GHCR requires a lowercase repository path.
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+
+          version="$INPUT_VERSION"
+          if [ -z "$version" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+
+          tags="${image}:sha-${SHA::7}"
+          if [ -z "$version" ]; then
+            tags="${tags}"$'\n'"${image}:main"
+          else
+            if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+              echo "Not a SemVer version: ${version}" >&2
+              exit 1
+            fi
+            tags="${tags}"$'\n'"${image}:${version}"
+            # Pre-releases (1.0.0-rc.1) get their exact tag only: X.Y and latest stay on stable releases.
+            if ! echo "$version" | grep -q -- '-'; then
+              tags="${tags}"$'\n'"${image}:${version%.*}"$'\n'"${image}:latest"
+            fi
+          fi
+          {
+            echo "tags<<EOF"
+            echo "$tags"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          build-args: GIT_SHA=${{ env.SHA }}
+          tags: ${{ steps.vars.outputs.tags }}
+          cache-from: type=gha,scope=arfolio
+          cache-to: type=gha,scope=arfolio,mode=max
+      - name: Summary
+        env:
+          TAGS: ${{ steps.vars.outputs.tags }}
+        run: |
+          {
+            echo "### Image published"
+            echo ""
+            echo "- Commit: \`${SHA}\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Tags:"
+            while IFS= read -r tag; do
+              printf -- '  - %s\n' "$tag"
+            done <<< "$TAGS"
+          } >> "$GITHUB_STEP_SUMMARY"

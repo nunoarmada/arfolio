@@ -1,0 +1,167 @@
+# Default values for the Arfolio chart. Neutral on purpose: set app.url and your own overrides.
+
+image:
+  repository: ghcr.io/nunoarmada/arfolio
+  # Defaults to the chart appVersion.
+  tag: ''
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+app:
+  # Public URL users reach Arfolio at (REQUIRED, e.g. https://arfolio.example.com). Used for APP_URL and BETTER_AUTH_URL.
+  url: ''
+  brandName: Arfolio
+  brandPrimaryColor: ''
+  brandLogoUrl: ''
+  defaultLocale: en
+  timezone: UTC
+  # Header the web app trusts for the client IP (set by your ingress/proxy).
+  clientIpHeader: x-real-ip
+
+secrets:
+  # true: a bootstrap Job creates <fullname>-secrets with random hex values (never overwrites existing keys).
+  generate: true
+  # Name of a Secret you manage. Required when generate=false. When set, the bootstrap Job is not rendered
+  # (nothing is generated) and this Secret is used as is.
+  # Keys: POSTGRES_PASSWORD, APP_DB_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY (64 hex), SETUP_TOKEN,
+  # RESTIC_PASSWORD (only if backup.enabled). Passwords end up in connection URLs: keep them URL-safe (hex).
+  existingSecret: ''
+  bootstrap:
+    image:
+      repository: alpine/k8s
+      tag: 1.34.12@sha256:d50424976a0a888d2531f13035dce45c004ec2b6f877f233005ba35c0d61be5d
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+
+# Optional settings, read with optional: true. Keys: SMTP_URL, MAIL_FROM, ANTHROPIC_API_KEY,
+# ENABLE_BANKING_APP_ID, ENABLE_BANKING_PRIVATE_KEY, ENABLE_BANKING_API_URL, AI_CATEGORISATION_MODEL,
+# AI_REPORT_MODEL, AI_VALUATION_MODEL, MERCHANT_LOGOS, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, PUSH_ALLOWED_HOSTS, MCP_ALLOWED_REDIRECT_URIS (web, worker)
+# and BACKUP_PING_URL (backup).
+optionalSecret:
+  # Defaults to <fullname>-optional.
+  name: ''
+
+# Extra environment for web and worker.
+extraEnv: []
+extraEnvFrom: []
+
+web:
+  # Keep at 1. Better Auth's HTTP rate limiter (rateLimit.storage: memory) is per process, so with
+  # more replicas each pod keeps its own counters and the limits multiply by the replica count.
+  # The Postgres-backed sign-in lockout is shared and unaffected. Before scaling out, move the
+  # limiter to shared storage (database or secondary storage).
+  replicas: 1
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+  service:
+    type: ClusterIP
+    port: 3000
+
+worker:
+  replicas: 1
+  healthPort: 8081
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 300m, memory: 256Mi }
+
+migrate:
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  # Argo CD sync wave of the migrate hook (after Postgres at -2, before web/worker at 0).
+  argoSyncWave: '-1'
+
+postgresql:
+  # false: use externalDatabase instead.
+  enabled: true
+  image:
+    repository: postgres
+    tag: 17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+  persistence:
+    size: 5Gi
+    # Empty uses the cluster default storage class.
+    storageClass: ''
+    # Use an existing PVC instead of creating one.
+    existingClaim: ''
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+externalDatabase:
+  host: ''
+  port: 5432
+  database: pfm
+  # Owner role: runs migrations (and creates appUser).
+  ownerUser: pfm_owner
+  # Role the app connects as (created by the migrate job).
+  appUser: pfm_app
+  # REQUIRED with an external database: Secret holding the owner password.
+  existingSecret: ''
+  ownerPasswordKey: POSTGRES_PASSWORD
+  # libpq sslmode (e.g. require, verify-full). Empty: not set.
+  sslmode: ''
+
+backup:
+  enabled: false
+  # Secret with RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (required when enabled).
+  existingSecret: ''
+  # Appended to RESTIC_REPOSITORY (e.g. share one bucket between apps).
+  repositorySuffix: ''
+  # true: read RESTIC_PASSWORD from the backup secret instead of the Arfolio secret.
+  resticPasswordFromBackupSecret: false
+  schedule: '30 3 * * *'
+  # Defaults to app.timezone.
+  timeZone: ''
+  retryLock: 10m
+  keep:
+    daily: 14
+    weekly: 8
+    monthly: 12
+  checkReadDataSubset: 2%
+  dumpImage:
+    repository: postgres
+    tag: 17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+  resticImage:
+    repository: restic/restic
+    tag: 0.17.3@sha256:8f5a62b422a2cb1277ea0dd6e826fe1acf649e5b9f02d60e5268d5fd1976255a
+  resources:
+    dump:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+    restic:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { memory: 768Mi }
+
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  hosts: []
+  # - host: arfolio.example.com
+  #   paths:
+  #     - path: /
+  #       pathType: Prefix
+  tls: []
+  # - secretName: arfolio-tls
+  #   hosts: [arfolio.example.com]
+
+networkPolicy:
+  enabled: false
+  # Who may reach web. Defaults to ingress-nginx; an empty podSelector matches every pod in that namespace.
+  ingressController:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+    podSelector: {}
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

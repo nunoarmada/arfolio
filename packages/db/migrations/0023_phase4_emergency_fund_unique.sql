@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "goal_emergency_fund_unique" ON "goal" USING btree ("household_id") WHERE "goal"."kind" = 'emergency_fund' and not "goal"."archived";

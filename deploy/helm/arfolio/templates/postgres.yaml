@@ -1,0 +1,136 @@
+{{- if .Values.postgresql.enabled }}
+{{- /*
+Dedicated PostgreSQL. The data PVC is kept on uninstall (helm.sh/resource-policy: keep) and never pruned by Argo CD.
+pfm_owner (POSTGRES_USER) owns the schema and runs migrations; the app connects as pfm_app, created by the migrate job.
+*/ -}}
+{{- $pg := printf "%s-postgres" (include "arfolio.fullname" .) }}
+{{- if not .Values.postgresql.persistence.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $pg }}
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with .Values.postgresql.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.persistence.size }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $pg }}
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "arfolio.selectorLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $pg }}
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  replicas: 1
+  serviceName: {{ $pg }}
+  selector:
+    matchLabels:
+      {{- include "arfolio.selectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "arfolio.componentLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "arfolio.scheduling" . | nindent 6 }}
+      containers:
+        - name: postgres
+          image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              value: pfm_owner
+            - name: POSTGRES_DB
+              value: pfm
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "arfolio.secretName" . }}
+                  key: POSTGRES_PASSWORD
+            # A subdirectory of the PVC: the volume root holds lost+found on some filesystems.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "pfm_owner", "-d", "pfm"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "pfm_owner", "-d", "pfm"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ default $pg .Values.postgresql.persistence.existingClaim }}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+{{- end }}

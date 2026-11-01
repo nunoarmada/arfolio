@@ -1,0 +1,1 @@
+CREATE INDEX "category_group_household_idx" ON "category_group" USING btree ("household_id");

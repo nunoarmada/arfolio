@@ -1,0 +1,9 @@
+@font-face { font-family: 'Geist'; font-weight: 100 900; src: url('../../../apps/web/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2') format('woff2'); }
+:root { --canvas: oklch(0.145 0.006 260); --ink: #F2F3F5; --muted: oklch(0.73 0.01 260); --primary: #2F5BC2; --primary-2: #5853B6; --line: #6494FA; }
+* { margin: 0; box-sizing: border-box; }
+html, body { background: var(--canvas); }
+body { font-family: 'Geist', sans-serif; color: var(--ink); overflow: hidden; }
+.stage { position: relative; overflow: hidden; background:
+  radial-gradient(ellipse 60% 90% at 100% 0%, rgba(100,148,250,.20), transparent 70%), var(--canvas); }
+.chart { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; }
+.tile { display: block; }

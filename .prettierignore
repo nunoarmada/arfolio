@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+coverage
+pnpm-lock.yaml
+docs
+.superpowers
+test-results
+playwright-report
+**/public/sw.js*
+**/public/swe-worker-*.js
+deploy/helm/**/templates
+deploy/helm/**/values.schema.json

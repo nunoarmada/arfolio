@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  # Pull requests run on pull_request only; push covers main (which Release follows).
+  push:
+    branches: [main]
+  pull_request:
+
+# Only the latest commit on a PR matters: cancel superseded runs. Main gets one group per
+# commit, so its runs are never cancelled or dropped from the queue and each reaches Release.
+concurrency:
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # Full Playwright suite against a production build; gates Release with the rest of CI.
+  e2e:
+    # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.56 cannot install browsers on.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/web
+      # Builds workspace deps (@arfolio/db ships dist/), then the web app (webpack, for Serwist), starts it against a migrated database, runs Playwright.
+      - run: pnpm --filter @arfolio/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          if-no-files-found: ignore
+
+  # Catches Dockerfile and runtime breakage before merge (e.g. a bundled-external dependency missing
+  # from the production tree); nothing is pushed.
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: arfolio:ci
+          build-args: GIT_SHA=${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=arfolio
+          cache-to: type=gha,scope=arfolio,mode=max
+      # postgres -> migrate -> worker + web; fails unless /healthz and /api/health answer 200 within 60s.
+      - name: Smoke test the image
+        run: sh scripts/image-smoke.sh arfolio:ci
+
+  # Lints and renders the Helm chart, validates the manifests and runs the chart's script tests.
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Install kubeconform
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSLo "$RUNNER_TEMP/kubeconform.tar.gz" https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz
+          echo "c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP/bin" kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - run: helm lint deploy/helm/arfolio --set app.url=https://arfolio.example.com
+      - run: sh deploy/helm/arfolio/tests/render.test.sh
+      - run: sh deploy/helm/arfolio/tests/secrets-bootstrap.test.sh

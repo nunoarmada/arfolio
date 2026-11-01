@@ -1,0 +1,26 @@
+Arfolio {{ default .Chart.AppVersion .Values.image.tag }} installed as "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
+
+Public URL: {{ .Values.app.url }}
+{{- if not .Values.ingress.enabled }}
+No Ingress was created (ingress.enabled=false). To try it locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "arfolio.fullname" . }}-web {{ .Values.web.service.port }}:{{ .Values.web.service.port }}
+(APP_URL must match the address you browse to for sign-in to work.)
+{{- end }}
+
+First-run setup token (needed to create the first user):
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "arfolio.secretName" . }} -o jsonpath='{.data.SETUP_TOKEN}' | base64 -d; echo
+{{- if .Values.secrets.generate }}
+
+The Secret is created by a bootstrap Job; if the command above says NotFound, wait for that Job to finish:
+  kubectl -n {{ .Release.Namespace }} get jobs
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+
+Bundled PostgreSQL: its data volume is kept when you uninstall the release (helm.sh/resource-policy: keep).
+The migrate Job runs after install (post-install hook) because the database only exists then; avoid
+`--wait` on the very first install, or the web pod may block it.
+{{- end }}
+{{- if .Values.backup.enabled }}
+
+Backups run on schedule "{{ .Values.backup.schedule }}". Keep RESTIC_PASSWORD safe: without it the backups cannot be restored.
+{{- end }}

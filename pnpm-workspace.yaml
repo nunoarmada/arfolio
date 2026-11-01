@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# Lets `pnpm deploy` use the lockfile (no --legacy), so the production image is lockfile-pinned.
+injectWorkspacePackages: true

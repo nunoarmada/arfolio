@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "arfolio.fullname" . }}-worker
+  labels:
+    {{- include "arfolio.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "arfolio.selectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "arfolio.componentLabels" (dict "root" . "component" "worker") | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "arfolio.podCommon" . | nindent 6 }}
+      securityContext:
+        {{- include "arfolio.podSecurity" . | nindent 8 }}
+      {{- include "arfolio.scheduling" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: {{ include "arfolio.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["worker"]
+          ports:
+            - name: health
+              containerPort: {{ .Values.worker.healthPort }}
+              protocol: TCP
+          env:
+            {{- include "arfolio.commonEnv" . | nindent 12 }}
+            - name: WORKER_HEALTH_PORT
+              value: {{ .Values.worker.healthPort | quote }}
+            # The default VAPID subject for web push (push services reject a non-https/mailto one).
+            - name: APP_URL
+              value: {{ .Values.app.url | quote }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          securityContext:
+            {{- include "arfolio.containerSecurity" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi

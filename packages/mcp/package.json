@@ -1,0 +1,26 @@
+{
+  "name": "@arfolio/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "@arfolio/core": "workspace:*",
+    "@arfolio/db": "workspace:*",
+    "@arfolio/services": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/pg": "8.23.1",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  }
+}

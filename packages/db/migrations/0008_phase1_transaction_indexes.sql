@@ -1,0 +1,3 @@
+CREATE INDEX "transaction_household_import_batch_idx" ON "transaction" USING btree ("household_id","import_batch_id") WHERE "transaction"."import_batch_id" is not null;--> statement-breakpoint
+CREATE INDEX "transaction_household_transfer_group_idx" ON "transaction" USING btree ("household_id","transfer_group_id") WHERE "transaction"."transfer_group_id" is not null;--> statement-breakpoint
+CREATE INDEX "transaction_household_merchant_idx" ON "transaction" USING btree ("household_id","merchant_id");

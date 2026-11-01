@@ -1,0 +1,1 @@
+ALTER TABLE "connection" ADD COLUMN "external_accounts_enc" text;

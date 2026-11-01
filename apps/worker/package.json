@@ -1,0 +1,31 @@
+{
+  "name": "@arfolio/worker",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.135.0",
+    "@arfolio/connectors": "workspace:*",
+    "@arfolio/core": "workspace:*",
+    "@arfolio/db": "workspace:*",
+    "@arfolio/services": "workspace:*",
+    "csv-parse": "7.0.3",
+    "drizzle-orm": "0.45.4",
+    "exceljs": "4.4.0",
+    "pg-boss": "12.38.0",
+    "saxes": "5.0.1",
+    "web-push": "3.6.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "tsx": "4.23.15"
+  }
+}
