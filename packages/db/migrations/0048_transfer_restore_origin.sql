@@ -1,0 +1,1 @@
+ALTER TABLE "transaction" ADD COLUMN "pre_transfer_categorised_by" text;

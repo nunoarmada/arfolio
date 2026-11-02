@@ -82,6 +82,11 @@ export const transaction = pgTable(
      * away, so only rows from before that change (and the undo of a user's choice) carry one.
      */
     aiSuggestedCategoryId: uuid('ai_suggested_category_id'),
+    /**
+     * Set together with `aiSuggestedCategoryId` when automatic transfer pairing replaced an
+     * automatic category: who had chosen it, so unlinking restores it as it was.
+     */
+    preTransferCategorisedBy: text('pre_transfer_categorised_by').$type<CategorisedBy>(),
     /** The model's confidence in the category it applied (0 when it gave up and used "Outros"). */
     aiConfidence: real('ai_confidence'),
     /** Times the row was sent to the model; at three without a category it falls back to "Outros". */

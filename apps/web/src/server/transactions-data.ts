@@ -95,7 +95,7 @@ async function transferHints(
   const found = await findTransferCandidatesFor(
     ctx,
     open.map((r) => r.id),
-    { windowDays: 3, includeLocked: false },
+    { windowDays: 5, includeLocked: false },
   );
   const hints: Record<string, TransferHint> = {};
   const single = [...found.values()].flatMap((c) => (c.length === 1 ? c : []));

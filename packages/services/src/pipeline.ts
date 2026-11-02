@@ -3,12 +3,13 @@ import { z } from 'zod';
 import {
   findTransferPairs,
   isPlatformTransferLeg,
+  namesAccount,
   parseTransactionDetails,
   referencesOtherAccount,
   type TransactionDetails,
 } from '@arfolio/core';
 import { assignOccurrences, dedupeHash, dedupeKey } from '@arfolio/core/server';
-import { schema, withHousehold, type Tx } from '@arfolio/db';
+import { schema, withHousehold, type Db, type Tx } from '@arfolio/db';
 import {
   assertCanWrite,
   assertUuid,
@@ -35,7 +36,7 @@ const { financialAccount, importBatch, transaction } = schema;
 export const INSERT_CHUNK = 500;
 export const ID_CHUNK = 1_000;
 /** Transfer legs are paired when booked within this many days of each other. */
-const TRANSFER_WINDOW_DAYS = 3;
+const TRANSFER_WINDOW_DAYS = 5;
 const DEFAULT_TRANSFER_LOOKBACK_DAYS = 60;
 const MAX_ROWS_PER_CALL = 50_000;
 const DAY_MS = 86_400_000;
@@ -110,17 +111,21 @@ type PoolLeg = {
   amount: number;
   currency: string;
   categoryId: string | null;
+  categorisedBy: string | null;
+  needsReview: boolean;
   text: string;
   /** A Trading 212-style deposit or withdrawal: a transfer by nature. */
   platform: boolean;
 };
 
 /**
- * Legs that may be paired. An uncategorised leg always is. A leg that memory or the AI
- * categorised (before its counter-leg arrived) only when its own text names the account on the
- * other side or says it is a transfer ("To Trading 212", "top up"), or it is an investment
- * platform deposit/withdrawal: equal amounts alone would
- * pair a card payment with an unrelated deposit.
+ * Legs that may be paired. An uncategorised leg always is. A leg that a rule, memory or the AI
+ * categorised (before its counter-leg arrived) only when
+ *  - its own text names the account on the other side or says it is a transfer ("To Trading 212",
+ *    "top up"), or the partner's text names this leg's account ("Received from Everyday"), or
+ *  - it is an investment platform deposit/withdrawal, or
+ *  - the AI was not confident about it (it is still in the review inbox):
+ * equal amounts alone would pair a confident card payment with an unrelated deposit.
  */
 function pairableLegs(
   legs: PoolLeg[],
@@ -132,13 +137,19 @@ function pairableLegs(
       c.categoryId === null ||
       legs.some((p) => {
         const other = accounts.get(p.accountId);
+        const own = accounts.get(c.accountId);
         return (
           other !== undefined &&
           p.amount === -c.amount &&
           p.currency === c.currency &&
           p.accountId !== c.accountId &&
           Math.abs(day(p.bookingDate) - day(c.bookingDate)) <= TRANSFER_WINDOW_DAYS &&
-          (c.platform || referencesOtherAccount(c.text, other))
+          (c.platform ||
+            // An AI category still in the review inbox means the model was not confident (or gave
+            // up): accepted risk, the pair must still be unambiguous.
+            (c.categorisedBy === 'ai' && c.needsReview) ||
+            referencesOtherAccount(c.text, other) ||
+            (own !== undefined && namesAccount(p.text, own)))
         );
       }),
   );
@@ -159,6 +170,8 @@ async function matchTransfersInTx(
       amount: transaction.amount,
       currency: transaction.currency,
       categoryId: transaction.categoryId,
+      categorisedBy: transaction.categorisedBy,
+      needsReview: transaction.needsReview,
       rawDescription: transaction.rawDescription,
       counterparty: transaction.counterparty,
       details: transaction.details,
@@ -186,6 +199,8 @@ async function matchTransfersInTx(
       amount: r.amount,
       currency: r.currency,
       categoryId: r.categoryId,
+      categorisedBy: r.categorisedBy,
+      needsReview: r.needsReview,
       text: `${r.rawDescription} ${r.counterparty ?? ''}`,
       platform: isPlatformTransferLeg({
         rawDescription: r.rawDescription,
@@ -240,6 +255,41 @@ export async function matchTransfers(
   return withHousehold(ctx.db, ctx.householdId, (tx) =>
     matchTransfersInTx(tx, ctx.householdId, from),
   );
+}
+
+const DEFAULT_REPAIR_DAYS = 30;
+
+/**
+ * Repair sweep: runs the same matching as ingest over the last `days` days (default 30) of every
+ * household, so legs that arrived apart (before late matching existed, or while a leg was still
+ * pending) get linked. Idempotent: linked legs are never candidates again. A household that
+ * fails does not stop the others; its id is returned in `failed` (the caller logs it).
+ */
+export async function matchTransfersForAllHouseholds(
+  db: Db,
+  opts: { days?: number } = {},
+): Promise<{ households: number; paired: number; ambiguous: number; failed: string[] }> {
+  const { days } = parseInput(
+    z.strictObject({ days: z.number().int().min(1).max(365).optional() }),
+    opts,
+  );
+  const since = shiftDate(new Date().toISOString().slice(0, 10), -(days ?? DEFAULT_REPAIR_DAYS));
+  const households = await db.select({ id: schema.organization.id }).from(schema.organization);
+  const out = { households: households.length, paired: 0, ambiguous: 0, failed: [] as string[] };
+  for (const { id } of households) {
+    try {
+      const r = await withHousehold(db, id, (tx) => matchTransfersInTx(tx, id, since));
+      out.paired += r.paired;
+      out.ambiguous += r.ambiguous;
+    } catch (error) {
+      // Never log amounts or descriptions: the household id and the error message only.
+      console.error(
+        `transfer repair failed for household ${id}: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      out.failed.push(id);
+    }
+  }
+  return out;
 }
 
 /**

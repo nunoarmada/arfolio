@@ -25,7 +25,7 @@ export function findTransferPairs(
   cands: TransferCandidate[],
   opts: { windowDays?: number } = {},
 ): { pairs: Array<[string, string]>; ambiguous: string[] } {
-  const windowDays = opts.windowDays ?? 3;
+  const windowDays = opts.windowDays ?? 5;
   const outs = cands.filter((c) => c.amount < 0);
   const outIds = new Set(outs.map((o) => o.id));
   const ins = cands.filter((c) => c.amount > 0);
@@ -145,7 +145,14 @@ export function referencesOtherAccount(
   text: string,
   other: { name: string; institutionName?: string | null },
 ): boolean {
-  if (OWN_TRANSFER_MARKERS.some((m) => words(text).includes(m))) return true;
+  return OWN_TRANSFER_MARKERS.some((m) => words(text).includes(m)) || namesAccount(text, other);
+}
+
+/** True when the text names the account or its institution (not a generic transfer marker). */
+export function namesAccount(
+  text: string,
+  other: { name: string; institutionName?: string | null },
+): boolean {
   const textTokens = tokens(text);
   return [other.name, other.institutionName].some(
     (label) => !!label && labelSpellings(label).some((c) => hasTokenRun(textTokens, c)),

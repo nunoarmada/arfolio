@@ -30,7 +30,7 @@ import { registerT212Export } from './jobs/t212-export.js';
 import { registerSyncConnection } from './jobs/sync-connection.js';
 import { registerSyncScheduler } from './jobs/sync-scheduler.js';
 import { errorMessage, log } from './log.js';
-import { runStartupBackfill } from './startup.js';
+import { runStartupBackfill, runStartupTransferRepair } from './startup.js';
 
 const STOP_TIMEOUT_MS = 25_000;
 const HEALTH_DB_TIMEOUT_MS = 2_000;
@@ -195,6 +195,10 @@ async function main(): Promise<void> {
     log.info(`worker started, health on :${env.WORKER_HEALTH_PORT}`);
     // After the health server is up, so a slow backfill never delays readiness; it logs its own failure.
     await runStartupBackfill(db);
+    // Fire and forget: it can take a while on a big household and must not hold up start or stop.
+    void runStartupTransferRepair(db).catch((err: unknown) => {
+      log.error(`transfer repair failed: ${errorMessage(err)}`);
+    });
   })();
   starting.catch((err: unknown) => {
     log.error(`startup failed: ${errorMessage(err)}`);

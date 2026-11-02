@@ -147,7 +147,12 @@ export type {
   CategoriseInput,
   CategoriseResult,
 } from './transactions.js';
-export { categorizeTransactions, matchTransfers, ingestTransactions } from './pipeline.js';
+export {
+  categorizeTransactions,
+  matchTransfers,
+  matchTransfersForAllHouseholds,
+  ingestTransactions,
+} from './pipeline.js';
 export type { IngestRow, IngestMeta, IngestResult } from './pipeline.js';
 export * from './review.js';
 export * from './summary.js';
