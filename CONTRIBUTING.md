@@ -1,6 +1,6 @@
 # Contributing to Arfolio
 
-Thanks for helping out. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) first.
+Thanks for helping out. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) first. The project rules (generic, open source, no personal data, security and compatibility rules) are in [AGENTS.md](AGENTS.md) and apply to humans and AI agents alike.
 
 ## Prerequisites
 
