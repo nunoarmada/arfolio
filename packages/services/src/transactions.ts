@@ -1355,7 +1355,12 @@ export function transferCandidateFilter(householdId: string, since: string): SQL
     eq(transaction.householdId, householdId),
     eq(transaction.status, 'booked'),
     isNull(transaction.transferGroupId),
-    or(isNull(transaction.categoryId), inArray(transaction.categorisedBy, ['ai', 'memory'])),
+    // Anything categorised automatically (rule, memory, AI) may still turn out to be a transfer
+    // leg; a category the user chose never is overridden.
+    or(
+      isNull(transaction.categoryId),
+      inArray(transaction.categorisedBy, ['rule', 'memory', 'ai']),
+    ),
     eq(transaction.transferLocked, false),
     gte(transaction.bookingDate, since),
   )!;

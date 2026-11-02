@@ -145,7 +145,14 @@ export function referencesOtherAccount(
   text: string,
   other: { name: string; institutionName?: string | null },
 ): boolean {
-  if (OWN_TRANSFER_MARKERS.some((m) => words(text).includes(m))) return true;
+  return OWN_TRANSFER_MARKERS.some((m) => words(text).includes(m)) || namesAccount(text, other);
+}
+
+/** True when the text names the account or its institution (not a generic transfer marker). */
+export function namesAccount(
+  text: string,
+  other: { name: string; institutionName?: string | null },
+): boolean {
   const textTokens = tokens(text);
   return [other.name, other.institutionName].some(
     (label) => !!label && labelSpellings(label).some((c) => hasTokenRun(textTokens, c)),

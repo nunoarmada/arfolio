@@ -3,6 +3,7 @@ import {
   type TransferCandidate,
   findTransferPairs,
   isPlatformTransferLeg,
+  namesAccount,
   referencesOtherAccount,
 } from './transfers';
 
@@ -196,5 +197,15 @@ describe('isPlatformTransferLeg', () => {
         accountType: 'investment',
       }),
     ).toBe(false);
+  });
+});
+
+describe('namesAccount', () => {
+  it('matches the account or institution name, never a generic transfer marker', () => {
+    const main = { name: 'Everyday', institutionName: 'Neobank' };
+    expect(namesAccount('Received from Everyday', main)).toBe(true);
+    expect(namesAccount('NEOBANK top-up', main)).toBe(true);
+    expect(namesAccount('Transfer in', main)).toBe(false);
+    expect(referencesOtherAccount('Transfer in', main)).toBe(true);
   });
 });
