@@ -11,6 +11,7 @@ import {
   listCategories,
   matchTransfersForAllHouseholds,
   seedCategoryTemplates,
+  unlinkTransfer,
   updateTransaction,
   type IngestRow,
   type ServiceCtx,
@@ -197,6 +198,135 @@ describe('late transfer legs', () => {
     expect((await getTransaction(a, six)).transferGroupId).toBeNull();
   });
 
+  it('unlinking restores a converted leg with its original category and origin (rule, memory, ai)', async () => {
+    const from = await account('Restore from');
+    const to = await account('Restore to');
+    await createRule(a, {
+      name: 'restore rule',
+      condition: { descriptionContains: 'restore rule leg' },
+      categoryId: catA,
+    });
+    await withHousehold(a.db, a.householdId, (tx) =>
+      tx.insert(schema.merchant).values({
+        householdId: a.householdId,
+        key: 'RESTORE MEMORY TRANSFER',
+        displayName: 'Restore memory',
+        defaultCategoryId: catB,
+      }),
+    );
+    const out = await ingestTransactions(
+      a,
+      from,
+      [
+        row({ description: 'Transfer restore rule leg', amount: -77_001 }),
+        row({ description: 'RESTORE MEMORY TRANSFER', amount: -77_002 }),
+        row({ description: 'Transfer restore ai leg', amount: -77_003 }),
+      ],
+      { source: 'connector' },
+    );
+    const [ruleId, memoryId, aiId] = out.insertedIds as [string, string, string];
+    await setAi(aiId, catB, false);
+    await ingestTransactions(
+      a,
+      to,
+      [
+        row({ description: 'Transfer in', amount: 77_001, bookingDate: '2026-10-04' }),
+        row({ description: 'Transfer in', amount: 77_002, bookingDate: '2026-10-04' }),
+        row({ description: 'Transfer in', amount: 77_003, bookingDate: '2026-10-04' }),
+      ],
+      { source: 'connector' },
+    );
+    const expected: Array<[string, string, string]> = [
+      [ruleId, catA, 'rule'],
+      [memoryId, catB, 'memory'],
+      [aiId, catB, 'ai'],
+    ];
+    for (const [id] of expected) {
+      const linked = await getTransaction(a, id);
+      expect(linked).toMatchObject({ categoryId: transferCat, categorisedBy: 'rule' });
+      await unlinkTransfer(a, linked.transferGroupId!);
+    }
+    for (const [id, cat, by] of expected) {
+      expect(await getTransaction(a, id)).toMatchObject({
+        categoryId: cat,
+        categorisedBy: by,
+        transferGroupId: null,
+        aiSuggestedCategoryId: null,
+        preTransferCategorisedBy: null,
+      });
+    }
+  });
+
+  it('leaves a confident rule leg alone when the partner text is neutral (owner guard)', async () => {
+    const from = await account('Guard from');
+    const to = await account('Guard to');
+    await createRule(a, {
+      name: 'guard rule',
+      condition: { descriptionContains: 'guard shop' },
+      categoryId: catA,
+    });
+    const out = await ingestTransactions(
+      a,
+      from,
+      [row({ description: 'Guard shop', amount: -78_001 })],
+      { source: 'connector' },
+    );
+    await ingestTransactions(
+      a,
+      to,
+      [row({ description: 'Joao Silva', amount: 78_001, bookingDate: '2026-10-03' })],
+      { source: 'connector' },
+    );
+    expect((await getTransaction(a, out.insertedIds[0]!)).transferGroupId).toBeNull();
+  });
+
+  it('pairs a memory-categorised leg that says transfer with its late counter-leg', async () => {
+    const from = await account('Mem from');
+    const to = await account('Mem to');
+    await withHousehold(a.db, a.householdId, (tx) =>
+      tx.insert(schema.merchant).values({
+        householdId: a.householdId,
+        key: 'TRANSFER MEMORY LATE',
+        displayName: 'Memory late',
+        defaultCategoryId: catB,
+      }),
+    );
+    const out = await ingestTransactions(
+      a,
+      from,
+      [row({ description: 'TRANSFER MEMORY LATE', amount: -79_001 })],
+      { source: 'connector' },
+    );
+    expect(await getTransaction(a, out.insertedIds[0]!)).toMatchObject({ categorisedBy: 'memory' });
+    await ingestTransactions(
+      a,
+      to,
+      [row({ description: 'Joao Silva', amount: 79_001, bookingDate: '2026-10-05' })],
+      { source: 'connector' },
+    );
+    expect((await getTransaction(a, out.insertedIds[0]!)).transferGroupId).not.toBeNull();
+  });
+
+  it('ignores a pending leg', async () => {
+    const from = await account('Ign from');
+    const to = await account('Ign to');
+    const out = await ingestTransactions(
+      a,
+      from,
+      [row({ description: 'pending out', amount: -80_001, status: 'pending' })],
+      { source: 'connector' },
+    );
+    await ingestTransactions(
+      a,
+      to,
+      [row({ description: 'in a', amount: 80_001, bookingDate: '2026-10-03' })],
+      { source: 'connector' },
+    );
+    for (const id of out.insertedIds) {
+      expect((await getTransaction(a, id)).transferGroupId).toBeNull();
+    }
+  });
+
   describe('matchTransfersForAllHouseholds (repair sweep)', () => {
     const day = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString().slice(0, 10);
     const insertRaw = (
@@ -237,13 +367,30 @@ describe('late transfer legs', () => {
       const staleIn = await insertRaw(to, 76_002, day(59));
 
       const first = await matchTransfersForAllHouseholds(a.db, { days: 30 });
-      expect(first.paired).toBeGreaterThanOrEqual(1);
+      expect(first.failed).toEqual([]);
       const out = await getTransaction(a, oldOut);
       expect(out).toMatchObject({ categoryId: transferCat, needsReview: false });
       expect(out.transferGroupId).toBe((await getTransaction(a, oldIn)).transferGroupId);
       expect(out.transferGroupId).not.toBeNull();
       expect((await getTransaction(a, staleOut)).transferGroupId).toBeNull();
       expect((await getTransaction(a, staleIn)).transferGroupId).toBeNull();
+
+      // Ambiguous candidates stay unlinked.
+      const ambOut = await insertRaw(from, -76_003, day(6));
+      const ambInA = await insertRaw(to, 76_003, day(5));
+      const ambInB = await insertRaw(to, 76_003, day(4), { dedupeHash: 'sweep-amb-b' });
+      await matchTransfersForAllHouseholds(a.db, { days: 30 });
+      for (const id of [ambOut, ambInA, ambInB]) {
+        expect((await getTransaction(a, id)).transferGroupId).toBeNull();
+      }
+
+      // A currency mismatch never pairs.
+      const usdOut = await insertRaw(from, -76_004, day(3), { currency: 'USD' });
+      const eurIn = await insertRaw(to, 76_004, day(3));
+      await matchTransfersForAllHouseholds(a.db, { days: 30 });
+      for (const id of [usdOut, eurIn]) {
+        expect((await getTransaction(a, id)).transferGroupId).toBeNull();
+      }
 
       const again = await matchTransfersForAllHouseholds(a.db, { days: 30 });
       expect(again.paired).toBe(0);

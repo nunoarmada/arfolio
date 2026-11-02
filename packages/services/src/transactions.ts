@@ -589,12 +589,17 @@ export async function linkTransferLegs(
         categorisedBy: by,
         confidence: null,
         needsReview: false,
-        // An automatic pairing that replaces a memory/AI category keeps it, so unlinking can put
-        // it back (Postgres evaluates SET expressions on the old row); otherwise any stale
-        // suggestion is dropped, so a non-null value on a leg always means "category to restore".
+        // An automatic pairing that replaces a rule/memory/AI category keeps it, and who chose it,
+        // so unlinking can put both back (Postgres evaluates SET expressions on the old row);
+        // otherwise any stale suggestion is dropped, so a non-null value on a leg always means
+        // "category to restore".
         aiSuggestedCategoryId:
           by === 'rule'
-            ? sql`case when ${transaction.categorisedBy} in ('ai', 'memory') then ${transaction.categoryId} end`
+            ? sql`case when ${transaction.categorisedBy} in ('ai', 'memory', 'rule') then ${transaction.categoryId} end`
+            : null,
+        preTransferCategorisedBy:
+          by === 'rule'
+            ? sql`case when ${transaction.categorisedBy} in ('ai', 'memory', 'rule') then ${transaction.categorisedBy} end`
             : null,
         // Automatic pairing is not a user edit; a user mark is (and protects against re-pairing).
         ...(by === 'user' ? { userEditedAt: sql`now()`, transferLocked: true } : {}),
@@ -657,11 +662,17 @@ export async function unlinkGroupInTx(
           ? { transferLocked: true, ...(restoreId ? {} : { userEditedAt: sql`now()` }) }
           : {}),
         ...(restoreId
-          ? { categoryId: restoreId, categorisedBy: 'ai' as const, confidence: null }
+          ? {
+              categoryId: restoreId,
+              categorisedBy: leg.preTransferCategorisedBy ?? ('ai' as const),
+              confidence: null,
+            }
           : wasTransferCategory
             ? { categoryId: null, categorisedBy: null, confidence: null }
             : {}),
-        ...(wasTransferCategory ? { aiSuggestedCategoryId: null } : {}),
+        ...(wasTransferCategory
+          ? { aiSuggestedCategoryId: null, preTransferCategorisedBy: null }
+          : {}),
       })
       .where(eq(transaction.id, leg.id));
   }
@@ -1346,9 +1357,9 @@ export async function unlinkTransfer(ctx: ServiceCtx, transferGroupId: string): 
 /**
  * Rows eligible for automatic transfer pairing: booked, unlinked, not transfer-locked (a
  * transfer the user marked or unlinked must not be re-paired behind their back; other edits such
- * as notes do not matter here) and uncategorised, or categorised only automatically by memory or
- * the AI (including its "Outros" fallback): a leg is categorised before its counter-leg arrives.
- * Rows a user or a rule categorised never qualify.
+ * as notes do not matter here) and uncategorised, or categorised only automatically by a rule,
+ * memory or the AI (including its "Outros" fallback): a leg is categorised before its counter-leg
+ * arrives. Rows a user categorised never qualify.
  */
 export function transferCandidateFilter(householdId: string, since: string): SQL {
   return and(

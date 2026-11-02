@@ -145,6 +145,8 @@ function pairableLegs(
           p.accountId !== c.accountId &&
           Math.abs(day(p.bookingDate) - day(c.bookingDate)) <= TRANSFER_WINDOW_DAYS &&
           (c.platform ||
+            // An AI category still in the review inbox means the model was not confident (or gave
+            // up): accepted risk, the pair must still be unambiguous.
             (c.categorisedBy === 'ai' && c.needsReview) ||
             referencesOtherAccount(c.text, other) ||
             (own !== undefined && namesAccount(p.text, own)))
@@ -279,7 +281,11 @@ export async function matchTransfersForAllHouseholds(
       const r = await withHousehold(db, id, (tx) => matchTransfersInTx(tx, id, since));
       out.paired += r.paired;
       out.ambiguous += r.ambiguous;
-    } catch {
+    } catch (error) {
+      // Never log amounts or descriptions: the household id and the error message only.
+      console.error(
+        `transfer repair failed for household ${id}: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
       out.failed.push(id);
     }
   }

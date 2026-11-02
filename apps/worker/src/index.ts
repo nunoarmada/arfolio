@@ -195,7 +195,10 @@ async function main(): Promise<void> {
     log.info(`worker started, health on :${env.WORKER_HEALTH_PORT}`);
     // After the health server is up, so a slow backfill never delays readiness; it logs its own failure.
     await runStartupBackfill(db);
-    await runStartupTransferRepair(db);
+    // Fire and forget: it can take a while on a big household and must not hold up start or stop.
+    void runStartupTransferRepair(db).catch((err: unknown) => {
+      log.error(`transfer repair failed: ${errorMessage(err)}`);
+    });
   })();
   starting.catch((err: unknown) => {
     log.error(`startup failed: ${errorMessage(err)}`);
