@@ -73,7 +73,9 @@ has "$D" '^kind: Deployment'; check "defaults: Deployment present" $?
 has "$D" 'name: pfm-web$'; check "defaults: web named after release" $?
 has "$D" 'name: pfm-worker$'; check "defaults: worker present" $?
 has "$D" '^kind: StatefulSet'; check "defaults: bundled Postgres StatefulSet" $?
-has "$D" 'image: ghcr.io/nunoarmada/arfolio:0.1.0'; check "defaults: image tag falls back to appVersion" $?
+APP_VERSION=$(sed -n "s/^appVersion: *['\"]\{0,1\}\([^'\"]*\)['\"]\{0,1\} *$/\1/p" "$CHART/Chart.yaml")
+[ -n "$APP_VERSION" ]; check "defaults: Chart.yaml has an appVersion" $?
+has "$D" "image: ghcr.io/nunoarmada/arfolio:$APP_VERSION"; check "defaults: image tag falls back to appVersion" $?
 has "$D" 'postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94'; check "defaults: Postgres image pinned by digest" $?
 has "$D" 'helm.sh/hook: post-install,pre-upgrade'; check "defaults: migrate helm hook (bundled DB: after install)" $?
 has "$D" 'argocd.argoproj.io/hook: Sync'; check "defaults: migrate Argo hook" $?
