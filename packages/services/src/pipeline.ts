@@ -36,7 +36,7 @@ const { financialAccount, importBatch, transaction } = schema;
 export const INSERT_CHUNK = 500;
 export const ID_CHUNK = 1_000;
 /** Transfer legs are paired when booked within this many days of each other. */
-const TRANSFER_WINDOW_DAYS = 3;
+const TRANSFER_WINDOW_DAYS = 5;
 const DEFAULT_TRANSFER_LOOKBACK_DAYS = 60;
 const MAX_ROWS_PER_CALL = 50_000;
 const DAY_MS = 86_400_000;

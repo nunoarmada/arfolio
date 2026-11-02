@@ -64,7 +64,7 @@ describe('late transfer legs', () => {
   });
   afterAll(() => t.close());
 
-  it('pairs a leg a user rule categorised when the counter-leg arrives three days later', async () => {
+  it('pairs a leg a user rule categorised when the counter-leg arrives three days later (inside the window)', async () => {
     const from = await account('Rule from');
     const to = await account('Rule to');
     await createRule(a, {
@@ -171,15 +171,15 @@ describe('late transfer legs', () => {
     });
   });
 
-  it('pairs at the window edge (3 days) but not beyond it', async () => {
+  it('pairs at the window edge (5 days) but not beyond it (6 days)', async () => {
     const from = await account('Edge from');
     const to = await account('Edge to');
     const out = await ingestTransactions(
       a,
       from,
       [
-        row({ description: 'edge out 3', amount: -75_003, bookingDate: '2026-10-02' }),
-        row({ description: 'edge out 4', amount: -75_004, bookingDate: '2026-10-02' }),
+        row({ description: 'edge out 5', amount: -75_005, bookingDate: '2026-10-02' }),
+        row({ description: 'edge out 6', amount: -75_006, bookingDate: '2026-10-02' }),
       ],
       { source: 'connector' },
     );
@@ -187,14 +187,14 @@ describe('late transfer legs', () => {
       a,
       to,
       [
-        row({ description: 'edge in 3', amount: 75_003, bookingDate: '2026-10-05' }),
-        row({ description: 'edge in 4', amount: 75_004, bookingDate: '2026-10-06' }),
+        row({ description: 'edge in 5', amount: 75_005, bookingDate: '2026-10-07' }),
+        row({ description: 'edge in 6', amount: 75_006, bookingDate: '2026-10-08' }),
       ],
       { source: 'connector' },
     );
-    const [three, four] = out.insertedIds as [string, string];
-    expect((await getTransaction(a, three)).transferGroupId).not.toBeNull();
-    expect((await getTransaction(a, four)).transferGroupId).toBeNull();
+    const [five, six] = out.insertedIds as [string, string];
+    expect((await getTransaction(a, five)).transferGroupId).not.toBeNull();
+    expect((await getTransaction(a, six)).transferGroupId).toBeNull();
   });
 
   describe('matchTransfersForAllHouseholds (repair sweep)', () => {

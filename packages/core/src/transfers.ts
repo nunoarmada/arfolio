@@ -25,7 +25,7 @@ export function findTransferPairs(
   cands: TransferCandidate[],
   opts: { windowDays?: number } = {},
 ): { pairs: Array<[string, string]>; ambiguous: string[] } {
-  const windowDays = opts.windowDays ?? 3;
+  const windowDays = opts.windowDays ?? 5;
   const outs = cands.filter((c) => c.amount < 0);
   const outIds = new Set(outs.map((o) => o.id));
   const ins = cands.filter((c) => c.amount > 0);

@@ -38,12 +38,12 @@ describe('findTransferPairs', () => {
     expect(r).toEqual({ pairs: [], ambiguous: [] });
   });
 
-  it('rejects a 4-day gap with the default window, accepts 3', () => {
+  it('rejects a 6-day gap with the default window (5 days), accepts 5', () => {
     expect(
-      findTransferPairs([c('o', 'a', '2025-01-01', -100), c('i', 'b', '2025-01-05', 100)]).pairs,
+      findTransferPairs([c('o', 'a', '2025-01-01', -100), c('i', 'b', '2025-01-07', 100)]).pairs,
     ).toEqual([]);
     expect(
-      findTransferPairs([c('o', 'a', '2025-01-01', -100), c('i', 'b', '2025-01-04', 100)]).pairs,
+      findTransferPairs([c('o', 'a', '2025-01-01', -100), c('i', 'b', '2025-01-06', 100)]).pairs,
     ).toEqual([['o', 'i']]);
   });
 
