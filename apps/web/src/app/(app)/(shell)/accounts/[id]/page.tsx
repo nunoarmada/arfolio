@@ -1,4 +1,4 @@
-import { listAccounts, listImportBatches } from '@arfolio/services';
+import { listAccounts, listConnections, listImportBatches } from '@arfolio/services';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/page-header';
 import { AddMenu } from '@/components/transactions/add-menu';
 import { TransactionsView } from '@/components/transactions/transactions-view';
 import { assertValidId } from '@/lib/ids';
+import { accountSource } from '@/lib/account-source';
 import { formatShortDay, todayIn } from '@/lib/dates';
 import { currencyOptions } from '@/lib/format';
 import { filtersToParams, parseFilters } from '@/lib/transaction-filters';
@@ -55,22 +56,32 @@ export default async function AccountPage({
   }
   const filters = parseFilters(search, 'all');
   const query = filtersToParams({ ...filters, accountIds: [id] }, 'all').toString();
-  const [format, accounts, lookups, recentIds, batches, holdings, initial, formatMoney] =
-    await Promise.all([
-      loadHouseholdFormat(ctx),
-      listAccounts(ctx, { includeArchived: true }),
-      loadLookups(ctx),
-      loadRecentCategoryIds(ctx),
-      listImportBatches(ctx, { accountId: id, limit: 10 }),
-      loadHoldings(ctx, id),
-      loadTransactionsPage(
-        ctx,
-        filtersToParams({ ...filters, accountIds: [id] }, 'all').toString(),
-        null,
-        'all',
-      ),
-      getFormatMoney(),
-    ]);
+  const [
+    format,
+    accounts,
+    lookups,
+    recentIds,
+    batches,
+    holdings,
+    initial,
+    formatMoney,
+    connections,
+  ] = await Promise.all([
+    loadHouseholdFormat(ctx),
+    listAccounts(ctx, { includeArchived: true }),
+    loadLookups(ctx),
+    loadRecentCategoryIds(ctx),
+    listImportBatches(ctx, { accountId: id, limit: 10 }),
+    loadHoldings(ctx, id),
+    loadTransactionsPage(
+      ctx,
+      filtersToParams({ ...filters, accountIds: [id] }, 'all').toString(),
+      null,
+      'all',
+    ),
+    getFormatMoney(),
+    listConnections(ctx),
+  ]);
   const account = accounts.find((a) => a.id === id);
   if (!account) notFound();
   const dto = lookups.accounts.find((a) => a.id === id)!;
@@ -81,12 +92,23 @@ export default async function AccountPage({
   const money = (minor: number) => formatMoney(minor, account.currency, format.locale);
 
   const lastImport = batches.find((b) => b.undoneAt === null);
+  const lastSuccess = connections.find((c) =>
+    c.accounts.some((a) => a.accountId === id),
+  )?.lastSuccessAt;
+  const source = accountSource({
+    connectionId: account.connectionId,
+    lastSyncAt: lastSuccess ? lastSuccess.toISOString() : null,
+    lastImportAt: lastImport ? lastImport.createdAt.toISOString() : null,
+  });
   const TypeIcon = TYPE_ICONS[account.type as keyof typeof TYPE_ICONS];
-  const synced = lastImport
-    ? t('importedOn', {
-        date: formatShortDay(lastImport.createdAt.toISOString().slice(0, 10), locale),
-      })
-    : t('manual');
+  const synced =
+    source.kind === 'manual'
+      ? t('manual')
+      : source.at === null
+        ? t('linked')
+        : t(source.kind === 'synced' ? 'syncedOn' : 'importedOn', {
+            date: formatShortDay(source.at.slice(0, 10), locale),
+          });
 
   return (
     <PageContainer className="grid grid-cols-1 gap-4 xl:gap-6 [&>header]:mb-0">
@@ -150,7 +172,9 @@ export default async function AccountPage({
                   {account.institutionName}
                 </StatusChip>
               ) : null}
-              <StatusChip tone={lastImport ? 'primary' : 'neutral'}>{synced}</StatusChip>
+              <StatusChip tone={source.kind === 'manual' ? 'neutral' : 'primary'}>
+                {synced}
+              </StatusChip>
             </div>
           </div>
           {canWrite ? (

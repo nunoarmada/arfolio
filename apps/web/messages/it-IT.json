@@ -884,6 +884,8 @@
     "emptyBody": "Iniziare aggiungendo un conto o importando un estratto conto.",
     "importCsv": "Importa estratto conto",
     "importedOn": "Importato il {date}",
+    "syncedOn": "Sincronizzato il {date}",
+    "linked": "Collegato",
     "manual": "Manuale",
     "archived": "Archiviati ({count})",
     "archivedTag": "archiviato",

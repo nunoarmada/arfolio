@@ -884,6 +884,8 @@
     "emptyBody": "Start by adding an account or importing a statement.",
     "importCsv": "Import statement",
     "importedOn": "Imported on {date}",
+    "syncedOn": "Synced on {date}",
+    "linked": "Linked",
     "manual": "Manual",
     "archived": "Archived ({count})",
     "archivedTag": "archived",

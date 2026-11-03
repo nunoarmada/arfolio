@@ -16,6 +16,7 @@ import { MoneyAmount } from '../money-amount';
 import { Button, buttonVariants } from '../ui/button';
 import type { AccountDto } from '@/server/serialize';
 import { availableBalance, countsAsAvailable, shownBalance } from '@/lib/available';
+import { accountSource } from '@/lib/account-source';
 import { formatShortDay } from '@/lib/dates';
 import { ACCOUNT_TYPES, AccountFormSheet } from './account-form-sheet';
 import { TYPE_ICONS } from './type-icons';
@@ -23,6 +24,8 @@ import { TYPE_ICONS } from './type-icons';
 export interface AccountRowDto extends AccountDto {
   /** ISO timestamp of the last non-undone import, or null for manual accounts. */
   lastImportAt: string | null;
+  /** ISO timestamp of the linked connection's last successful sync, or null. */
+  lastSyncAt: string | null;
 }
 
 /** Debts are normal, not alarming: only an overdrawn account of the other types reads as negative. */
@@ -32,9 +35,15 @@ function AccountRow({ account }: { account: AccountRowDto }) {
   const t = useTranslations('accounts');
   const types = useTranslations('accounts.types');
   const { locale } = useHouseholdFormat();
-  const fresh = account.lastImportAt
-    ? t('importedOn', { date: formatShortDay(account.lastImportAt.slice(0, 10), locale) })
-    : t('manual');
+  const source = accountSource(account);
+  const fresh =
+    source.kind === 'manual'
+      ? t('manual')
+      : source.at === null
+        ? t('linked')
+        : t(source.kind === 'synced' ? 'syncedOn' : 'importedOn', {
+            date: formatShortDay(source.at.slice(0, 10), locale),
+          });
   const Icon = TYPE_ICONS[account.type as keyof typeof TYPE_ICONS];
   return (
     <li>

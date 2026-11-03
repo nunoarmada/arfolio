@@ -42,9 +42,15 @@ export default async function AccountsPage({
     if (!b.undoneAt && !lastImport.has(b.accountId))
       lastImport.set(b.accountId, b.createdAt.toISOString());
   }
+  const lastSync = new Map<string, string | null>();
+  for (const c of connections) {
+    for (const link of c.accounts)
+      lastSync.set(link.accountId, c.lastSuccessAt ? c.lastSuccessAt.toISOString() : null);
+  }
   const rows: AccountRowDto[] = accounts.map((a) => ({
     ...toAccountDto(a),
     lastImportAt: lastImport.get(a.id) ?? null,
+    lastSyncAt: lastSync.get(a.id) ?? null,
   }));
   const problems = connections
     .map(toConnectionDto)
