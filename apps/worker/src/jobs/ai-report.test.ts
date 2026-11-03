@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PgBoss } from 'pg-boss';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { createDb, schema, type Db } from '@arfolio/db';
 import { createAccount, type AnthropicLike } from '@arfolio/services';
@@ -202,6 +202,12 @@ describe('ai-report job', () => {
   });
 
   it('starts generating once a key appears, with the report model of that run', async () => {
+    // The scheduled sweep reads the clock; pin it so a later month's report is never queued.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const id = await household();
     const { boss, handlers } = fakeBoss();
     let cfg = makeConfig();
