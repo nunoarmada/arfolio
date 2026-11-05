@@ -884,6 +884,8 @@
     "emptyBody": "Comece por adicionar uma conta ou importar um extrato.",
     "importCsv": "Importar extrato",
     "importedOn": "Importado a {date}",
+    "syncedOn": "Sincronizada a {date}",
+    "linked": "Ligada",
     "manual": "Manual",
     "archived": "Arquivadas ({count})",
     "archivedTag": "arquivada",

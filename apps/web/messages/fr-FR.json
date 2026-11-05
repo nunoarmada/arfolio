@@ -884,6 +884,8 @@
     "emptyBody": "Commencez par ajouter un compte ou importer un relevé.",
     "importCsv": "Importer un relevé",
     "importedOn": "Importé le {date}",
+    "syncedOn": "Synchronisé le {date}",
+    "linked": "Connecté",
     "manual": "Manuel",
     "archived": "Archivés ({count})",
     "archivedTag": "archivé",
