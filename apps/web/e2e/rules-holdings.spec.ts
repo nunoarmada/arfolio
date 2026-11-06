@@ -799,7 +799,7 @@ test.describe('apply a rule to existing movements, and investment holdings', () 
     const bands = table.locator('th[scope="rowgroup"]');
     await expect(bands).toHaveText(['Reforma E2E', 'Fora dos pies']);
     // The pie comes first with its own value and gain, then its instruments, largest first.
-    const pieRow = table.getByRole('row').filter({ has: bands.first() });
+    const pieRow = bands.first().locator('xpath=..');
     await expect(pieRow).toContainText(eur(600000));
     await expect(pieRow).toContainText(`−${eur(10000)}`);
     const names = await table.locator('tbody th').allInnerTexts();
