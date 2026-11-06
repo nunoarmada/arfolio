@@ -795,15 +795,14 @@ test.describe('apply a rule to existing movements, and investment holdings', () 
     await page.goto(`/accounts/${holdingsAccount}`);
     const holdings = section();
     const table = holdings.getByRole('table');
-    const pie = table.getByRole('rowheader', { name: 'Reforma E2E' });
-    const outside = table.getByRole('rowheader', { name: 'Fora dos pies' });
-    await expect(pie).toBeVisible();
-    await expect(outside).toBeVisible();
+    // Group bands are `th scope="rowgroup"` (Playwright gives those no rowheader role).
+    const bands = table.locator('th[scope="rowgroup"]');
+    await expect(bands).toHaveText(['Reforma E2E', 'Fora dos pies']);
     // The pie comes first with its own value and gain, then its instruments, largest first.
-    const pieRow = table.getByRole('row').filter({ has: pie });
+    const pieRow = table.getByRole('row').filter({ has: bands.first() });
     await expect(pieRow).toContainText(eur(600000));
     await expect(pieRow).toContainText(`−${eur(10000)}`);
-    const names = await table.getByRole('rowheader').allInnerTexts();
+    const names = await table.locator('tbody th').allInnerTexts();
     const at = (text: string) => names.findIndex((n) => n.includes(text));
     expect(at('Reforma E2E')).toBeLessThan(at('Vanguard FTSE All-World'));
     expect(at('Vanguard FTSE All-World')).toBeLessThan(at('Ação Perdedora'));
