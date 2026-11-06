@@ -953,7 +953,9 @@
       "emptyTitle": "Aucune position pour le moment.",
       "emptyBody": "Les positions apparaissent ici après la prochaine mise à jour du compte.",
       "error": "Impossible de charger les investissements.",
-      "excludesOther": "Exclut les positions dans d’autres devises"
+      "excludesOther": "Exclut les positions dans d’autres devises",
+      "outsidePies": "Hors pies",
+      "groupWeight": "{weight} du total"
     },
     "creditLimit": "Plafond de crédit",
     "creditLimitHint": "Uniquement pour les banques qui communiquent le crédit disponible : le solde bancaire est lu comme disponible, et la dette correspond au plafond moins ce solde.",

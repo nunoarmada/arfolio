@@ -28,6 +28,8 @@ export {
   mapTrading212Transaction,
   parseTrading212Summary,
   type ProviderPie,
+  type ProviderPieDetail,
+  type ProviderPieInstrument,
   type ProviderPosition,
   type Trading212Summary,
 } from './trading212/map.js';

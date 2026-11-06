@@ -4,6 +4,7 @@ import type {
   HistoryPage,
   ProviderBalance,
   ProviderPie,
+  ProviderPieInstrument,
   ProviderPosition,
   ProviderTx,
   Trading212Summary,
@@ -164,6 +165,7 @@ export type FakeTrading212 = Trading212Port & {
   failSummary?: Error;
   pies: ProviderPie[];
   pieNames: Record<string, string>;
+  pieInstruments: Record<string, ProviderPieInstrument[]>;
   failPies?: Error;
   since: Array<string | undefined>;
 };
@@ -183,6 +185,7 @@ export function fakeTrading212(): FakeTrading212 {
     positions: [],
     pies: [],
     pieNames: {},
+    pieInstruments: {},
     history: { items: [], incomplete: false },
     dividends: { items: [], incomplete: false },
     async getAccountSummary() {
@@ -199,9 +202,9 @@ export function fakeTrading212(): FakeTrading212 {
       if (fake.failPies) throw fake.failPies;
       return fake.pies;
     },
-    async getPieName(id) {
-      fake.calls.push(`getPieName:${id}`);
-      return fake.pieNames[id] ?? `Pie ${id}`;
+    async getPieDetail(id) {
+      fake.calls.push(`getPieDetail:${id}`);
+      return { name: fake.pieNames[id] ?? `Pie ${id}`, instruments: fake.pieInstruments[id] ?? [] };
     },
     async listTransactions(opts) {
       fake.calls.push('listTransactions');

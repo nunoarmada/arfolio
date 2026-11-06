@@ -774,6 +774,59 @@ test.describe('apply a rule to existing movements, and investment holdings', () 
     await expect(section()).toHaveCount(0);
   });
 
+  test('Trading 212 pies: holdings grouped by pie, then what is outside pies (desktop and phone)', async () => {
+    const h = await householdId();
+    const [bucket] = await sql<{ id: string }>(
+      `insert into investment_bucket (household_id, account_id, provider, external_id, name)
+       values ($1, $2, 'trading212', 'e2e-pie', 'Reforma E2E') returning id`,
+      [h, holdingsAccount],
+    );
+    for (const [ticker, quantity, invested, value] of [
+      ['VWCE', '10', 360000, 400000],
+      ['LOSS', '100', 250000, 200000],
+    ] as const) {
+      await sql(
+        `insert into investment_bucket_holding (bucket_id, household_id, account_id, as_of, ticker,
+           quantity, invested_minor, value_minor, currency)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, 'EUR')`,
+        [bucket!.id, h, holdingsAccount, await today(), ticker, quantity, invested, value],
+      );
+    }
+    await page.goto(`/accounts/${holdingsAccount}`);
+    const holdings = section();
+    const table = holdings.getByRole('table');
+    // Group bands are `th scope="rowgroup"` (Playwright gives those no rowheader role).
+    const bands = table.locator('th[scope="rowgroup"]');
+    await expect(bands).toHaveText(['Reforma E2E', 'Fora dos pies']);
+    // The pie comes first with its own value and gain, then its instruments, largest first.
+    const pieRow = bands.first().locator('xpath=..');
+    await expect(pieRow).toContainText(eur(600000));
+    await expect(pieRow).toContainText(`−${eur(10000)}`);
+    const names = await table.locator('tbody th').allInnerTexts();
+    const at = (text: string) => names.findIndex((n) => n.includes(text));
+    expect(at('Reforma E2E')).toBeLessThan(at('Vanguard FTSE All-World'));
+    expect(at('Vanguard FTSE All-World')).toBeLessThan(at('Ação Perdedora'));
+    expect(at('Ação Perdedora')).toBeLessThan(at('Fora dos pies'));
+    // VWCE is split: 10 units in the pie, the other 2,5 outside it.
+    const vwceOutside = table.getByRole('row').filter({ hasText: 'Vanguard' }).nth(1);
+    await expect(vwceOutside).toContainText('2,5');
+    await expect(vwceOutside).toContainText(eur(100000));
+    // Every instrument is shown when grouped: no "Ver todas".
+    await expect(holdings.getByRole('button', { name: /Ver todas/ })).toHaveCount(0);
+    await shoot(page, 'H15-holdings-pies-table', holdings);
+    await axeBoth(page, 'holdings by pie table');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(holdings.getByRole('heading', { name: 'Reforma E2E', level: 3 })).toBeVisible();
+    await expect(holdings.getByRole('heading', { name: 'Fora dos pies', level: 3 })).toBeVisible();
+    await expect(
+      holdings.getByRole('region', { name: 'Reforma E2E' }).getByRole('listitem'),
+    ).toHaveCount(2);
+    await shoot(page, 'H16-holdings-pies-list', holdings);
+    await expectNoOverflowAt320(page, 'account page with holdings by pie');
+    await axeBoth(page, 'holdings by pie list');
+  });
+
   test('no CSP violations or console errors were logged', () => {
     expect(problems).toEqual([]);
   });

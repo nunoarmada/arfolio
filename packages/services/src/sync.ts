@@ -7,6 +7,7 @@ import {
   ProviderUnavailableError,
   type ProviderBalance,
   type ProviderPie,
+  type ProviderPieDetail,
   type ProviderPosition,
   type ProviderTx,
   type PsuHeaders,
@@ -39,6 +40,7 @@ const {
   connectionAccount,
   householdSettings,
   investmentBucket,
+  investmentBucketHolding,
   investmentBucketSnapshot,
   organization,
   positionSnapshot,
@@ -403,9 +405,9 @@ async function savePositions(
 }
 
 /**
- * Stores the account's pies (investment buckets) and replaces its snapshots for the day. A name is
- * fetched only for a pie that is new, or for every pie when the account has no snapshot for the
- * day yet, so names refresh at most once a day.
+ * Stores the account's pies (investment buckets) and replaces its snapshots for the day. A pie's
+ * detail (name and instruments) is fetched only for a pie that is new or has no instruments stored
+ * for the day, or for every pie when the account has no snapshot for the day yet.
  */
 async function saveBuckets(
   deps: SyncDeps,
@@ -414,7 +416,7 @@ async function saveBuckets(
 ): Promise<void> {
   const { householdId, accountId, day, currency, now } = args;
   const pies = await client.listPies(currency);
-  const [known, snapshotToday] = await withHousehold(deps.db, householdId, async (tx) =>
+  const [known, snapshotToday, heldToday] = await withHousehold(deps.db, householdId, async (tx) =>
     Promise.all([
       tx
         .select({ id: investmentBucket.id, externalId: investmentBucket.externalId })
@@ -430,18 +432,31 @@ async function saveBuckets(
           ),
         )
         .limit(1),
+      tx
+        .selectDistinct({ bucketId: investmentBucketHolding.bucketId })
+        .from(investmentBucketHolding)
+        .where(
+          and(
+            eq(investmentBucketHolding.accountId, accountId),
+            eq(investmentBucketHolding.asOf, day),
+          ),
+        ),
     ]),
   );
   const knownIds = new Set(known.map((b) => b.externalId));
+  const held = new Set(heldToday.map((r) => r.bucketId));
+  // Read again later the same day: a pie that holds something but has no instruments stored for
+  // the day (its detail failed). An empty pie (value 0) has nothing to read.
+  const missing = new Set(known.filter((b) => !held.has(b.id)).map((b) => b.externalId));
   const refreshAll = snapshotToday.length === 0;
-  const names = new Map<string, string>();
+  const details = new Map<string, ProviderPieDetail>();
   for (const pie of pies) {
-    if (!refreshAll && knownIds.has(pie.id)) continue;
+    if (!refreshAll && knownIds.has(pie.id) && !(missing.has(pie.id) && pie.value > 0)) continue;
     try {
-      names.set(pie.id, await client.getPieName(pie.id));
+      details.set(pie.id, await client.getPieDetail(pie.id, currency));
     } catch (error) {
-      // One unreadable pie name must not drop every pie: keep the stored name (or the id for a
-      // new pie). Auth and rate-limit errors still propagate to the caller.
+      // One unreadable pie detail must not drop every pie: keep the stored name (or the id for a
+      // new pie) and store no instruments for it. Auth and rate-limit errors still propagate.
       if (!(error instanceof ProviderResponseError)) throw error;
     }
   }
@@ -450,7 +465,7 @@ async function saveBuckets(
     const listed = new Set(pies.map((p) => p.id));
     const bucketIds = new Map<string, string>();
     for (const pie of pies) {
-      const name = names.get(pie.id);
+      const name = details.get(pie.id)?.name;
       const [bucket] = await tx
         .insert(investmentBucket)
         .values({
@@ -494,6 +509,35 @@ async function saveBuckets(
       currency,
     }));
     if (rows.length > 0) await tx.insert(investmentBucketSnapshot).values(rows);
+
+    // Instruments are replaced only for the pies whose detail was read now; the others keep the
+    // rows already stored for the day (details are read once a day).
+    const read = [...details.keys()].map((id) => bucketIds.get(id)!);
+    if (read.length > 0) {
+      await tx
+        .delete(investmentBucketHolding)
+        .where(
+          and(
+            eq(investmentBucketHolding.accountId, accountId),
+            eq(investmentBucketHolding.asOf, day),
+            inArray(investmentBucketHolding.bucketId, read),
+          ),
+        );
+    }
+    const holdingRows = [...details].flatMap(([id, detail]) =>
+      detail.instruments.map((i) => ({
+        bucketId: bucketIds.get(id)!,
+        householdId,
+        accountId,
+        asOf: day,
+        ticker: i.ticker,
+        quantity: i.quantity,
+        investedMinor: i.invested,
+        valueMinor: i.value,
+        currency,
+      })),
+    );
+    if (holdingRows.length > 0) await tx.insert(investmentBucketHolding).values(holdingRows);
   });
 }
 

@@ -6,11 +6,16 @@ function renderable(holdings: Holdings): boolean {
   const currency = holdings.currency ?? 'EUR';
   const safe = (value: string | null, code: string) =>
     value === null || Number.isSafeInteger(decimalToMinor(value, code));
+  const item = (h: {
+    value: string;
+    cost: string | null;
+    profit: string | null;
+    currency: string;
+  }) => safe(h.value, h.currency) && safe(h.cost, h.currency) && safe(h.profit, h.currency);
   return (
     safe(holdings.total, currency) &&
-    holdings.items.every(
-      (h) => safe(h.value, h.currency) && safe(h.cost, h.currency) && safe(h.profit, h.currency),
-    )
+    holdings.items.every(item) &&
+    (holdings.groups ?? []).every((g) => item(g) && g.items.every(item))
   );
 }
 
