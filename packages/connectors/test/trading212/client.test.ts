@@ -394,6 +394,31 @@ describe('Trading 212 client', () => {
       });
     });
 
+    it('merges an instrument listed twice in one pie', async () => {
+      server = await startFakeServer((_req, res) =>
+        sendJson(res, {
+          settings: { name: 'Dup' },
+          instruments: [
+            {
+              ticker: 'A_EQ',
+              ownedQuantity: 1,
+              result: { priceAvgInvestedValue: 1, priceAvgValue: 2 },
+            },
+            { ticker: 'B_EQ', ownedQuantity: 3, result: null },
+            {
+              ticker: 'A_EQ',
+              ownedQuantity: 0.5,
+              result: { priceAvgInvestedValue: 0.5, priceAvgValue: 1 },
+            },
+          ],
+        }),
+      );
+      expect((await client(server.baseUrl).getPieDetail('1', 'EUR')).instruments).toEqual([
+        { ticker: 'A_EQ', quantity: '1.5', invested: 150, value: 300 },
+        { ticker: 'B_EQ', quantity: '3', invested: 0, value: 0 },
+      ]);
+    });
+
     it('rejects a pie detail without a name, with a malformed instrument or an unsafe id', async () => {
       for (const body of [
         { settings: {} },

@@ -368,6 +368,23 @@ describe('listHoldings', () => {
       expect(groups[1]).toMatchObject({ value: '0.00', weightBps: 0 });
     });
 
+    it('gives an unknown cost to a remainder whose cost would be negative', async () => {
+      const acc = await account(a);
+      await snap(a, acc, '2026-10-02', [
+        { instrument: 'NEG_EQ', quantity: '3', value: 3_000, cost: 1_000, pl: 2_000 },
+      ]);
+      await pie(a, acc, 'P', '2026-10-02', [
+        { ticker: 'NEG_EQ', quantity: '1', invested: 1_500, value: 1_000 },
+      ]);
+      const outside = (await listHoldings(a, acc)).groups!.find((g) => g.id === null)!;
+      expect(outside.items[0]).toMatchObject({
+        quantity: '2',
+        value: '20.00',
+        cost: null,
+        profit: null,
+      });
+    });
+
     it('gives an unknown cost to a remainder of a position without cost', async () => {
       const acc = await account(a);
       await snap(a, acc, '2026-10-02', [{ instrument: 'LEG_EQ', quantity: '3', value: 3_000 }]);

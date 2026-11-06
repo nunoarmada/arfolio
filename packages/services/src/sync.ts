@@ -405,9 +405,9 @@ async function savePositions(
 }
 
 /**
- * Stores the account's pies (investment buckets) and replaces its snapshots for the day. A name is
- * fetched only for a pie that is new, or for every pie when the account has no snapshot for the
- * day yet, so names refresh at most once a day.
+ * Stores the account's pies (investment buckets) and replaces its snapshots for the day. A pie's
+ * detail (name and instruments) is fetched only for a pie that is new or has no instruments stored
+ * for the day, or for every pie when the account has no snapshot for the day yet.
  */
 async function saveBuckets(
   deps: SyncDeps,
@@ -416,7 +416,7 @@ async function saveBuckets(
 ): Promise<void> {
   const { householdId, accountId, day, currency, now } = args;
   const pies = await client.listPies(currency);
-  const [known, snapshotToday] = await withHousehold(deps.db, householdId, async (tx) =>
+  const [known, snapshotToday, heldToday] = await withHousehold(deps.db, householdId, async (tx) =>
     Promise.all([
       tx
         .select({ id: investmentBucket.id, externalId: investmentBucket.externalId })
@@ -432,13 +432,26 @@ async function saveBuckets(
           ),
         )
         .limit(1),
+      tx
+        .selectDistinct({ bucketId: investmentBucketHolding.bucketId })
+        .from(investmentBucketHolding)
+        .where(
+          and(
+            eq(investmentBucketHolding.accountId, accountId),
+            eq(investmentBucketHolding.asOf, day),
+          ),
+        ),
     ]),
   );
   const knownIds = new Set(known.map((b) => b.externalId));
+  const held = new Set(heldToday.map((r) => r.bucketId));
+  // Read again later the same day: a pie that holds something but has no instruments stored for
+  // the day (its detail failed). An empty pie (value 0) has nothing to read.
+  const missing = new Set(known.filter((b) => !held.has(b.id)).map((b) => b.externalId));
   const refreshAll = snapshotToday.length === 0;
   const details = new Map<string, ProviderPieDetail>();
   for (const pie of pies) {
-    if (!refreshAll && knownIds.has(pie.id)) continue;
+    if (!refreshAll && knownIds.has(pie.id) && !(missing.has(pie.id) && pie.value > 0)) continue;
     try {
       details.set(pie.id, await client.getPieDetail(pie.id, currency));
     } catch (error) {

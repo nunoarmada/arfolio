@@ -901,6 +901,10 @@ describe('sync engine', () => {
           { id: '102', invested: 10_000, value: 9_000 },
         ];
         t212.pieNames = { '101': 'Reforma', '102': 'Férias' };
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXA_EQ', quantity: '1', invested: 40_000, value: 45_000 }],
+          '102': [{ ticker: 'EXB_EQ', quantity: '1', invested: 10_000, value: 9_000 }],
+        };
         expect(await run(deps, ctx, connectionId)).toMatchObject({ status: 'success' });
         const accountId = await linkAccountId(connectionId);
         const buckets = await t.owner
@@ -1025,6 +1029,44 @@ describe('sync engine', () => {
           .from(investmentBucketHolding)
           .where(eq(investmentBucketHolding.accountId, accountId));
         expect(rows.map((r) => r.ticker)).toEqual(['EXA_EQ']);
+      });
+
+      it('retries later the same day the detail of a pie that has no instruments for the day', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [{ id: '101', invested: 40_000, value: 45_000 }];
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXA_EQ', quantity: '1', invested: 40_000, value: 45_000 }],
+        };
+        const getPieDetail = t212.getPieDetail.bind(t212);
+        t212.getPieDetail = async () => {
+          throw new ProviderResponseError('Unexpected response: pie detail');
+        };
+        await run(deps, ctx, connectionId);
+        t212.getPieDetail = getPieDetail;
+        t212.calls.length = 0;
+        now = new Date(now.getTime() + 10 * MIN);
+        await makeDue(connectionId);
+        await run(deps, ctx, connectionId);
+        expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toEqual([
+          'getPieDetail:101',
+        ]);
+        const accountId = await linkAccountId(connectionId);
+        const rows = await t.owner
+          .select()
+          .from(investmentBucketHolding)
+          .where(eq(investmentBucketHolding.accountId, accountId));
+        expect(rows.map((r) => r.ticker)).toEqual(['EXA_EQ']);
+      });
+
+      it('does not read again the same day an empty pie (value 0, no instruments)', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [{ id: '101', invested: 0, value: 0 }];
+        await run(deps, ctx, connectionId);
+        t212.calls.length = 0;
+        now = new Date(now.getTime() + 10 * MIN);
+        await makeDue(connectionId);
+        await run(deps, ctx, connectionId);
+        expect(t212.calls.some((c) => c.startsWith('getPieDetail'))).toBe(false);
       });
 
       it('marks a vanished pie removed and keeps no snapshot for it', async () => {

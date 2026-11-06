@@ -251,24 +251,48 @@ export function mapTrading212PieDetail(raw: unknown, currency: string): Provider
     detail.instruments === undefined || detail.instruments === null
       ? []
       : array(detail.instruments, 'pie instruments');
-  return {
-    name,
-    instruments: items.map((rawItem) => {
-      const item = record(rawItem, 'pie instrument');
-      const result =
-        item.result === undefined || item.result === null
-          ? {}
-          : record(item.result, 'pie instrument result');
-      return {
-        ticker: reqString(item.ticker, 'pie instrument ticker'),
-        quantity: decimalString(item.ownedQuantity, 'pie instrument ownedQuantity'),
-        invested: minorOrZero(
-          result.priceAvgInvestedValue,
-          currency,
-          'pie instrument priceAvgInvestedValue',
-        ),
-        value: minorOrZero(result.priceAvgValue, currency, 'pie instrument priceAvgValue'),
-      };
-    }),
+  // An instrument listed twice in one pie is merged: storage keys instruments by ticker.
+  const merged = new Map<string, ProviderPieInstrument>();
+  for (const item of items.map((rawItem) => {
+    const item = record(rawItem, 'pie instrument');
+    const result =
+      item.result === undefined || item.result === null
+        ? {}
+        : record(item.result, 'pie instrument result');
+    return {
+      ticker: reqString(item.ticker, 'pie instrument ticker'),
+      quantity: decimalString(item.ownedQuantity, 'pie instrument ownedQuantity'),
+      invested: minorOrZero(
+        result.priceAvgInvestedValue,
+        currency,
+        'pie instrument priceAvgInvestedValue',
+      ),
+      value: minorOrZero(result.priceAvgValue, currency, 'pie instrument priceAvgValue'),
+    };
+  })) {
+    const seen = merged.get(item.ticker);
+    merged.set(
+      item.ticker,
+      seen === undefined
+        ? item
+        : {
+            ticker: item.ticker,
+            quantity: addDecimal8(seen.quantity, item.quantity),
+            invested: seen.invested + item.invested,
+            value: seen.value + item.value,
+          },
+    );
+  }
+  return { name, instruments: [...merged.values()] };
+}
+
+/** Sum of two non-negative decimal strings with at most 8 dp (as `decimalString` makes them). */
+function addDecimal8(a: string, b: string): string {
+  const units = (s: string) => {
+    const [whole = '0', frac = ''] = s.split('.');
+    return BigInt(whole) * 100_000_000n + BigInt(frac.padEnd(8, '0').slice(0, 8));
   };
+  const sum = (units(a) + units(b)).toString().padStart(9, '0');
+  const fixed = `${sum.slice(0, -8)}.${sum.slice(-8)}`;
+  return fixed.replace(/\.?0+$/, '') || '0';
 }

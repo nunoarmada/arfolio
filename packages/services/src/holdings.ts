@@ -325,7 +325,8 @@ function groupByPie(
     const quantity = qtyUnits(p.quantity) - pied.quantity;
     const rest = value - pied.value;
     if (quantity <= 0n || rest < 0n) return [];
-    const restCost = cost === null ? null : cost - pied.cost;
+    // The pie's invested basis can exceed the position's cost (different averaging): unknown then.
+    const restCost = cost === null || cost - pied.cost < 0n ? null : cost - pied.cost;
     const holding = holdingOf(
       { ...base, quantity: qtyString(quantity) },
       rest,
