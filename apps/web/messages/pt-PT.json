@@ -953,7 +953,9 @@
       "emptyTitle": "Ainda não há posições.",
       "emptyBody": "As posições aparecem aqui depois da próxima atualização da conta.",
       "error": "Não foi possível carregar os investimentos.",
-      "excludesOther": "Exclui posições noutras moedas"
+      "excludesOther": "Exclui posições noutras moedas",
+      "outsidePies": "Fora dos pies",
+      "groupWeight": "{weight} do total"
     },
     "creditLimit": "Limite de crédito",
     "creditLimitHint": "Só para bancos que reportam o crédito disponível: o saldo do banco passa a ser lido como disponível e a dívida é o limite menos esse saldo.",

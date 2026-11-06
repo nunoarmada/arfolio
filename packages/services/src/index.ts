@@ -1,6 +1,6 @@
 export * from './context.js';
 export { listAccountBuckets, listHoldings } from './holdings.js';
-export type { Holding, Holdings } from './holdings.js';
+export type { Holding, HoldingGroup, Holdings } from './holdings.js';
 export {
   listAccounts,
   createAccount,

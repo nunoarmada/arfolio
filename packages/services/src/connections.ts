@@ -42,7 +42,7 @@ export type Trading212Port = Pick<
   | 'getAccountSummary'
   | 'getPositions'
   | 'listPies'
-  | 'getPieName'
+  | 'getPieDetail'
   | 'listTransactions'
   | 'listDividends'
 >;

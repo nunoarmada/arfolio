@@ -7,6 +7,7 @@ import {
   ProviderUnavailableError,
   type ProviderBalance,
   type ProviderPie,
+  type ProviderPieDetail,
   type ProviderPosition,
   type ProviderTx,
   type PsuHeaders,
@@ -39,6 +40,7 @@ const {
   connectionAccount,
   householdSettings,
   investmentBucket,
+  investmentBucketHolding,
   investmentBucketSnapshot,
   organization,
   positionSnapshot,
@@ -434,14 +436,14 @@ async function saveBuckets(
   );
   const knownIds = new Set(known.map((b) => b.externalId));
   const refreshAll = snapshotToday.length === 0;
-  const names = new Map<string, string>();
+  const details = new Map<string, ProviderPieDetail>();
   for (const pie of pies) {
     if (!refreshAll && knownIds.has(pie.id)) continue;
     try {
-      names.set(pie.id, await client.getPieName(pie.id));
+      details.set(pie.id, await client.getPieDetail(pie.id, currency));
     } catch (error) {
-      // One unreadable pie name must not drop every pie: keep the stored name (or the id for a
-      // new pie). Auth and rate-limit errors still propagate to the caller.
+      // One unreadable pie detail must not drop every pie: keep the stored name (or the id for a
+      // new pie) and store no instruments for it. Auth and rate-limit errors still propagate.
       if (!(error instanceof ProviderResponseError)) throw error;
     }
   }
@@ -450,7 +452,7 @@ async function saveBuckets(
     const listed = new Set(pies.map((p) => p.id));
     const bucketIds = new Map<string, string>();
     for (const pie of pies) {
-      const name = names.get(pie.id);
+      const name = details.get(pie.id)?.name;
       const [bucket] = await tx
         .insert(investmentBucket)
         .values({
@@ -494,6 +496,35 @@ async function saveBuckets(
       currency,
     }));
     if (rows.length > 0) await tx.insert(investmentBucketSnapshot).values(rows);
+
+    // Instruments are replaced only for the pies whose detail was read now; the others keep the
+    // rows already stored for the day (details are read once a day).
+    const read = [...details.keys()].map((id) => bucketIds.get(id)!);
+    if (read.length > 0) {
+      await tx
+        .delete(investmentBucketHolding)
+        .where(
+          and(
+            eq(investmentBucketHolding.accountId, accountId),
+            eq(investmentBucketHolding.asOf, day),
+            inArray(investmentBucketHolding.bucketId, read),
+          ),
+        );
+    }
+    const holdingRows = [...details].flatMap(([id, detail]) =>
+      detail.instruments.map((i) => ({
+        bucketId: bucketIds.get(id)!,
+        householdId,
+        accountId,
+        asOf: day,
+        ticker: i.ticker,
+        quantity: i.quantity,
+        investedMinor: i.invested,
+        valueMinor: i.value,
+        currency,
+      })),
+    );
+    if (holdingRows.length > 0) await tx.insert(investmentBucketHolding).values(holdingRows);
   });
 }
 

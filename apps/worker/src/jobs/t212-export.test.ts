@@ -120,7 +120,7 @@ describe('t212-export job', () => {
         },
         getPositions: async () => [],
         listPies: async () => [],
-        getPieName: async () => 'Pie',
+        getPieDetail: async () => ({ name: 'Pie', instruments: [] }),
         listTransactions: async () => ({ items: [], incomplete: false }),
         listDividends: async () => ({ items: [], incomplete: false }),
         requestHistoryExport: async (range) => {

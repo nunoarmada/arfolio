@@ -23,6 +23,7 @@ const ALL_TABLES = [
   'budget_amount',
   'investment_bucket',
   'investment_bucket_snapshot',
+  'investment_bucket_holding',
   'budget_line_bucket',
 ] as const;
 
@@ -440,6 +441,40 @@ describe('phase 3 schema (as pfm_app)', () => {
         const { rows } = await withHousehold(db, 'hA', (tx) =>
           tx.execute(
             sql`select count(*)::int as n from investment_bucket_snapshot where bucket_id = ${bucket!.id}`,
+          ),
+        );
+        expect(rows[0]).toEqual({ n: 0 });
+      });
+
+      it('investment_bucket_holding: primary key (bucket_id, as_of, ticker), pinned account and cascade', async () => {
+        const [bucket] = await addBucket('hA', a.accountId);
+        const hold = (over: Record<string, unknown> = {}) =>
+          withHousehold(db, 'hA', (tx) =>
+            tx.insert(schema.investmentBucketHolding).values({
+              householdId: 'hA',
+              accountId: a.accountId,
+              bucketId: bucket!.id,
+              asOf: '2026-10-30',
+              ticker: 'EXMPd_EQ',
+              quantity: '1.5',
+              investedMinor: 1000,
+              valueMinor: 1100,
+              currency: 'EUR',
+              ...over,
+            } as never),
+          );
+        await hold();
+        await hold({ ticker: 'OTHERd_EQ' });
+        expect(await pgError(hold())).toMatch(/duplicate key/i);
+        expect(await pgError(hold({ asOf: '2026-10-31', accountId: b.accountId }))).toMatch(
+          /foreign key/i,
+        );
+        await withHousehold(db, 'hA', (tx) =>
+          tx.delete(schema.investmentBucket).where(eq(schema.investmentBucket.id, bucket!.id)),
+        );
+        const { rows } = await withHousehold(db, 'hA', (tx) =>
+          tx.execute(
+            sql`select count(*)::int as n from investment_bucket_holding where bucket_id = ${bucket!.id}`,
           ),
         );
         expect(rows[0]).toEqual({ n: 0 });

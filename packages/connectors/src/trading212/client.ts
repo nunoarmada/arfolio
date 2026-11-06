@@ -4,10 +4,12 @@ import { ProviderResponseError, ProviderUnavailableError, type ProviderTx } from
 import {
   mapTrading212Dividend,
   mapTrading212Pie,
+  mapTrading212PieDetail,
   mapTrading212Position,
   mapTrading212Transaction,
   parseTrading212Summary,
   type ProviderPie,
+  type ProviderPieDetail,
   type ProviderPosition,
   type Trading212Summary,
 } from './map.js';
@@ -154,13 +156,15 @@ export function createTrading212Client(config: Trading212Config) {
       );
     },
 
-    /** Pie name from its detail (1 request / 5 s: call sequentially). */
-    async getPieName(id: string): Promise<string> {
+    /**
+     * Pie name and held instruments (minor units of `currency`, the account currency) from its
+     * detail. 1 request / 5 s: call sequentially.
+     */
+    async getPieDetail(id: string, currency: string): Promise<ProviderPieDetail> {
       if (!/^\d+$/.test(id)) {
         throw new ProviderResponseError('Unexpected response: pie id is not an integer');
       }
-      const detail = record(await get(`${baseUrl}/equity/pies/${id}`), 'pie detail');
-      return reqString(record(detail.settings, 'pie settings').name, 'pie name');
+      return mapTrading212PieDetail(await get(`${baseUrl}/equity/pies/${id}`), currency);
     },
 
     /** There is no server-side date filter: the history is walked and filtered by `since` (YYYY-MM-DD). */

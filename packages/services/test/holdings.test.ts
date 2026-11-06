@@ -4,7 +4,7 @@ import { schema } from '@arfolio/db';
 import { listAccountBuckets, listHoldings, NotFoundError, type ServiceCtx } from '../src/index.js';
 import { startServicesDb, withRole, type ServicesTestDb } from './helpers.js';
 
-const { financialAccount, positionSnapshot, investmentBucket } = schema;
+const { financialAccount, positionSnapshot, investmentBucket, investmentBucketHolding } = schema;
 
 type Pos = {
   instrument: string;
@@ -63,6 +63,7 @@ describe('listHoldings', () => {
       currency: 'EUR',
       total: '0.00',
       items: [],
+      groups: null,
     });
   });
 
@@ -121,6 +122,7 @@ describe('listHoldings', () => {
           weightBps: 2500,
         },
       ],
+      groups: null,
     });
   });
 
@@ -177,6 +179,205 @@ describe('listHoldings', () => {
     const acc = await account(a);
     await snap(a, acc, '2026-10-02', [{ instrument: 'Z', value: 0 }]);
     expect((await listHoldings(a, acc)).items[0]!.weightBps).toBeNull();
+  });
+
+  describe('grouped by pie', () => {
+    type Held = { ticker: string; quantity: string; invested: number; value: number };
+    async function pie(
+      ctx: ServiceCtx,
+      accountId: string,
+      name: string,
+      asOf: string,
+      rows: Held[],
+    ) {
+      const [bucket] = await t.owner
+        .insert(investmentBucket)
+        .values({
+          householdId: ctx.householdId,
+          accountId,
+          provider: 'trading212',
+          externalId: `ext-${name}`,
+          name,
+        })
+        .returning({ id: investmentBucket.id });
+      await t.owner.insert(investmentBucketHolding).values(
+        rows.map((r) => ({
+          bucketId: bucket!.id,
+          householdId: ctx.householdId,
+          accountId,
+          asOf,
+          ticker: r.ticker,
+          quantity: r.quantity,
+          investedMinor: r.invested,
+          valueMinor: r.value,
+          currency: 'EUR',
+        })),
+      );
+      return bucket!.id;
+    }
+
+    async function seeded() {
+      const acc = await account(a);
+      await snap(a, acc, '2026-10-02', [
+        {
+          instrument: 'XX0000000001',
+          ticker: 'EXA_EQ',
+          isin: 'XX0000000001',
+          name: 'World ETF',
+          quantity: '4',
+          value: 40_000,
+          cost: 36_000,
+          pl: 4_000,
+        },
+        {
+          instrument: 'EXB_EQ',
+          name: 'Bond ETF',
+          quantity: '2',
+          value: 20_000,
+          cost: 20_000,
+          pl: 0,
+        },
+        { instrument: 'USD1', value: 5_000, currency: 'USD', cost: 4_000, pl: 1_000 },
+      ]);
+      return acc;
+    }
+
+    it('has no groups without pie instruments', async () => {
+      const acc = await seeded();
+      await t.owner.insert(investmentBucket).values({
+        householdId: a.householdId,
+        accountId: acc,
+        provider: 'trading212',
+        externalId: 'ext-empty',
+        name: 'No detail yet',
+      });
+      expect((await listHoldings(a, acc)).groups).toBeNull();
+    });
+
+    it('lists each pie with its instruments, then what is held outside pies', async () => {
+      const acc = await seeded();
+      const p1 = await pie(a, acc, 'Reforma', '2026-10-02', [
+        { ticker: 'EXA_EQ', quantity: '1.5', invested: 13_000, value: 15_000 },
+        { ticker: 'EXB_EQ', quantity: '2', invested: 20_500, value: 20_000 },
+      ]);
+      const p2 = await pie(a, acc, 'Férias', '2026-10-02', [
+        { ticker: 'EXA_EQ', quantity: '0.5', invested: 4_000, value: 5_000 },
+      ]);
+      const res = await listHoldings(a, acc);
+      expect(res.total).toBe('600.00');
+      expect(res.items).toHaveLength(3);
+      expect(res.groups).toEqual([
+        {
+          id: p1,
+          name: 'Reforma',
+          currency: 'EUR',
+          value: '350.00',
+          cost: '335.00',
+          profit: '15.00',
+          profitBps: 448,
+          weightBps: 5833,
+          items: [
+            {
+              ticker: 'EXB_EQ',
+              name: 'Bond ETF',
+              isin: null,
+              currency: 'EUR',
+              quantity: '2',
+              value: '200.00',
+              cost: '205.00',
+              profit: '-5.00',
+              profitBps: -244,
+              weightBps: 3333,
+            },
+            {
+              ticker: 'EXA_EQ',
+              name: 'World ETF',
+              isin: 'XX0000000001',
+              currency: 'EUR',
+              quantity: '1.5',
+              value: '150.00',
+              cost: '130.00',
+              profit: '20.00',
+              profitBps: 1538,
+              weightBps: 2500,
+            },
+          ],
+        },
+        {
+          id: p2,
+          name: 'Férias',
+          currency: 'EUR',
+          value: '50.00',
+          cost: '40.00',
+          profit: '10.00',
+          profitBps: 2500,
+          weightBps: 833,
+          items: [expect.objectContaining({ ticker: 'EXA_EQ', quantity: '0.5', value: '50.00' })],
+        },
+        {
+          id: null,
+          name: null,
+          currency: 'EUR',
+          value: '200.00',
+          cost: '190.00',
+          profit: '10.00',
+          profitBps: 526,
+          weightBps: 3333,
+          items: [
+            {
+              ticker: 'EXA_EQ',
+              name: 'World ETF',
+              isin: 'XX0000000001',
+              currency: 'EUR',
+              quantity: '2',
+              value: '200.00',
+              cost: '190.00',
+              profit: '10.00',
+              profitBps: 526,
+              weightBps: 3333,
+            },
+            expect.objectContaining({
+              ticker: 'USD1',
+              currency: 'USD',
+              value: '50.00',
+              weightBps: null,
+            }),
+          ],
+        },
+      ]);
+    });
+
+    it('uses only the latest pie day, names unknown tickers by ticker and drops empty remainders', async () => {
+      const acc = await seeded();
+      await pie(a, acc, 'Old', '2026-10-01', [
+        { ticker: 'EXA_EQ', quantity: '4', invested: 1, value: 1 },
+      ]);
+      await pie(a, acc, 'All', '2026-10-02', [
+        { ticker: 'EXA_EQ', quantity: '4', invested: 36_000, value: 40_000 },
+        { ticker: 'EXB_EQ', quantity: '2.5', invested: 20_000, value: 21_000 },
+        { ticker: 'SOLD_EQ', quantity: '1', invested: 500, value: 600 },
+      ]);
+      const groups = (await listHoldings(a, acc)).groups!;
+      expect(groups.map((g) => g.name)).toEqual(['All', null]);
+      expect(groups[0]!.items.find((i) => i.ticker === 'SOLD_EQ')).toMatchObject({
+        name: 'SOLD_EQ',
+        isin: null,
+      });
+      // EXA is fully in the pie and EXB's pie quantity exceeds the position: no remainder.
+      expect(groups[1]!.items.map((i) => i.ticker)).toEqual(['USD1']);
+      expect(groups[1]).toMatchObject({ value: '0.00', weightBps: 0 });
+    });
+
+    it('gives an unknown cost to a remainder of a position without cost', async () => {
+      const acc = await account(a);
+      await snap(a, acc, '2026-10-02', [{ instrument: 'LEG_EQ', quantity: '3', value: 3_000 }]);
+      await pie(a, acc, 'P', '2026-10-02', [
+        { ticker: 'LEG_EQ', quantity: '1', invested: 900, value: 1_000 },
+      ]);
+      const outside = (await listHoldings(a, acc)).groups!.find((g) => g.id === null)!;
+      expect(outside).toMatchObject({ value: '20.00', cost: null, profit: null, profitBps: null });
+      expect(outside.items[0]).toMatchObject({ quantity: '2', value: '20.00', cost: null });
+    });
   });
 
   it('is readable by viewers and isolated per household', async () => {

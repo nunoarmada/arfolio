@@ -1,5 +1,5 @@
 import { parseTransactionDetails } from '@arfolio/core';
-import { minorFromNumber, optIsoDate, optString, record, reqString } from '../guards.js';
+import { array, minorFromNumber, optIsoDate, optString, record, reqString } from '../guards.js';
 import { ProviderResponseError, type ProviderBalance, type ProviderTx } from '../types.js';
 
 const MAX_DESCRIPTION = 1_000;
@@ -38,6 +38,21 @@ export type ProviderPie = {
   id: string;
   invested: number;
   value: number;
+};
+
+/** One instrument held in a pie: `invested` and `value` are minor units of the account currency. */
+export type ProviderPieInstrument = {
+  ticker: string;
+  /** Decimal string (up to 8 dp). */
+  quantity: string;
+  invested: number;
+  value: number;
+};
+
+/** Pie detail from `GET /equity/pies/{id}`: its name and the instruments it holds. */
+export type ProviderPieDetail = {
+  name: string;
+  instruments: ProviderPieInstrument[];
 };
 
 /** Trading 212 documents many numbers as non-null but sends null: absent counts as zero. */
@@ -225,5 +240,35 @@ export function mapTrading212Pie(raw: unknown, currency: string): ProviderPie {
     id: String(p.id),
     invested: minorOrZero(result.priceAvgInvestedValue, currency, 'pie priceAvgInvestedValue'),
     value: minorOrZero(result.priceAvgValue, currency, 'pie priceAvgValue'),
+  };
+}
+
+/** Pie detail from `GET /equity/pies/{id}`; values are decimals in the account currency. */
+export function mapTrading212PieDetail(raw: unknown, currency: string): ProviderPieDetail {
+  const detail = record(raw, 'pie detail');
+  const name = reqString(record(detail.settings, 'pie settings').name, 'pie name');
+  const items =
+    detail.instruments === undefined || detail.instruments === null
+      ? []
+      : array(detail.instruments, 'pie instruments');
+  return {
+    name,
+    instruments: items.map((rawItem) => {
+      const item = record(rawItem, 'pie instrument');
+      const result =
+        item.result === undefined || item.result === null
+          ? {}
+          : record(item.result, 'pie instrument result');
+      return {
+        ticker: reqString(item.ticker, 'pie instrument ticker'),
+        quantity: decimalString(item.ownedQuantity, 'pie instrument ownedQuantity'),
+        invested: minorOrZero(
+          result.priceAvgInvestedValue,
+          currency,
+          'pie instrument priceAvgInvestedValue',
+        ),
+        value: minorOrZero(result.priceAvgValue, currency, 'pie instrument priceAvgValue'),
+      };
+    }),
   };
 }

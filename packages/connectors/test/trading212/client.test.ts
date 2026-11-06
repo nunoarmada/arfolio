@@ -357,21 +357,62 @@ describe('Trading 212 client', () => {
       );
     });
 
-    it('reads the pie name from its settings', async () => {
+    it('reads the pie name and its instruments from the detail', async () => {
       const paths: string[] = [];
       server = await startFakeServer((req, res) => {
         paths.push(req.path);
-        sendJson(res, { instruments: [], settings: { id: 123, name: 'Reforma', goal: 1000 } });
+        sendJson(res, {
+          instruments: [
+            {
+              ticker: 'EUNLd_EQ',
+              ownedQuantity: 1.5,
+              currentShare: 0.6,
+              expectedShare: 0.5,
+              result: { priceAvgInvestedValue: 10.25, priceAvgValue: 12.5, priceAvgResult: 2.25 },
+              issues: [],
+            },
+            { ticker: 'IS3Nd_EQ', ownedQuantity: 2.25, result: null },
+          ],
+          settings: { id: 123, name: 'Reforma', goal: 1000 },
+        });
       });
-      expect(await client(server.baseUrl).getPieName('123')).toBe('Reforma');
+      expect(await client(server.baseUrl).getPieDetail('123', 'EUR')).toEqual({
+        name: 'Reforma',
+        instruments: [
+          { ticker: 'EUNLd_EQ', quantity: '1.5', invested: 1025, value: 1250 },
+          { ticker: 'IS3Nd_EQ', quantity: '2.25', invested: 0, value: 0 },
+        ],
+      });
       expect(paths).toEqual(['/api/v0/equity/pies/123']);
     });
 
-    it('rejects a pie detail without a name or with an unsafe id', async () => {
-      server = await startFakeServer((_req, res) => sendJson(res, { settings: {} }));
-      const c = client(server.baseUrl);
-      await expect(c.getPieName('123')).rejects.toBeInstanceOf(ProviderResponseError);
-      await expect(c.getPieName('../x')).rejects.toBeInstanceOf(ProviderResponseError);
+    it('reads a pie detail without instruments as an empty list', async () => {
+      server = await startFakeServer((_req, res) => sendJson(res, { settings: { name: 'Vazia' } }));
+      expect(await client(server.baseUrl).getPieDetail('5', 'EUR')).toEqual({
+        name: 'Vazia',
+        instruments: [],
+      });
+    });
+
+    it('rejects a pie detail without a name, with a malformed instrument or an unsafe id', async () => {
+      for (const body of [
+        { settings: {} },
+        { settings: { name: 'X' }, instruments: [{ ownedQuantity: 1 }] },
+        { settings: { name: 'X' }, instruments: [{ ticker: 'A', ownedQuantity: 'a' }] },
+        { settings: { name: 'X' }, instruments: ['nope'] },
+        { settings: { name: 'X' }, instruments: {} },
+      ]) {
+        server = await startFakeServer((_req, res) => sendJson(res, body));
+        await expect(client(server.baseUrl).getPieDetail('123', 'EUR')).rejects.toBeInstanceOf(
+          ProviderResponseError,
+        );
+        await server.close();
+        server = undefined;
+      }
+      server = await startFakeServer((_req, res) => sendJson(res, { settings: { name: 'X' } }));
+      await expect(client(server.baseUrl).getPieDetail('../x', 'EUR')).rejects.toBeInstanceOf(
+        ProviderResponseError,
+      );
     });
   });
 

@@ -953,7 +953,9 @@
       "emptyTitle": "No holdings yet.",
       "emptyBody": "Holdings appear here after the account's next update.",
       "error": "Couldn't load the investments.",
-      "excludesOther": "Excludes positions in other currencies"
+      "excludesOther": "Excludes positions in other currencies",
+      "outsidePies": "Outside pies",
+      "groupWeight": "{weight} of the total"
     },
     "creditLimit": "Credit limit",
     "creditLimitHint": "Only for banks that report the available credit: the bank balance is read as available, and the debt is the limit minus that balance.",

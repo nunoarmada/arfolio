@@ -43,6 +43,7 @@ const {
   connection,
   connectionAccount,
   investmentBucket,
+  investmentBucketHolding,
   investmentBucketSnapshot,
   notification,
   positionSnapshot,
@@ -920,7 +921,7 @@ describe('sync engine', () => {
           ['2026-10-18', 10_000, 9_000, 'EUR'],
           ['2026-10-18', 40_000, 45_000, 'EUR'],
         ]);
-        expect(t212.calls.filter((c) => c.startsWith('getPieName'))).toHaveLength(2);
+        expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toHaveLength(2);
 
         // Same day again: the names are known, so none is fetched, and snapshots are replaced.
         t212.calls.length = 0;
@@ -931,12 +932,99 @@ describe('sync engine', () => {
         now = new Date(now.getTime() + 10 * MIN);
         await makeDue(connectionId);
         await run(deps, ctx, connectionId);
-        expect(t212.calls.some((c) => c.startsWith('getPieName'))).toBe(false);
+        expect(t212.calls.some((c) => c.startsWith('getPieDetail'))).toBe(false);
         const again = await t.owner
           .select()
           .from(investmentBucketSnapshot)
           .where(eq(investmentBucketSnapshot.accountId, accountId));
         expect(again.map((s) => s.investedMinor).sort()).toEqual([10_000, 41_000]);
+      });
+
+      it('stores the instruments of each pie read that day and keeps them on a same-day rerun', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [
+          { id: '101', invested: 40_000, value: 45_000 },
+          { id: '102', invested: 10_000, value: 9_000 },
+        ];
+        t212.pieInstruments = {
+          '101': [
+            { ticker: 'EXA_EQ', quantity: '1.5', invested: 30_000, value: 34_000 },
+            { ticker: 'EXB_EQ', quantity: '2', invested: 10_000, value: 11_000 },
+          ],
+          '102': [{ ticker: 'EXA_EQ', quantity: '0.25', invested: 10_000, value: 9_000 }],
+        };
+        await run(deps, ctx, connectionId);
+        const accountId = await linkAccountId(connectionId);
+        const holdings = async () => {
+          const buckets = await t.owner
+            .select()
+            .from(investmentBucket)
+            .where(eq(investmentBucket.accountId, accountId));
+          const ext = new Map(buckets.map((b) => [b.id, b.externalId]));
+          const rows = await t.owner
+            .select()
+            .from(investmentBucketHolding)
+            .where(eq(investmentBucketHolding.accountId, accountId));
+          return rows
+            .map((r) => [
+              ext.get(r.bucketId),
+              r.asOf,
+              r.ticker,
+              r.quantity,
+              r.investedMinor,
+              r.valueMinor,
+              r.currency,
+            ])
+            .sort();
+        };
+        expect(await holdings()).toEqual([
+          ['101', '2026-10-18', 'EXA_EQ', '1.5000000000', 30_000, 34_000, 'EUR'],
+          ['101', '2026-10-18', 'EXB_EQ', '2.0000000000', 10_000, 11_000, 'EUR'],
+          ['102', '2026-10-18', 'EXA_EQ', '0.2500000000', 10_000, 9_000, 'EUR'],
+        ]);
+
+        // Same day: no detail is read, so the day's instruments stay as they are.
+        t212.pieInstruments = {};
+        now = new Date(now.getTime() + 10 * MIN);
+        await makeDue(connectionId);
+        await run(deps, ctx, connectionId);
+        expect(await holdings()).toHaveLength(3);
+
+        // Next day: every detail is read again and that day's rows replace nothing of the old day.
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXB_EQ', quantity: '3', invested: 15_000, value: 16_000 }],
+        };
+        now = new Date(now.getTime() + DAY);
+        await makeDue(connectionId);
+        await run(deps, ctx, connectionId);
+        const next = (await holdings()).filter((r) => r[1] === '2026-10-19');
+        expect(next).toEqual([
+          ['101', '2026-10-19', 'EXB_EQ', '3.0000000000', 15_000, 16_000, 'EUR'],
+        ]);
+      });
+
+      it('stores no instruments for a pie whose detail fails with a response error', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [
+          { id: '101', invested: 40_000, value: 45_000 },
+          { id: '102', invested: 10_000, value: 9_000 },
+        ];
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXA_EQ', quantity: '1', invested: 40_000, value: 45_000 }],
+          '102': [{ ticker: 'EXB_EQ', quantity: '1', invested: 10_000, value: 9_000 }],
+        };
+        const getPieDetail = t212.getPieDetail.bind(t212);
+        t212.getPieDetail = async (id, currency) => {
+          if (id === '102') throw new ProviderResponseError('Unexpected response: pie detail');
+          return getPieDetail(id, currency);
+        };
+        expect(await run(deps, ctx, connectionId)).toMatchObject({ status: 'success' });
+        const accountId = await linkAccountId(connectionId);
+        const rows = await t.owner
+          .select()
+          .from(investmentBucketHolding)
+          .where(eq(investmentBucketHolding.accountId, accountId));
+        expect(rows.map((r) => r.ticker)).toEqual(['EXA_EQ']);
       });
 
       it('marks a vanished pie removed and keeps no snapshot for it', async () => {
@@ -1004,10 +1092,10 @@ describe('sync engine', () => {
           { id: '102', invested: 10_000, value: 9_000 },
         ];
         t212.pieNames = { '101': 'Reforma' };
-        const getPieName = t212.getPieName.bind(t212);
-        t212.getPieName = async (id) => {
+        const getPieDetail = t212.getPieDetail.bind(t212);
+        t212.getPieDetail = async (id, currency) => {
           if (id === '102') throw new ProviderResponseError('Unexpected response: pie name');
-          return getPieName(id);
+          return getPieDetail(id, currency);
         };
         expect(await run(deps, ctx, connectionId)).toMatchObject({ status: 'success' });
         const accountId = await linkAccountId(connectionId);
@@ -1033,7 +1121,7 @@ describe('sync engine', () => {
         t212.pies = [{ id: '101', invested: 40_000, value: 45_000 }];
         t212.pieNames = { '101': 'Reforma' };
         await run(deps, ctx, connectionId);
-        t212.getPieName = async () => {
+        t212.getPieDetail = async () => {
           throw new ProviderResponseError('Unexpected response: pie name');
         };
         now = new Date(now.getTime() + DAY);
@@ -1068,7 +1156,9 @@ describe('sync engine', () => {
         now = new Date(now.getTime() + DAY);
         await makeDue(connectionId);
         await run(deps, ctx, connectionId);
-        expect(t212.calls.filter((c) => c.startsWith('getPieName'))).toEqual(['getPieName:101']);
+        expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toEqual([
+          'getPieDetail:101',
+        ]);
         const accountId = await linkAccountId(connectionId);
         const [bucket] = await t.owner
           .select()
@@ -1083,10 +1173,10 @@ describe('sync engine', () => {
           { id: '101', invested: 40_000, value: 45_000 },
           { id: '102', invested: 10_000, value: 9_000 },
         ];
-        const getPieName = t212.getPieName.bind(t212);
-        t212.getPieName = async (id) => {
+        const getPieDetail = t212.getPieDetail.bind(t212);
+        t212.getPieDetail = async (id, currency) => {
           if (id === '102') throw new ProviderAuthError();
-          return getPieName(id);
+          return getPieDetail(id, currency);
         };
         expect(await run(deps, ctx, connectionId)).toMatchObject({ status: 'success' });
         const accountId = await linkAccountId(connectionId);

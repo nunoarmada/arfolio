@@ -953,7 +953,9 @@
       "emptyTitle": "Aún no hay posiciones.",
       "emptyBody": "Las posiciones aparecen aquí tras la próxima actualización de la cuenta.",
       "error": "No se pudieron cargar las inversiones.",
-      "excludesOther": "Excluye posiciones en otras divisas"
+      "excludesOther": "Excluye posiciones en otras divisas",
+      "outsidePies": "Fuera de los pies",
+      "groupWeight": "{weight} del total"
     },
     "creditLimit": "Límite de crédito",
     "creditLimitHint": "Solo para bancos que informan del crédito disponible: el saldo del banco se interpreta como disponible y la deuda es el límite menos ese saldo.",

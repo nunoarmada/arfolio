@@ -4,6 +4,7 @@ import {
   date,
   foreignKey,
   index,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -77,5 +78,45 @@ export const investmentBucketSnapshot = pgTable(
       foreignColumns: [financialAccount.id, financialAccount.householdId],
     }).onDelete('cascade'),
     index('investment_bucket_snapshot_account_as_of_idx').on(t.accountId, t.asOf),
+  ],
+);
+
+/**
+ * Daily instruments of a bucket as the provider reports them for that bucket (quantity, invested
+ * and market value in account-currency minor units). Read once a day with the bucket name.
+ */
+export const investmentBucketHolding = pgTable(
+  'investment_bucket_holding',
+  {
+    bucketId: uuid('bucket_id').notNull(),
+    householdId: text('household_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    accountId: uuid('account_id').notNull(),
+    asOf: date('as_of', { mode: 'string' }).notNull(),
+    /** Provider ticker, matched against `position_snapshot.ticker`. */
+    ticker: text('ticker').notNull(),
+    /** Exact decimal as a string (never a float). */
+    quantity: numeric('quantity', { precision: 28, scale: 10 }).notNull(),
+    investedMinor: bigint('invested_minor', { mode: 'number' }).notNull(),
+    valueMinor: bigint('value_minor', { mode: 'number' }).notNull(),
+    currency: char('currency', { length: 3 }).notNull(),
+  },
+  (t) => [
+    primaryKey({
+      name: 'investment_bucket_holding_pk',
+      columns: [t.bucketId, t.asOf, t.ticker],
+    }),
+    foreignKey({
+      name: 'investment_bucket_holding_bucket_fk',
+      columns: [t.bucketId, t.householdId],
+      foreignColumns: [investmentBucket.id, investmentBucket.householdId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'investment_bucket_holding_account_fk',
+      columns: [t.accountId, t.householdId],
+      foreignColumns: [financialAccount.id, financialAccount.householdId],
+    }).onDelete('cascade'),
+    index('investment_bucket_holding_account_as_of_idx').on(t.accountId, t.asOf),
   ],
 );

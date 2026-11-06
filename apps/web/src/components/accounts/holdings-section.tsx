@@ -4,7 +4,7 @@ import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Holding, Holdings } from '@arfolio/services';
+import type { Holding, HoldingGroup, Holdings } from '@arfolio/services';
 import { cn } from '@/lib/cn';
 import {
   decimalToMinor,
@@ -35,7 +35,7 @@ function Gain({
   stacked = false,
   className,
 }: {
-  holding: Holding;
+  holding: Pick<Holding, 'currency' | 'cost' | 'profit' | 'profitBps'>;
   stacked?: boolean;
   className?: string;
 }) {
@@ -93,6 +93,26 @@ function WeightBar({ bps }: { bps: number }) {
 
 const keyOf = (h: Holding, i: number) => `${h.ticker}|${h.currency}|${i}`;
 
+/** Weight as a percentage with its bar, or a dash when it is unknown. */
+function Weight({ bps }: { bps: number | null }) {
+  const { locale } = useHouseholdFormat();
+  return bps === null ? (
+    <span className="block text-right text-muted-foreground">
+      <span aria-hidden="true">—</span>
+    </span>
+  ) : (
+    <span className="grid grid-cols-1 justify-items-end gap-1 tabular-nums">
+      {formatBps(bps, locale)}
+      <WeightBar bps={bps} />
+    </span>
+  );
+}
+
+function useGroupName() {
+  const t = useTranslations('accounts.holdings');
+  return (g: HoldingGroup) => g.name ?? t('outsidePies');
+}
+
 function MobileRow({ holding }: { holding: Holding }) {
   const t = useTranslations('accounts.holdings');
   const { locale } = useHouseholdFormat();
@@ -132,18 +152,57 @@ function MobileRow({ holding }: { holding: Holding }) {
   );
 }
 
+function ItemRow({ holding: h }: { holding: Holding }) {
+  const { locale } = useHouseholdFormat();
+  const formatQuantity = formatQuantityFor(usePrivacy().hidden);
+  return (
+    <tr tabIndex={-1} className={cn(dataTable.row, 'scroll-mt-16')}>
+      <th
+        scope="row"
+        className={cn(dataTable.td, dataTable.stickyFirst, 'h-14 text-left font-normal')}
+      >
+        <span className="block max-w-72 truncate font-medium" title={h.name}>
+          {h.name}
+        </span>
+        <span className="block max-w-72 truncate text-label font-normal text-muted-foreground">
+          {[h.ticker, h.isin].filter((v, n, all) => v && all.indexOf(v) === n).join(' · ')}
+        </span>
+      </th>
+      <td className={cn(dataTable.td, dataTable.tdNum, 'whitespace-nowrap')}>
+        {formatQuantity(h.quantity, locale)}
+      </td>
+      <td className={cn(dataTable.td, 'text-right')}>
+        <MoneyAmount
+          minor={decimalToMinor(h.value, h.currency)}
+          currency={h.currency}
+          kind="balance"
+          size="md"
+          className="font-semibold"
+        />
+      </td>
+      <td className={cn(dataTable.td, 'text-right')}>
+        <Gain holding={h} stacked />
+      </td>
+      <td className={dataTable.td}>
+        <Weight bps={h.weightBps} />
+      </td>
+    </tr>
+  );
+}
+
 function HoldingsTable({
   items,
+  groups,
   holdings,
   caption,
 }: {
   items: Holding[];
+  groups: HoldingGroup[] | null;
   holdings: Holdings;
   caption: string;
 }) {
   const t = useTranslations('accounts.holdings');
-  const { locale } = useHouseholdFormat();
-  const formatQuantity = formatQuantityFor(usePrivacy().hidden);
+  const groupName = useGroupName();
   const currency = holdings.currency ?? 'EUR';
   const th = (num = false) => cn(dataTable.th, num && dataTable.thNum);
   return (
@@ -169,50 +228,46 @@ function HoldingsTable({
             </th>
           </tr>
         </thead>
-        <tbody>
-          {items.map((h, i) => (
-            <tr key={keyOf(h, i)} tabIndex={-1} className={cn(dataTable.row, 'scroll-mt-16')}>
+        {groups ? null : (
+          <tbody>
+            {items.map((h, i) => (
+              <ItemRow key={keyOf(h, i)} holding={h} />
+            ))}
+          </tbody>
+        )}
+        {groups?.map((g) => (
+          <tbody key={g.id ?? 'outside'}>
+            <tr className="font-semibold">
               <th
-                scope="row"
-                className={cn(dataTable.td, dataTable.stickyFirst, 'h-14 text-left font-normal')}
+                scope="rowgroup"
+                className={cn(dataTable.td, dataTable.stickyFirst, 'h-12 bg-surface-2 text-left')}
               >
-                <span className="block max-w-72 truncate font-medium" title={h.name}>
-                  {h.name}
-                </span>
-                <span className="block max-w-72 truncate text-label font-normal text-muted-foreground">
-                  {[h.ticker, h.isin].filter((v, n, all) => v && all.indexOf(v) === n).join(' · ')}
+                <span className="block max-w-72 truncate" title={groupName(g)}>
+                  {groupName(g)}
                 </span>
               </th>
-              <td className={cn(dataTable.td, dataTable.tdNum, 'whitespace-nowrap')}>
-                {formatQuantity(h.quantity, locale)}
-              </td>
-              <td className={cn(dataTable.td, 'text-right')}>
+              <td className={cn(dataTable.td, 'bg-surface-2')} />
+              <td className={cn(dataTable.td, 'bg-surface-2 text-right')}>
                 <MoneyAmount
-                  minor={decimalToMinor(h.value, h.currency)}
-                  currency={h.currency}
+                  minor={decimalToMinor(g.value, g.currency)}
+                  currency={g.currency}
                   kind="balance"
                   size="md"
                   className="font-semibold"
                 />
               </td>
-              <td className={cn(dataTable.td, 'text-right')}>
-                <Gain holding={h} stacked />
+              <td className={cn(dataTable.td, 'bg-surface-2 text-right font-normal')}>
+                <Gain holding={g} stacked />
               </td>
-              <td className={dataTable.td}>
-                {h.weightBps === null ? (
-                  <span className="block text-right text-muted-foreground">
-                    <span aria-hidden="true">—</span>
-                  </span>
-                ) : (
-                  <span className="grid grid-cols-1 justify-items-end gap-1 tabular-nums">
-                    {formatBps(h.weightBps, locale)}
-                    <WeightBar bps={h.weightBps} />
-                  </span>
-                )}
+              <td className={cn(dataTable.td, 'bg-surface-2 font-normal')}>
+                <Weight bps={g.weightBps} />
               </td>
             </tr>
-          ))}
-        </tbody>
+            {g.items.map((h, i) => (
+              <ItemRow key={keyOf(h, i)} holding={h} />
+            ))}
+          </tbody>
+        ))}
         <tfoot>
           <tr className={dataTable.totals}>
             <th
@@ -267,22 +322,25 @@ function HoldingsContent({ holdings, today }: { holdings: Holdings | null; today
     if (holdings.items.length === 0) {
       return <EmptyState title={t('emptyTitle')}>{t('emptyBody')}</EmptyState>;
     }
-    const items = expanded ? holdings.items : holdings.items.slice(0, FIRST);
+    const groups = holdings.groups;
+    // Grouped by pie, every instrument is shown: cutting a pie in half would misread it.
+    const items = expanded || groups ? holdings.items : holdings.items.slice(0, FIRST);
     const asOf = holdings.asOf
       ? t('asOf', { date: formatAsOf(holdings.asOf, today, locale) })
       : null;
     return (
       <>
-        <MobileList items={items} />
+        {groups ? <MobileGroups groups={groups} /> : <MobileList items={items} />}
         <HoldingsTable
           items={items}
+          groups={groups}
           holdings={holdings}
           caption={[t('title'), asOf].filter(Boolean).join(', ')}
         />
         {holdings.items.some((h) => h.currency !== holdings.currency) ? (
           <p className="text-sm text-muted-foreground">{t('excludesOther')}</p>
         ) : null}
-        {holdings.items.length > FIRST && !expanded ? (
+        {!groups && holdings.items.length > FIRST && !expanded ? (
           <Button variant="ghost" className="justify-self-start" onClick={() => setExpanded(true)}>
             {t('showAll', { count: holdings.items.length })}
           </Button>
@@ -338,6 +396,59 @@ function MobileList({ items }: { items: Holding[] }) {
       ))}
     </ul>
   );
+}
+
+/** Each pie as a headed card: name, value, gain and weight, then its instruments. */
+function MobileGroups({ groups }: { groups: HoldingGroup[] }) {
+  const groupName = useGroupName();
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:hidden">
+      {groups.map((g) => {
+        const id = `holdings-group-${g.id ?? 'outside'}`;
+        return (
+          <section
+            key={g.id ?? 'outside'}
+            aria-labelledby={id}
+            className="@container overflow-hidden rounded-lg bg-surface shadow-card"
+          >
+            <div className="grid grid-cols-1 gap-0.5 border-b border-border bg-surface-2 px-4 py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3
+                  id={id}
+                  className="min-w-0 truncate text-base font-semibold"
+                  title={groupName(g)}
+                >
+                  {groupName(g)}
+                </h3>
+                <MoneyAmount
+                  minor={decimalToMinor(g.value, g.currency)}
+                  currency={g.currency}
+                  kind="balance"
+                  size="md"
+                  className="font-semibold"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                <GroupWeight bps={g.weightBps} />
+                <Gain holding={g} />
+              </div>
+            </div>
+            <ul className="divide-y divide-border">
+              {g.items.map((h, i) => (
+                <MobileRow key={keyOf(h, i)} holding={h} />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function GroupWeight({ bps }: { bps: number | null }) {
+  const t = useTranslations('accounts.holdings');
+  const { locale } = useHouseholdFormat();
+  return <span>{bps === null ? null : t('groupWeight', { weight: formatBps(bps, locale) })}</span>;
 }
 
 /** The section's failure: what failed and a retry, in the section's own frame. */
