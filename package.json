@@ -2,7 +2,7 @@
   "name": "arfolio",
   "private": true,
   "license": "AGPL-3.0-only",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22.2.0"
