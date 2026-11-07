@@ -955,7 +955,8 @@
       "error": "Couldn't load the investments.",
       "excludesOther": "Excludes positions in other currencies",
       "outsidePies": "Outside pies",
-      "groupWeight": "{weight} of the total"
+      "groupWeight": "{weight} of the total",
+      "itemCount": "{count, plural, one {# holding} other {# holdings}}"
     },
     "creditLimit": "Credit limit",
     "creditLimitHint": "Only for banks that report the available credit: the bank balance is read as available, and the debt is the limit minus that balance.",

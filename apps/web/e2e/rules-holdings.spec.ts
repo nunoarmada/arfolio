@@ -797,7 +797,16 @@ test.describe('apply a rule to existing movements, and investment holdings', () 
     const table = holdings.getByRole('table');
     // Group bands are `th scope="rowgroup"` (Playwright gives those no rowheader role).
     const bands = table.locator('th[scope="rowgroup"]');
-    await expect(bands).toHaveText(['Reforma E2E', 'Fora dos pies']);
+    await expect(bands).toContainText(['Reforma E2E', 'Fora dos pies']);
+    // Pies start collapsed: the band shows the totals and the count, the instruments are hidden.
+    const toggle = (name: string) => table.getByRole('button', { name: new RegExp(name) });
+    await expect(toggle('Reforma E2E')).toHaveAttribute('aria-expanded', 'false');
+    await expect(bands.first()).toContainText('2 ativos');
+    await expect(table.getByText('Ação Perdedora')).toHaveCount(0);
+    await toggle('Reforma E2E').click();
+    await expect(toggle('Reforma E2E')).toHaveAttribute('aria-expanded', 'true');
+    await toggle('Fora dos pies').press('Enter');
+    await expect(toggle('Fora dos pies')).toHaveAttribute('aria-expanded', 'true');
     // The pie comes first with its own value and gain, then its instruments, largest first.
     const pieRow = bands.first().locator('xpath=..');
     await expect(pieRow).toContainText(eur(600000));
@@ -817,11 +826,13 @@ test.describe('apply a rule to existing movements, and investment holdings', () 
     await axeBoth(page, 'holdings by pie table');
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(holdings.getByRole('heading', { name: 'Reforma E2E', level: 3 })).toBeVisible();
-    await expect(holdings.getByRole('heading', { name: 'Fora dos pies', level: 3 })).toBeVisible();
-    await expect(
-      holdings.getByRole('region', { name: 'Reforma E2E' }).getByRole('listitem'),
-    ).toHaveCount(2);
+    await page.reload();
+    await expect(holdings.getByRole('heading', { name: /Reforma E2E/, level: 3 })).toBeVisible();
+    const pieCard = holdings.getByRole('region', { name: /Reforma E2E/ });
+    await expect(pieCard.getByRole('listitem')).toHaveCount(0);
+    await pieCard.getByRole('button', { name: /Reforma E2E/ }).click();
+    await expect(holdings.getByRole('heading', { name: /Fora dos pies/, level: 3 })).toBeVisible();
+    await expect(pieCard.getByRole('listitem')).toHaveCount(2);
     await shoot(page, 'H16-holdings-pies-list', holdings);
     await expectNoOverflowAt320(page, 'account page with holdings by pie');
     await axeBoth(page, 'holdings by pie list');

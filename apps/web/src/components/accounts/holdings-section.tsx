@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ChevronRight, TrendingDown, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -113,6 +113,51 @@ function useGroupName() {
   return (g: HoldingGroup) => g.name ?? t('outsidePies');
 }
 
+const groupKey = (g: HoldingGroup) => g.id ?? 'outside';
+
+/** Which pies are expanded (all start collapsed) and how to toggle one. */
+type GroupsOpen = { isOpen: (g: HoldingGroup) => boolean; toggle: (g: HoldingGroup) => void };
+
+/** The pie's name as a disclosure button, with how many instruments it holds. */
+function GroupToggle({
+  group,
+  open,
+  className,
+}: {
+  group: HoldingGroup;
+  open: GroupsOpen;
+  className?: string;
+}) {
+  const t = useTranslations('accounts.holdings');
+  const groupName = useGroupName();
+  const expanded = open.isOpen(group);
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={() => open.toggle(group)}
+      className={cn(
+        'flex min-h-11 min-w-0 items-center gap-2 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        className,
+      )}
+    >
+      <ChevronRight
+        aria-hidden="true"
+        className={cn(
+          'size-4 shrink-0 text-muted-foreground transition-transform duration-[120ms] motion-reduce:transition-none',
+          expanded && 'rotate-90',
+        )}
+      />
+      <span className="min-w-0 truncate" title={groupName(group)}>
+        {groupName(group)}
+      </span>
+      <span className="shrink-0 text-sm font-normal text-muted-foreground">
+        {t('itemCount', { count: group.items.length })}
+      </span>
+    </button>
+  );
+}
+
 function MobileRow({ holding }: { holding: Holding }) {
   const t = useTranslations('accounts.holdings');
   const { locale } = useHouseholdFormat();
@@ -193,16 +238,17 @@ function ItemRow({ holding: h }: { holding: Holding }) {
 function HoldingsTable({
   items,
   groups,
+  open,
   holdings,
   caption,
 }: {
   items: Holding[];
   groups: HoldingGroup[] | null;
+  open: GroupsOpen;
   holdings: Holdings;
   caption: string;
 }) {
   const t = useTranslations('accounts.holdings');
-  const groupName = useGroupName();
   const currency = holdings.currency ?? 'EUR';
   const th = (num = false) => cn(dataTable.th, num && dataTable.thNum);
   return (
@@ -236,15 +282,13 @@ function HoldingsTable({
           </tbody>
         )}
         {groups?.map((g) => (
-          <tbody key={g.id ?? 'outside'}>
+          <tbody key={groupKey(g)}>
             <tr className="font-semibold">
               <th
                 scope="rowgroup"
                 className={cn(dataTable.td, dataTable.stickyFirst, 'h-12 bg-surface-2 text-left')}
               >
-                <span className="block max-w-72 truncate" title={groupName(g)}>
-                  {groupName(g)}
-                </span>
+                <GroupToggle group={g} open={open} className="max-w-80" />
               </th>
               <td className={cn(dataTable.td, 'bg-surface-2')} />
               <td className={cn(dataTable.td, 'bg-surface-2 text-right')}>
@@ -263,9 +307,9 @@ function HoldingsTable({
                 <Weight bps={g.weightBps} />
               </td>
             </tr>
-            {g.items.map((h, i) => (
-              <ItemRow key={keyOf(h, i)} holding={h} />
-            ))}
+            {open.isOpen(g)
+              ? g.items.map((h, i) => <ItemRow key={keyOf(h, i)} holding={h} />)
+              : null}
           </tbody>
         ))}
         <tfoot>
@@ -307,6 +351,16 @@ function HoldingsContent({ holdings, today }: { holdings: Holdings | null; today
   const t = useTranslations('accounts.holdings');
   const { locale } = useHouseholdFormat();
   const [expanded, setExpanded] = useState(false);
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
+  const open: GroupsOpen = {
+    isOpen: (g) => openGroups.has(groupKey(g)),
+    toggle: (g) =>
+      setOpenGroups((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(groupKey(g))) next.add(groupKey(g));
+        return next;
+      }),
+  };
   const root = useRef<HTMLElement>(null);
 
   // After "Ver todas", focus moves to the first row that was not there before.
@@ -330,10 +384,11 @@ function HoldingsContent({ holdings, today }: { holdings: Holdings | null; today
       : null;
     return (
       <>
-        {groups ? <MobileGroups groups={groups} /> : <MobileList items={items} />}
+        {groups ? <MobileGroups groups={groups} open={open} /> : <MobileList items={items} />}
         <HoldingsTable
           items={items}
           groups={groups}
+          open={open}
           holdings={holdings}
           caption={[t('title'), asOf].filter(Boolean).join(', ')}
         />
@@ -398,27 +453,28 @@ function MobileList({ items }: { items: Holding[] }) {
   );
 }
 
-/** Each pie as a headed card: name, value, gain and weight, then its instruments. */
-function MobileGroups({ groups }: { groups: HoldingGroup[] }) {
-  const groupName = useGroupName();
+/** Each pie as a card: name, value, gain and weight; its instruments once expanded. */
+function MobileGroups({ groups, open }: { groups: HoldingGroup[]; open: GroupsOpen }) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:hidden">
       {groups.map((g) => {
-        const id = `holdings-group-${g.id ?? 'outside'}`;
+        const id = `holdings-group-${groupKey(g)}`;
+        const expanded = open.isOpen(g);
         return (
           <section
-            key={g.id ?? 'outside'}
+            key={groupKey(g)}
             aria-labelledby={id}
             className="@container overflow-hidden rounded-lg bg-surface shadow-card"
           >
-            <div className="grid grid-cols-1 gap-0.5 border-b border-border bg-surface-2 px-4 py-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3
-                  id={id}
-                  className="min-w-0 truncate text-base font-semibold"
-                  title={groupName(g)}
-                >
-                  {groupName(g)}
+            <div
+              className={cn(
+                'grid grid-cols-1 gap-0.5 bg-surface-2 px-4 py-1',
+                expanded && 'border-b border-border',
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 id={id} className="min-w-0 text-base font-semibold">
+                  <GroupToggle group={g} open={open} className="w-full" />
                 </h3>
                 <MoneyAmount
                   minor={decimalToMinor(g.value, g.currency)}
@@ -428,16 +484,18 @@ function MobileGroups({ groups }: { groups: HoldingGroup[] }) {
                   className="font-semibold"
                 />
               </div>
-              <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between gap-3 pb-1 text-sm text-muted-foreground">
                 <GroupWeight bps={g.weightBps} />
                 <Gain holding={g} />
               </div>
             </div>
-            <ul className="divide-y divide-border">
-              {g.items.map((h, i) => (
-                <MobileRow key={keyOf(h, i)} holding={h} />
-              ))}
-            </ul>
+            {expanded ? (
+              <ul className="divide-y divide-border">
+                {g.items.map((h, i) => (
+                  <MobileRow key={keyOf(h, i)} holding={h} />
+                ))}
+              </ul>
+            ) : null}
           </section>
         );
       })}
