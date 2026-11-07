@@ -37,23 +37,28 @@ export type Http = { request(req: HttpRequest): Promise<HttpResponse> };
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * Parses `Retry-After` (seconds or HTTP date), falling back to `x-ratelimit-reset`
- * (unix seconds). Returns whole seconds to wait, or undefined when no hint was sent.
+ * Seconds to wait before retrying a 429: the later of `Retry-After` (seconds or HTTP date) and
+ * `x-ratelimit-reset` (unix seconds), never less than 1 s. Both are read because some providers
+ * round `Retry-After` down (Trading 212 sends "4" with 4.x s left), so a retry on it alone lands
+ * inside the same window. Returns undefined when no hint was sent.
  */
 function retryAfterSeconds(headers: Headers, nowMs: number): number | undefined {
+  const hints: number[] = [];
   const retryAfter = headers.get('retry-after');
   if (retryAfter !== null && retryAfter.trim() !== '') {
     const seconds = Number(retryAfter);
-    if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
-    const date = Date.parse(retryAfter);
-    if (!Number.isNaN(date)) return Math.max(0, Math.ceil((date - nowMs) / 1000));
+    if (Number.isFinite(seconds) && seconds >= 0) hints.push(Math.ceil(seconds));
+    else {
+      const date = Date.parse(retryAfter);
+      if (!Number.isNaN(date)) hints.push(Math.ceil((date - nowMs) / 1000));
+    }
   }
   const resetHeader = headers.get('x-ratelimit-reset');
   const reset = Number(resetHeader);
   if (resetHeader !== null && resetHeader.trim() !== '' && Number.isFinite(reset)) {
-    return Math.max(0, Math.ceil(reset - nowMs / 1000));
+    hints.push(Math.ceil(reset - nowMs / 1000));
   }
-  return undefined;
+  return hints.length === 0 ? undefined : Math.max(1, ...hints);
 }
 
 /** JSON-over-HTTP with provider error mapping and bounded 429 backoff. */

@@ -107,6 +107,27 @@ describe('createHttp.request', () => {
     expect(sleeps).toEqual([5000]);
   });
 
+  it('waits until x-ratelimit-reset when Retry-After is rounded down (Trading 212)', async () => {
+    // Seen live: 4.x s left in the window, Retry-After "4", reset at the exact second.
+    server = await startFakeServer((_req, res, i) =>
+      i === 0
+        ? sendJson(res, {}, 429, { 'retry-after': '4', 'x-ratelimit-reset': '1700000005' })
+        : sendJson(res, {}),
+    );
+    const { client, sleeps } = http({ maxRetries: 1 });
+    await client.request({ method: 'GET', url: `${server.baseUrl}/x` });
+    expect(sleeps).toEqual([5000]);
+  });
+
+  it('never retries at once on Retry-After 0', async () => {
+    server = await startFakeServer((_req, res, i) =>
+      i === 0 ? sendJson(res, {}, 429, { 'retry-after': '0' }) : sendJson(res, {}),
+    );
+    const { client, sleeps } = http({ maxRetries: 1 });
+    await client.request({ method: 'GET', url: `${server.baseUrl}/x` });
+    expect(sleeps).toEqual([1000]);
+  });
+
   it('treats an empty Retry-After as absent', async () => {
     server = await startFakeServer((_req, res, i) =>
       i === 0 ? sendJson(res, {}, 429, { 'retry-after': '' }) : sendJson(res, {}),
