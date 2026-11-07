@@ -455,8 +455,11 @@ async function saveBuckets(
     try {
       details.set(pie.id, await client.getPieDetail(pie.id, currency));
     } catch (error) {
+      // A rate limit that outlasted the client's retries: keep what was read and ask no more
+      // now; the pies left without instruments are read on the next sync of the day.
+      if (error instanceof ProviderRateLimitError) break;
       // One unreadable pie detail must not drop every pie: keep the stored name (or the id for a
-      // new pie) and store no instruments for it. Auth and rate-limit errors still propagate.
+      // new pie) and store no instruments for it. Auth errors still propagate.
       if (!(error instanceof ProviderResponseError)) throw error;
     }
   }

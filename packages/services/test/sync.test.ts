@@ -1209,6 +1209,53 @@ describe('sync engine', () => {
         expect(bucket!.name).toBe('Reforma 2');
       });
 
+      it('keeps the pies read so far when a detail is still rate limited, and stops asking', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [
+          { id: '101', invested: 40_000, value: 45_000 },
+          { id: '102', invested: 10_000, value: 9_000 },
+          { id: '103', invested: 5_000, value: 5_500 },
+        ];
+        t212.pieNames = { '101': 'Reforma' };
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXA_EQ', quantity: '1', invested: 40_000, value: 45_000 }],
+        };
+        const getPieDetail = t212.getPieDetail.bind(t212);
+        t212.getPieDetail = async (id, currency) => {
+          if (id === '102') {
+            t212.calls.push(`getPieDetail:${id}`);
+            throw new ProviderRateLimitError(5);
+          }
+          return getPieDetail(id, currency);
+        };
+        expect(await run(deps, ctx, connectionId)).toMatchObject({ status: 'success' });
+        expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toEqual([
+          'getPieDetail:101',
+          'getPieDetail:102',
+        ]);
+        const accountId = await linkAccountId(connectionId);
+        const buckets = await t.owner
+          .select()
+          .from(investmentBucket)
+          .where(eq(investmentBucket.accountId, accountId));
+        expect(buckets.map((b) => [b.externalId, b.name]).sort()).toEqual([
+          ['101', 'Reforma'],
+          ['102', '102'],
+          ['103', '103'],
+        ]);
+        expect(
+          await t.owner
+            .select()
+            .from(investmentBucketSnapshot)
+            .where(eq(investmentBucketSnapshot.accountId, accountId)),
+        ).toHaveLength(3);
+        const held = await t.owner
+          .select()
+          .from(investmentBucketHolding)
+          .where(eq(investmentBucketHolding.accountId, accountId));
+        expect(held.map((r) => r.ticker)).toEqual(['EXA_EQ']);
+      });
+
       it('writes nothing for pies when a name lookup fails half way with an auth error', async () => {
         const { ctx, t212, deps, connectionId } = await broker();
         t212.pies = [
