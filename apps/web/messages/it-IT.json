@@ -955,7 +955,8 @@
       "error": "Impossibile caricare gli investimenti.",
       "excludesOther": "Escluse le posizioni in altre valute",
       "outsidePies": "Fuori dai pie",
-      "groupWeight": "{weight} del totale"
+      "groupWeight": "{weight} del totale",
+      "itemCount": "{count, plural, one {# titolo} other {# titoli}}"
     },
     "creditLimit": "Limite di credito",
     "creditLimitHint": "Solo per le banche che comunicano il credito disponibile: il saldo bancario viene letto come disponibile e il debito è il limite meno tale saldo.",
