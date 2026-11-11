@@ -3483,5 +3483,15 @@
   "privacy": {
     "hide": "Nascondi gli importi",
     "show": "Mostra gli importi"
+  },
+  "syncAll": {
+    "label": "Sincronizza tutto",
+    "syncing": "Sincronizzazione di tutte le connessioni…",
+    "done": "Sincronizzato · {count, plural, =0 {nessun nuovo movimento} one {# nuovo movimento} other {# nuovi movimenti}}.",
+    "failed": "{count, plural, one {# connessione non è stata sincronizzata} other {# connessioni non sono state sincronizzate}}; vedi Connessioni.",
+    "busy": "{count, plural, one {# connessione era} other {# connessioni erano}} già in sincronizzazione.",
+    "limited": "{count, plural, one {# connessione ha raggiunto} other {# connessioni hanno raggiunto}} il limite di aggiornamenti manuali; riprovare {when}.",
+    "none": "Nessuna connessione attiva da sincronizzare.",
+    "error": "Impossibile sincronizzare. Riprova."
   }
 }

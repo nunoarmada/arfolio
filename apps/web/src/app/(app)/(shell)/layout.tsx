@@ -1,13 +1,14 @@
 import { reviewCount, unreadNotificationCount } from '@arfolio/services';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { HouseholdFormatProvider } from '@/components/household-format';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ShellProvider } from '@/components/shell/shell-context';
 import { OfflineBanner } from '@/components/shell/offline-banner';
 import { PrivacyToggle } from '@/components/shell/privacy-toggle';
+import { SyncAllSlot } from '@/components/shell/sync-all-slot';
 import { PrivacyProvider } from '@/components/privacy';
 import { SidebarNav, TabBar, type NavItem } from '@/components/shell/nav';
 import { TopBar } from '@/components/shell/top-bar';
@@ -83,6 +84,12 @@ export default async function ShellLayout({ children }: { children: ReactNode })
               <SidebarNav items={main} label={t('navMain')} />
               <div className="mt-auto grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-1 gap-1">
+                  {/* Viewers cannot refresh; streamed so the connections query never blocks the shell. */}
+                  {ctx.role === 'viewer' ? null : (
+                    <Suspense fallback={null}>
+                      <SyncAllSlot service={service} />
+                    </Suspense>
+                  )}
                   <PrivacyToggle variant="sidebar" />
                   <NotificationBell unread={unread} variant="sidebar" />
                   <SidebarNav items={settings} label={t('navSettings')} />

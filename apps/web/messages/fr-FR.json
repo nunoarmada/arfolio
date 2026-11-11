@@ -3483,5 +3483,15 @@
   "privacy": {
     "hide": "Masquer les montants",
     "show": "Afficher les montants"
+  },
+  "syncAll": {
+    "label": "Tout synchroniser",
+    "syncing": "Synchronisation de toutes les connexions…",
+    "done": "Synchronisé · {count, plural, =0 {aucune nouvelle opération} one {# nouvelle opération} other {# nouvelles opérations}}.",
+    "failed": "{count, plural, one {# connexion n’a pas pu être synchronisée} other {# connexions n’ont pas pu être synchronisées}} ; voir Connexions.",
+    "busy": "{count, plural, one {# connexion était} other {# connexions étaient}} déjà en cours de synchronisation.",
+    "limited": "{count, plural, one {# connexion a atteint} other {# connexions ont atteint}} la limite d’actualisations manuelles ; vous pourrez réessayer {when}.",
+    "none": "Aucune connexion active à synchroniser.",
+    "error": "Synchronisation impossible. Réessayez."
   }
 }

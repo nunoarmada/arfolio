@@ -20,11 +20,13 @@ import {
   NotFoundError,
   removeConnection,
   requestManualSync,
+  requestManualSyncAll,
   startBankConsent,
   ConflictError,
   ValidationError,
   updateTrading212Credentials,
   type ConnectionLink,
+  type SyncAllResult,
 } from '@arfolio/services';
 import { getConnectorDeps } from '../connector-deps';
 import { psuHeadersFrom } from '../psu-headers';
@@ -89,6 +91,21 @@ export async function syncNowAction(connectionId: string): Promise<ActionResult<
       if (error instanceof NotFoundError) return { kind: 'gone' };
       throw error;
     }
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Sync all (the sidebar button)
+
+export async function syncAllAction(): Promise<ActionResult<SyncAllResult>> {
+  return run(async () => {
+    const requestHeaders = await headers();
+    const ctx = await getServiceCtx(requestHeaders);
+    const result = await requestManualSyncAll(ctx, await getConnectorDeps(), {
+      psuHeaders: psuHeadersFrom(requestHeaders),
+    });
+    refresh();
+    return result;
   });
 }
 
