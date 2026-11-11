@@ -1073,6 +1073,91 @@ export async function requestManualSync(
   );
 }
 
+export type SyncAllResult = {
+  /** Active connections that were attempted. */
+  total: number;
+  /** Runs that finished as success or partial. */
+  synced: number;
+  /** New movements across all runs. */
+  inserted: number;
+  failed: number;
+  /** Already syncing (another run holds the lock, or the daily provider budget is spent). */
+  busy: number;
+  /** Over the manual refresh allowance; not attempted. */
+  limited: number;
+  /** Earliest moment a limited connection can be refreshed again (ISO), or null. */
+  retryAt: string | null;
+};
+
+/** How many connections "Sync all" would refresh; the shell hides the button when none. */
+export async function countActiveConnections(ctx: ServiceCtx): Promise<number> {
+  const [row] = await withHousehold(ctx.db, ctx.householdId, (tx) =>
+    tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(connection)
+      .where(and(eq(connection.householdId, ctx.householdId), eq(connection.status, 'active'))),
+  );
+  return row?.n ?? 0;
+}
+
+/**
+ * "Sync all": a manual refresh of every active connection of the household, one at a time.
+ * Each one goes through `requestManualSync`, so the per-connection allowance still applies; a
+ * connection over it is counted as `limited` instead of failing the whole request. Connections
+ * that are not active (expired, revoked, pending) need renewing first and are left alone.
+ */
+export async function requestManualSyncAll(
+  ctx: ServiceCtx,
+  deps: ConnectorDeps & { random?: () => number },
+  opts: { psuHeaders?: PsuHeaders } = {},
+): Promise<SyncAllResult> {
+  assertCanWrite(ctx);
+  const rows = await withHousehold(ctx.db, ctx.householdId, (tx) =>
+    tx
+      .select({ id: connection.id })
+      .from(connection)
+      .where(and(eq(connection.householdId, ctx.householdId), eq(connection.status, 'active')))
+      .orderBy(connection.createdAt, connection.id),
+  );
+  const result: SyncAllResult = {
+    total: rows.length,
+    synced: 0,
+    inserted: 0,
+    failed: 0,
+    busy: 0,
+    limited: 0,
+    retryAt: null,
+  };
+  for (const { id } of rows) {
+    try {
+      const run = await requestManualSync(ctx, deps, id, opts);
+      if (run.status === 'skipped') result.busy += 1;
+      else if (run.status === 'failed') result.failed += 1;
+      else {
+        result.synced += 1;
+        result.inserted += run.inserted;
+      }
+    } catch (error) {
+      if (error instanceof ManualRefreshLimitError) {
+        result.limited += 1;
+        const at = error.retryAt.toISOString();
+        if (result.retryAt === null || at < result.retryAt) result.retryAt = at;
+        continue;
+      }
+      // Removed or deactivated between the listing and its turn: nothing to refresh.
+      if (
+        error instanceof NotFoundError ||
+        (error instanceof ValidationError && error.code === 'connection_inactive')
+      ) {
+        result.total -= 1;
+        continue;
+      }
+      throw error;
+    }
+  }
+  return result;
+}
+
 export type DueConnection = {
   householdId: string;
   connectionId: string;

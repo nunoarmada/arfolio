@@ -46,9 +46,17 @@ export {
   localDay,
   syncConnection,
   requestManualSync,
+  requestManualSyncAll,
+  countActiveConnections,
   findDueConnections,
 } from './sync.js';
-export type { SyncDeps, SyncRunResult, SyncTriggerKind, DueConnection } from './sync.js';
+export type {
+  SyncAllResult,
+  SyncDeps,
+  SyncRunResult,
+  SyncTriggerKind,
+  DueConnection,
+} from './sync.js';
 export { pruneSyncData } from './prune.js';
 export {
   CONSENT_WARNING_DAYS,

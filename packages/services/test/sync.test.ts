@@ -12,6 +12,7 @@ import {
   addTrading212Connection,
   completeBankConsent,
   computeNextSyncAt,
+  countActiveConnections,
   findDueConnections,
   ForbiddenError,
   linkConnectionAccounts,
@@ -20,6 +21,7 @@ import {
   NotFoundError,
   removeConnection,
   requestManualSync,
+  requestManualSyncAll,
   startBankConsent,
   syncConnection,
   type ServiceCtx,
@@ -1618,6 +1620,84 @@ describe('sync engine', () => {
         name: 'ValidationError',
         code: 'connection_inactive',
       });
+    });
+  });
+
+  describe('sync all', () => {
+    it('refreshes every active connection and tallies the outcome', async () => {
+      const { ctx, banking, connectionId, links } = await bank(1);
+      banking.txs['uid-1'] = [tx({ externalId: 'a1' }), tx({ externalId: 'a2' })];
+      const t212 = fakeTrading212();
+      const deps = syncDeps(banking, t212);
+      const { connectionId: brokerId } = await addTrading212Connection(ctx, deps, {
+        apiKey: 'plain-key',
+        apiSecret: 'plain-secret',
+        displayName: 'Broker',
+      });
+      await linkConnectionAccounts(ctx, deps, brokerId, [
+        { externalKey: '4242', create: { name: 'Trading 212', type: 'investment' } },
+      ]);
+      const result = await requestManualSyncAll(ctx, deps);
+      expect(result).toEqual({
+        total: 2,
+        synced: 2,
+        inserted: 2,
+        failed: 0,
+        busy: 0,
+        limited: 0,
+        retryAt: null,
+      });
+      expect(await txCount(links[0]!.accountId)).toBe(2);
+      expect((await runs(connectionId)).map((r) => r.trigger)).toEqual(['manual']);
+      expect((await runs(brokerId)).map((r) => r.trigger)).toEqual(['manual']);
+
+      // Within 5 minutes Trading 212 is over its allowance; the bank still has one left.
+      now = new Date(now.getTime() + MIN);
+      const again = await requestManualSyncAll(ctx, deps);
+      expect(again).toMatchObject({ total: 2, synced: 1, limited: 1 });
+      expect(again.retryAt).toBe(new Date(now.getTime() - MIN + 5 * MIN).toISOString());
+    });
+
+    it('counts failed runs, skips inactive connections and is forbidden for viewers', async () => {
+      const { ctx, banking, deps, connectionId } = await bank(1);
+      banking.txs['uid-1'] = () => {
+        throw new ProviderUnavailableError('down');
+      };
+      expect(await requestManualSyncAll(ctx, deps)).toMatchObject({
+        total: 1,
+        synced: 0,
+        failed: 1,
+      });
+      await expect(requestManualSyncAll(withRole(ctx, 'viewer'), deps)).rejects.toBeInstanceOf(
+        ForbiddenError,
+      );
+      // An expired connection needs renewing, not refreshing: it is left alone.
+      await t.owner
+        .update(connection)
+        .set({ status: 'expired' })
+        .where(eq(connection.id, connectionId));
+      const callsBefore = banking.calls.length;
+      expect(await requestManualSyncAll(ctx, deps)).toEqual({
+        total: 0,
+        synced: 0,
+        inserted: 0,
+        failed: 0,
+        busy: 0,
+        limited: 0,
+        retryAt: null,
+      });
+      expect(banking.calls.length).toBe(callsBefore);
+    });
+
+    it('counts the active connections of the household only', async () => {
+      const { ctx, connectionId } = await bank(1);
+      await bank(1);
+      expect(await countActiveConnections(ctx)).toBe(1);
+      await t.owner
+        .update(connection)
+        .set({ status: 'expired' })
+        .where(eq(connection.id, connectionId));
+      expect(await countActiveConnections(ctx)).toBe(0);
     });
   });
 

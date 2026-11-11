@@ -1,4 +1,4 @@
-import { reviewCount, unreadNotificationCount } from '@arfolio/services';
+import { countActiveConnections, reviewCount, unreadNotificationCount } from '@arfolio/services';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
@@ -8,6 +8,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ShellProvider } from '@/components/shell/shell-context';
 import { OfflineBanner } from '@/components/shell/offline-banner';
 import { PrivacyToggle } from '@/components/shell/privacy-toggle';
+import { SyncAllButton } from '@/components/shell/sync-all-button';
 import { PrivacyProvider } from '@/components/privacy';
 import { SidebarNav, TabBar, type NavItem } from '@/components/shell/nav';
 import { TopBar } from '@/components/shell/top-bar';
@@ -26,7 +27,7 @@ import { requireMember } from '@/server/session';
 export default async function ShellLayout({ children }: { children: ReactNode }) {
   const ctx = await requireMember(await headers());
   const service = toServiceCtx(ctx);
-  const [t, nav, review, brand, format, waiting, unread, hidden] = await Promise.all([
+  const [t, nav, review, brand, format, waiting, unread, hidden, syncable] = await Promise.all([
     getTranslations('shell'),
     getTranslations('nav'),
     getTranslations('review'),
@@ -35,6 +36,8 @@ export default async function ShellLayout({ children }: { children: ReactNode })
     reviewCount(service),
     unreadNotificationCount(service),
     readPrivacy(),
+    // Viewers cannot refresh; a household without bank or broker connections has nothing to sync.
+    ctx.role === 'viewer' ? Promise.resolve(0) : countActiveConnections(service),
   ]);
   // Later phases add more sections (never shown disabled).
   const home: NavItem = { href: '/', label: nav('home'), icon: 'home' };
@@ -83,6 +86,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
               <SidebarNav items={main} label={t('navMain')} />
               <div className="mt-auto grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-1 gap-1">
+                  {syncable > 0 ? <SyncAllButton /> : null}
                   <PrivacyToggle variant="sidebar" />
                   <NotificationBell unread={unread} variant="sidebar" />
                   <SidebarNav items={settings} label={t('navSettings')} />

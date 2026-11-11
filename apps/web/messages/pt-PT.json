@@ -3483,5 +3483,15 @@
   "privacy": {
     "hide": "Esconder montantes",
     "show": "Mostrar montantes"
+  },
+  "syncAll": {
+    "label": "Sincronizar tudo",
+    "syncing": "A sincronizar todas as ligações…",
+    "done": "Sincronizado · {count, plural, =0 {sem movimentos novos} one {# movimento novo} other {# movimentos novos}}.",
+    "failed": "{count, plural, one {# ligação não sincronizou} other {# ligações não sincronizaram}}; veja as Ligações.",
+    "busy": "{count, plural, one {# ligação já estava} other {# ligações já estavam}} a sincronizar.",
+    "limited": "{count, plural, one {# ligação atingiu} other {# ligações atingiram}} o limite de atualizações manuais; pode tentar de novo {when}.",
+    "none": "Não há ligações ativas para sincronizar.",
+    "error": "Não foi possível sincronizar. Tente de novo."
   }
 }
