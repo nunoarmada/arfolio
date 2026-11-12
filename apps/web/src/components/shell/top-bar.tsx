@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import type { Brand } from '@/lib/brand';
@@ -10,11 +10,17 @@ import { PrivacyToggle } from './privacy-toggle';
 import { useShell } from './shell-context';
 
 /**
- * Phone top bar (below md): the brand on the left, privacy mode and the notification bell on the
- * right. It is
- * sticky, translucent over the content, and gains a hairline once the page has scrolled under it.
+ * Phone top bar (below md): the brand on the left; "Sync all" (when the household has active
+ * connections), privacy mode and the notification bell on the right. It is sticky, translucent over the content, and gains a hairline once the page has scrolled under it.
  */
-export function TopBar({ brand }: { brand: Pick<Brand, 'name' | 'logoUrl'> }) {
+export function TopBar({
+  brand,
+  sync,
+}: {
+  brand: Pick<Brand, 'name' | 'logoUrl'>;
+  /** The streamed "Sync all" button, rendered by the server layout (absent for viewers). */
+  sync?: ReactNode;
+}) {
   const shell = useShell();
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -35,6 +41,7 @@ export function TopBar({ brand }: { brand: Pick<Brand, 'name' | 'logoUrl'> }) {
         <BrandMark brand={brand} />
       </Link>
       <div className="flex items-center">
+        {sync}
         <PrivacyToggle variant="topbar" />
         {shell ? <NotificationBell unread={shell.unread} variant="topbar" /> : null}
       </div>

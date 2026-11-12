@@ -71,6 +71,14 @@ export default async function ShellLayout({ children }: { children: ReactNode })
     },
   ];
 
+  // "Sync all": viewers cannot refresh; streamed so the connections query never blocks the shell.
+  const syncAll = (variant: 'sidebar' | 'topbar') =>
+    ctx.role === 'viewer' ? null : (
+      <Suspense fallback={null}>
+        <SyncAllSlot service={service} variant={variant} />
+      </Suspense>
+    );
+
   return (
     <HouseholdFormatProvider value={format}>
       <PrivacyProvider initialHidden={hidden}>
@@ -84,12 +92,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
               <SidebarNav items={main} label={t('navMain')} />
               <div className="mt-auto grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-1 gap-1">
-                  {/* Viewers cannot refresh; streamed so the connections query never blocks the shell. */}
-                  {ctx.role === 'viewer' ? null : (
-                    <Suspense fallback={null}>
-                      <SyncAllSlot service={service} />
-                    </Suspense>
-                  )}
+                  {syncAll('sidebar')}
                   <PrivacyToggle variant="sidebar" />
                   <NotificationBell unread={unread} variant="sidebar" />
                   <SidebarNav items={settings} label={t('navSettings')} />
@@ -99,7 +102,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <TopBar brand={brand} />
+              <TopBar brand={brand} sync={syncAll('topbar')} />
               <OfflineBanner />
               <main
                 id="main"

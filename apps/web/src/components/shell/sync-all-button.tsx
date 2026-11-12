@@ -16,10 +16,11 @@ import { dayTime } from '@/lib/when';
 import { syncAllAction } from '@/server/actions/connections';
 
 /**
- * "Sync all": a manual refresh of every active connection, as a sidebar row above the privacy
- * switch. Each connection keeps its own manual refresh allowance; one toast sums up the run.
+ * "Sync all": a manual refresh of every active connection. A sidebar row above the privacy
+ * switch, and an icon button in the phone top bar. Each connection keeps its own manual refresh
+ * allowance; one toast sums up the run.
  */
-export function SyncAllButton() {
+export function SyncAllButton({ variant }: { variant: 'sidebar' | 'topbar' }) {
   const t = useTranslations('syncAll');
   const connections = useTranslations('connections');
   const common = useTranslations('common');
@@ -55,20 +56,41 @@ export function SyncAllButton() {
   }
 
   const label = pending ? t('syncing') : t('label');
+  const icon = (size: string) => (
+    <RefreshCw
+      className={cn(size, 'shrink-0', pending && 'animate-spin motion-reduce:animate-none')}
+      aria-hidden="true"
+    />
+  );
+  // Until hydration there is no click handler: disabled, so an early tap is not silently lost.
+  const buttonProps = {
+    type: 'button' as const,
+    disabled: !hydrated,
+    'aria-busy': pending,
+    'aria-label': label,
+    onClick: () => void syncAll(),
+  };
+
+  if (variant === 'topbar') {
+    return (
+      <button
+        {...buttonProps}
+        className={cn(
+          'flex size-11 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-surface-2',
+          pending && 'cursor-progress',
+        )}
+      >
+        {icon('size-6')}
+      </button>
+    );
+  }
+
   return (
     <button
-      type="button"
-      // Until hydration there is no click handler: disabled, so an early tap is not silently lost.
-      disabled={!hydrated}
-      aria-busy={pending}
-      aria-label={label}
-      onClick={() => void syncAll()}
+      {...buttonProps}
       className={cn(sidebarRowClass, sidebarRowTone(false), pending && 'cursor-progress')}
     >
-      <RefreshCw
-        className={cn('size-5 shrink-0', pending && 'animate-spin motion-reduce:animate-none')}
-        aria-hidden="true"
-      />
+      {icon('size-5')}
       <span aria-hidden="true" className="sr-only xl:not-sr-only xl:truncate">
         {t('label')}
       </span>
