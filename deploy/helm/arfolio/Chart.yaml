@@ -4,5 +4,5 @@ description: >-
   Arfolio, a white-label household finance app (web, worker, migrations,
   optional bundled PostgreSQL and backups).
 type: application
-version: 0.3.0
-appVersion: 0.3.0
+version: 0.4.0
+appVersion: 0.4.0
