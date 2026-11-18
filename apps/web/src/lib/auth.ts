@@ -16,6 +16,9 @@ import { getEnv, type Env } from './env';
 import { isAllowedMcpRedirectUri } from './mcp-redirect';
 import { currentUserCreationScope } from './user-creation';
 
+/** How long a sign-in lasts without use: six months (180 days). Each use renews it, once a day. */
+export const SESSION_MAX_AGE_S = 180 * 24 * 60 * 60;
+
 export type AuthEnv = Pick<
   Env,
   'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'APP_URL' | 'BRAND_NAME'
@@ -77,6 +80,7 @@ export function createAuth({ db, env }: { db: Db; env: AuthEnv }) {
     trustedOrigins: [env.APP_URL],
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     emailAndPassword: { enabled: true, disableSignUp: true },
+    session: { expiresIn: SESSION_MAX_AGE_S, updateAge: 24 * 60 * 60 },
     // Rate limits key on the proxy-set header only; X-Forwarded-For is client-controlled.
     advanced: { ipAddress: { ipAddressHeaders: [env.CLIENT_IP_HEADER ?? 'x-real-ip'] } },
     hooks: createAuthHooks(db, { extraRedirectUris }),

@@ -87,6 +87,16 @@ describe('session context', () => {
     expect(ctx?.session.token).toBeTruthy();
   });
 
+  it('keeps a sign-in valid for six months', async () => {
+    await addMember('ctx-lifetime@example.com', 'member');
+    const before = Date.now();
+    const ctx = await getSessionContext(await headersFor('ctx-lifetime@example.com'), deps());
+    const lifetimeMs = new Date(ctx!.session.expiresAt).getTime() - before;
+    const day = 24 * 60 * 60 * 1000;
+    expect(lifetimeMs).toBeGreaterThan(179 * day);
+    expect(lifetimeMs).toBeLessThanOrEqual(180 * day + 60_000);
+  });
+
   it('redirects anonymous visitors to /sign-in', async () => {
     expect(await outcome(requireMember(new Headers(), undefined, deps()))).toContain('/sign-in');
   });

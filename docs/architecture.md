@@ -43,7 +43,7 @@ Amounts are integers in minor units (cents) with an ISO currency, never floats. 
 
 ## Security model
 
-- **Sign-in:** password hashes with Better Auth's scrypt; TOTP two-step verification with recovery codes; enabling 2FA ends the user's other sessions. Sign-in attempts are throttled in Postgres per email and client address, recorded before the password is checked. Cookies are httpOnly, secure and SameSite=Lax; mutations are CSRF-protected; secure headers (CSP, HSTS and friends) are set by the app.
+- **Sign-in:** password hashes with Better Auth's scrypt; TOTP two-step verification with recovery codes; enabling 2FA ends the user's other sessions. A sign-in lasts six months (180 days) and is renewed, at most once a day, whenever it is used; signing out ends it at once. Sign-in attempts are throttled in Postgres per email and client address, recorded before the password is checked. Cookies are httpOnly, secure and SameSite=Lax; mutations are CSRF-protected; secure headers (CSP, HSTS and friends) are set by the app.
 - **First account:** created through the one-time `/setup` page, which works only while no account exists and only with the installation's `SETUP_TOKEN`. There is no public sign-up; further members join by invitation.
 - **Secrets at rest:** bank sessions, Trading 212 keys, everything saved from the Services page and the generated push private key are encrypted with AES-256-GCM using `ENCRYPTION_KEY`. Each ciphertext is bound to its row (authenticated additional data), so a value copied to another row fails to decrypt. A stored secret is never sent to the browser and never written to logs or the audit log.
 - **Audit log:** sign-ins, connection changes, token creation, settings changes (by key name only) and every write made through MCP.
