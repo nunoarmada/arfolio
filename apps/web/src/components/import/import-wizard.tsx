@@ -111,6 +111,9 @@ export function ImportWizard({
   // What an in-flight extraction compares against when it completes.
   const live = useRef({ pdf, accountId });
   live.current = { pdf, accountId };
+  // The live preview's latest request; an answer to an older one is dropped. Reading another file
+  // advances it too, so a late answer about the previous file cannot replace the new preview.
+  const requestId = useRef(0);
 
   const isOfx = analysis?.file.kind === 'ofx';
   const steps = [
@@ -124,6 +127,8 @@ export function ImportWizard({
 
   /** Drops everything derived from the previous file, including a CSV read from a PDF. */
   function clearExtraction() {
+    requestId.current += 1;
+    setPreviewing(false);
     setSource(null);
     setFile(null);
     setAnalysis(null);
@@ -166,9 +171,14 @@ export function ImportWizard({
 
   function analyse() {
     if (!file || !accountId) return;
+    requestId.current += 1;
+    setPreviewing(false);
     setError(null);
     startTransition(async () => {
-      const res = await analyseImportAction(formData(file, accountId));
+      const res = await orConnectionLost(
+        () => analyseImportAction(formData(file, accountId)),
+        'connection_lost',
+      );
       if (!res.ok) return setError(failure(res));
       const { data } = res;
       const initial = data.preview?.mapping ?? {
@@ -186,19 +196,22 @@ export function ImportWizard({
 
   function extractPdf() {
     if (!pdf || !accountId || !canReadPdf(ai)) return;
+    requestId.current += 1;
+    setPreviewing(false);
     setError(null);
     startTransition(async () => {
       const started = pdf;
       const startedAccount = accountId;
       const form = formData(pdf, accountId);
       form.set('confirmed', 'true');
-      const extracted = await orConnectionLost(() => extractPdfStatementAction(form));
+      const extracted = await orConnectionLost(() => extractPdfStatementAction(form), 'ai_timeout');
       if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
       if (!extracted.ok) return setError(failure(extracted));
       const { csv, filename, mapping: found } = extracted.data;
       const generated = new File([csv], filename, { type: 'text/csv' });
-      const res = await orConnectionLost(() =>
-        analyseImportAction(allRows(formData(generated, startedAccount, found))),
+      const res = await orConnectionLost(
+        () => analyseImportAction(allRows(formData(generated, startedAccount, found))),
+        'connection_lost',
       );
       // The person changed the file or account meanwhile: this result belongs to the old one.
       if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
@@ -218,7 +231,6 @@ export function ImportWizard({
   }
 
   // Live preview while the user edits the mapping (debounced; stale answers are dropped).
-  const requestId = useRef(0);
   const refreshPreview = useCallback(
     (next: EditableMapping) => {
       if (!file || !accountId || !isComplete(next)) {
@@ -228,20 +240,21 @@ export function ImportWizard({
       const id = (requestId.current += 1);
       setPreviewing(true);
       const form = formData(file, accountId, next);
-      void orConnectionLost(() => previewImportAction(source ? allRows(form) : form)).then(
-        (res) => {
-          if (id !== requestId.current) return;
-          setPreviewing(false);
-          if (res.ok) {
-            setPreview(res.data);
-            setPreviewKey(JSON.stringify(next));
-            setError(null);
-          } else {
-            setPreview(null);
-            setError(failure(res));
-          }
-        },
-      );
+      void orConnectionLost(
+        () => previewImportAction(source ? allRows(form) : form),
+        'connection_lost',
+      ).then((res) => {
+        if (id !== requestId.current) return;
+        setPreviewing(false);
+        if (res.ok) {
+          setPreview(res.data);
+          setPreviewKey(JSON.stringify(next));
+          setError(null);
+        } else {
+          setPreview(null);
+          setError(failure(res));
+        }
+      });
     },
     [accountId, failure, file, source],
   );
