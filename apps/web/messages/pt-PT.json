@@ -839,6 +839,7 @@
       "ai_key_rejected": "O serviço de IA rejeitou a chave de API da instalação. Peça a um proprietário que a verifique em Definições › Serviços.",
       "ai_busy": "O serviço de IA está ocupado. Tente novamente dentro de alguns minutos.",
       "pdf_multiple_accounts": "Este PDF lista movimentos de mais do que uma conta, pelo que não pode ser importado para uma única conta.",
+      "connection_lost": "A ligação foi interrompida. Tente novamente.",
       "invalid_input": "Alguns valores não são válidos. Verifique os campos e tente novamente."
     },
     "conflict": {

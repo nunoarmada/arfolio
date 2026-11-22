@@ -839,6 +839,7 @@
       "ai_key_rejected": "El servicio de IA rechazó la clave de API de la instalación. Pida a un propietario que la revise en Ajustes › Servicios.",
       "ai_busy": "El servicio de IA está ocupado. Inténtelo de nuevo dentro de unos minutos.",
       "pdf_multiple_accounts": "Este PDF incluye movimientos de más de una cuenta, por lo que no puede importarse en una sola cuenta.",
+      "connection_lost": "La conexión se interrumpió. Inténtelo de nuevo.",
       "invalid_input": "Algunos valores no son válidos. Revise los campos e inténtelo de nuevo."
     },
     "conflict": {

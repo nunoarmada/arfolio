@@ -274,9 +274,10 @@ test.describe('PDF statement import with AI', () => {
     }
   });
 
-  for (const [which, failing] of [
-    ['reading the PDF', 1],
-    ['previewing what was read', 2],
+  // Reading waits for the model (its timeout copy); previewing does not (an interrupted connection).
+  for (const [which, failing, message] of [
+    ['reading the PDF', 1, 'O serviço de IA demorou demasiado a responder.'],
+    ['previewing what was read', 2, 'A ligação foi interrompida. Tente novamente.'],
   ] as const) {
     test(`a connection cut while ${which} keeps the PDF and says to try again`, async () => {
       await page.goto(`/import?account=${ids[ACCOUNT_A]}`);
@@ -293,9 +294,7 @@ test.describe('PDF statement import with AI', () => {
       });
       try {
         await page.getByRole('button', { name: SEND }).click();
-        await expect(
-          page.getByRole('alert').filter({ hasText: 'O serviço de IA demorou demasiado' }),
-        ).toBeVisible();
+        await expect(page.getByRole('alert').filter({ hasText: message })).toBeVisible();
         await expect(page.getByTestId('chosen-file')).toHaveText('statement.pdf');
         await expect(page.getByRole('button', { name: SEND })).toBeEnabled();
       } finally {

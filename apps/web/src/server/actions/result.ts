@@ -42,6 +42,8 @@ export type ValidationReason =
   | 'ai_key_rejected'
   | 'ai_busy'
   | 'pdf_multiple_accounts'
+  /** Set by the client when a request got no answer at all; no service message maps to it. */
+  | 'connection_lost'
   | 'invalid_input';
 
 const REASONS: Array<[RegExp, ValidationReason]> = [
