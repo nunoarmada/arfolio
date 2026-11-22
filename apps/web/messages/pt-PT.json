@@ -1218,6 +1218,8 @@
       "date": "Data",
       "description": "Descrição",
       "twoColumns": "O valor vem em duas colunas (débito e crédito)",
+      "invertSign": "Inverter o sinal dos valores",
+      "invertSignHint": "Para extratos que mostram as despesas como valores positivos, como muitos extratos de cartão.",
       "debit": "Débito",
       "credit": "Crédito",
       "amount": "Valor",

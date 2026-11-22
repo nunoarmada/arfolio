@@ -1218,6 +1218,8 @@
       "date": "Date",
       "description": "Libellé",
       "twoColumns": "Le montant est réparti sur deux colonnes (débit et crédit)",
+      "invertSign": "Inverser le signe des montants",
+      "invertSignHint": "Pour les relevés qui indiquent les dépenses en montants positifs, comme beaucoup de relevés de carte.",
       "debit": "Débit",
       "credit": "Crédit",
       "amount": "Montant",
