@@ -21,7 +21,7 @@ Models are set on **Settings > Services > AI** or with the environment variables
 
 ## What is sent
 
-Everything is sent from your server straight to the Anthropic API. Arfolio has no server of its own in between.
+Everything is sent from your server straight to the Anthropic API. Arfolio has no server of its own in between. The sections below say what each feature sends. Most of them redact or aggregate first; the exception is the PDF statement import, which sends the file as it is.
 
 ### Categorisation
 
@@ -66,6 +66,23 @@ Sent: the asset type, its details (for property only the municipality, parish an
 - **Valuation portals** (Settings > Services > Valuation portals) decide where the model may search. The defaults (`DEFAULT_VALUATION_PORTALS` in `packages/services/src/integration-config.ts`) are `idealista.pt`, `imovirtual.com`, `casa.sapo.pt` and `supercasa.pt` for property; `standvirtual.com`, `olx.pt`, `autoscout24.pt` and `custojusto.pt` for vehicles; `olx.pt` and `custojusto.pt` for other items. Boats and watches additionally use `standvirtual.com` and `chrono24.pt`; art and collectibles use a general web search. One host per line, up to 20 per list; replace the defaults with the portals of your country. **Use defaults** restores them.
 - When the model finds too little to go on, the asset waits for the next month or for **Estimate now**. A failed call is retried after 12 hours.
 
+### Statement import from PDF
+
+In the import wizard, choosing a `.pdf` file on the first step offers to read it with AI. Nothing is sent until the person confirms it, in a notice shown for each file. The server checks every condition itself: the member can import, the installation has an API key, AI is on for the household, and the file was confirmed. Without all four the file never reaches Anthropic.
+
+Sent: the whole PDF, **unredacted**, with a fixed instruction. Nothing else is added: no account names, categories, history or household details. The document is treated as data, and the model is given no tools.
+
+**This is the one AI feature that sends personal data unredacted.** A statement can show the holder's name and address, account or card numbers and balances, and all of it goes to Anthropic. If that matters to you, leave AI off, or import the statement as CSV, XLSX, XLS or OFX instead.
+
+The answer holds, for each movement, a date, a description and a signed amount, plus the statement's currency. Every row is validated. If a row is invalid, the answer was refused or cut short, or the currency differs from the account's, nothing is imported. Only the movements the person confirms in the preview are kept. The PDF and the model's answer are not stored, and the import history records the batch as a CSV named after the PDF (`<name>.pdf.csv`).
+
+The preview is the usual one, with a line saying the rows were read by AI. Check them against the statement. Duplicates are detected and the import can be undone, as for any statement. **Back** returns to the column step without sending the file again.
+
+- **Limits:** 10 MB per file, 500 movements per statement (split a longer one), and 10 PDF statements per household per hour. The hourly count is kept in each web process, so with several replicas the limit applies to each one.
+- **Time:** each statement is one request that can take up to two minutes. A reverse proxy with a shorter response timeout can cut a long statement off; see [Configuration](configuration.md#reverse-proxy-timeouts).
+- **Model:** `AI_IMPORT_MODEL`, or **Settings > Services > AI**. A larger model reads layouts better and costs more.
+- **Not supported:** password-protected PDFs, and the budget import wizard.
+
 ## Costs
 
 You pay Anthropic for your own usage; Arfolio adds nothing. As a rough guide:
@@ -73,6 +90,8 @@ You pay Anthropic for your own usage; Arfolio adds nothing. As a rough guide:
 - **Categorisation** uses a small, fast model, in batches, with the instructions cached. It scales with the number of new movements that rules did not already categorise, and is usually cheap.
 - **Reports** are one call per household per month (plus a regeneration if you ask), with a short input.
 - **Valuations** are the heaviest: one call per asset per month, plus one for each **Estimate now**, each with a few web searches and page reads. Choose a smaller valuation model if the cost matters more than the quality.
+
+- **PDF statements** are one call per file, with the whole document as input. Long statements with many pages cost the most.
 
 Token usage of the categorisation, merchant and report runs is written to the worker's log, so you can compare it with your Anthropic bill; for valuations use the usage view in the Anthropic console. Check Anthropic's current pricing for the models you choose.
 

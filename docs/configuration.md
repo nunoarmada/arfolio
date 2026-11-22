@@ -107,6 +107,10 @@ These have no field on the Services page.
 
 `ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`, `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `SMTP_URL` and `MAIL_FROM` are optional. Leave them out of `.env` to manage them from the app. The compose file already passes them through when you set them. In Helm they go in the optional Secret (`<fullname>-optional`): see [Kubernetes](kubernetes.md).
 
+### Reverse proxy timeouts
+
+Reading a PDF statement with AI is a single request that can take up to two minutes. If your reverse proxy closes responses sooner (many default to 30 or 60 seconds), long statements fail even though the server is still working. Raise the proxy's response timeout to at least two minutes for the app. Other requests are not affected. See [AI features](ai.md#statement-import-from-pdf).
+
 ## What leaves your server
 
 Arfolio keeps your data in your own database. Outside connections are made only when you set them up:
