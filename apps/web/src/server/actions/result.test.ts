@@ -129,7 +129,7 @@ describe('validationReason', () => {
     ['Too many PDF statements were sent in the last hour', 'rate_limited'],
     ['The file is not a PDF', 'not_a_pdf'],
     ['No movements were found in this PDF', 'pdf_no_rows'],
-    ['The PDF statement has too many movements (maximum 500)', 'pdf_too_long'],
+    ['The PDF statement has too many movements (maximum 200)', 'pdf_too_long'],
     ['The AI answer could not be used', 'ai_unusable'],
     ['The AI service took too long to answer', 'ai_timeout'],
     ['The AI service could not be reached', 'ai_unreachable'],

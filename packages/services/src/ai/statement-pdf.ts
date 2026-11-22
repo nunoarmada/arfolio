@@ -22,11 +22,12 @@ export const PDF_STATEMENT_MAPPING: ColumnMapping = {
 };
 
 /**
- * A request that is not streamed is capped by the SDK at about 21,000 output tokens, which holds
- * roughly this many movements; a longer statement is refused instead of silently cut short.
+ * The request is not streamed and times out after two minutes. At an estimated 50-80 output
+ * tokens per second (not measured against the real API) that holds roughly 150-250 movements, so
+ * a longer statement is refused instead of timing out or being silently cut short.
  */
-export const MAX_PDF_STATEMENT_ROWS = 500;
-const MAX_OUTPUT_TOKENS = 20_000;
+export const MAX_PDF_STATEMENT_ROWS = 200;
+const MAX_OUTPUT_TOKENS = 16_000;
 const MAX_DESCRIPTION = 500;
 
 export type PdfStatementDeps = {
@@ -176,7 +177,7 @@ export async function extractPdfStatement(
     throw new ValidationError(providerFailure(err));
   }
 
-  const tooMany = 'The PDF statement has too many movements (maximum 500)';
+  const tooMany = 'The PDF statement has too many movements (maximum 200)';
   const unusable = 'The AI answer could not be used';
   if (response.stop_reason === 'max_tokens') return reject('max_tokens', tooMany);
   if (response.stop_reason === 'refusal') return reject('refusal', unusable);

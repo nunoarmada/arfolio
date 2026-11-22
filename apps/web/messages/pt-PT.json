@@ -831,7 +831,7 @@
       "rate_limited": "Demasiados extratos em PDF na última hora. Tente novamente mais tarde.",
       "not_a_pdf": "O ficheiro não é um PDF.",
       "pdf_no_rows": "Não foram encontrados movimentos neste PDF.",
-      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez. Divida o PDF e importe cada parte.",
+      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez (cerca de 200). Divida o PDF e importe cada parte.",
       "ai_unusable": "A IA não conseguiu ler este extrato de forma fiável. Nada foi importado.",
       "ai_timeout": "O serviço de IA demorou demasiado a responder. Tente novamente.",
       "ai_unreachable": "Não foi possível contactar o serviço de IA. Tente novamente mais tarde.",

@@ -95,7 +95,7 @@ describe('extractPdfStatement', () => {
     expect((call as { tools?: unknown }).tools).toBeUndefined();
     expect(call.output_config?.format).toBeDefined();
     expect(call.model).toBe('claude-test');
-    expect(call.max_tokens).toBe(20000);
+    expect(call.max_tokens).toBe(16000);
   });
 
   it('tells the model that the document is data', async () => {
@@ -197,21 +197,25 @@ describe('extractPdfStatement', () => {
     await rejects(t.run(), 'No movements were found in this PDF');
   });
 
+  it('caps a statement at 200 movements', () => {
+    expect(MAX_PDF_STATEMENT_ROWS).toBe(200);
+  });
+
   it('rejects more than the row limit', async () => {
     const t = setup(() => parsed(Array.from({ length: MAX_PDF_STATEMENT_ROWS + 1 }, () => row())));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 500)');
+    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
   });
 
   it('rejects an answer cut off at the token limit as too many movements', async () => {
     const t = setup(() => parsed([row()], 'EUR', 'max_tokens'));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 500)');
+    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
   });
 
   it('rejects a truncated answer cut off at the token limit as too many movements', async () => {
     const t = setup(() =>
       message([text('{"currency":"EUR","rows":[{"date":"2026-03-')], 'max_tokens'),
     );
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 500)');
+    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
   });
 
   it('reads the text block after a thinking block', async () => {

@@ -78,7 +78,7 @@ The answer holds, for each movement, a date, a description and a signed amount, 
 
 The preview is the usual one, with a line saying the rows were read by AI. Check them against the statement. Duplicates are detected and the import can be undone, as for any statement. If the amounts come out with the wrong sign, **Back** leads to the column step, where **Invert the sign of every amount** fixes them without sending the file again.
 
-- **Limits:** 10 MB per file, 500 movements per statement (split a longer one), and 10 PDF statements per household per hour. Every attempt that passes the checks counts, including one that fails. The hourly count is kept in each web process, so with several replicas the limit applies to each one.
+- **Limits:** 10 MB per file, about 200 movements per statement (split a longer one; the model has two minutes to answer), and 10 PDF statements per household per hour. Every attempt that passes the checks counts, including one that fails. The hourly count is kept in each web process, so with several replicas the limit applies to each one.
 - **Time:** each statement is one request that can take up to two minutes. A reverse proxy with a shorter response timeout can cut a long statement off; see [Configuration](configuration.md#reverse-proxy-timeouts).
 - **Model:** `AI_IMPORT_MODEL`, or **Settings > Services > AI**. A larger model reads layouts better and costs more.
 - **Not supported:** password-protected PDFs, and the budget import wizard.
