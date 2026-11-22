@@ -278,7 +278,7 @@ export interface FakeAnthropicRequest {
 
 /**
  * A fake Messages API (`POST /v1/messages`) that answers a PDF statement request with two fixed
- * movements, as the structured JSON the SDK's `messages.parse` reads. It refuses (HTTP 400) a
+ * movements, as the structured JSON the service reads from the text block. It refuses (HTTP 400) a
  * request that breaks the contract: wrong key, no PDF document block, or any tool.
  *
  * The spec runs in another process than this one, so what it needs (the request count, the last
@@ -295,6 +295,7 @@ export async function startFakeAnthropic(): Promise<
   let last: FakeAnthropicRequest | undefined;
   let delayMs = 0;
   const answer = {
+    accounts: 1,
     currency: 'EUR',
     rows: [
       { date: '2026-04-02', description: 'Grocer Example', amount: '-12.30' },

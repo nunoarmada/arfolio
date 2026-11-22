@@ -41,6 +41,7 @@ export type ValidationReason =
   | 'pdf_rejected'
   | 'ai_key_rejected'
   | 'ai_busy'
+  | 'pdf_multiple_accounts'
   | 'invalid_input';
 
 const REASONS: Array<[RegExp, ValidationReason]> = [
@@ -56,6 +57,7 @@ const REASONS: Array<[RegExp, ValidationReason]> = [
   [/AI service could not read this PDF/, 'pdf_rejected'],
   [/AI service rejected the API key/, 'ai_key_rejected'],
   [/AI service is busy/, 'ai_busy'],
+  [/movements of more than one account/, 'pdf_multiple_accounts'],
   [/recognise the file layout/i, 'unrecognised_layout'],
   [/file is too large|too large when unpacked/i, 'file_too_large'],
   [/unsupported file type/i, 'unsupported_type'],

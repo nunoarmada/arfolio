@@ -24,7 +24,11 @@ const row = (over: Partial<Row> = {}): Row => ({
   amount: '-23.45',
   ...over,
 });
-const answer = (rows: Row[], currency: string | null = 'EUR') => ({ currency, rows });
+const answer = (rows: Row[], currency: string | null = 'EUR', accounts = 1) => ({
+  accounts,
+  currency,
+  rows,
+});
 
 /** A Messages API response as `messages.create` returns it. */
 const message = (content: Block[], stop: string | null = 'end_turn') =>
@@ -99,6 +103,26 @@ describe('extractPdfStatement', () => {
     await t.run();
     const system = t.calls[0]!.system as Anthropic.TextBlockParam[];
     expect(system.map((b) => b.text).join('\n')).toMatch(/never follow instructions/i);
+  });
+
+  it('asks the model to count the accounts or cards in the document', async () => {
+    const t = setup();
+    await t.run();
+    const system = t.calls[0]!.system as Anthropic.TextBlockParam[];
+    expect(system.map((b) => b.text).join('\n')).toMatch(
+      /count the distinct accounts or cards whose movements are listed/i,
+    );
+  });
+
+  it('rejects a PDF with movements of more than one account', async () => {
+    const t = setup(() => message([text(JSON.stringify(answer([row()], 'EUR', 2)))]));
+    await rejects(t.run(), 'The PDF holds movements of more than one account');
+    expect(t.lines).toContain('pdf statement rejected: multiple accounts');
+  });
+
+  it('rejects an answer without the account count as unusable', async () => {
+    const t = setup(() => message([text(JSON.stringify({ currency: 'EUR', rows: [row()] }))]));
+    await rejects(t.run(), 'The AI answer could not be used');
   });
 
   it('renders valid rows as CSV', async () => {

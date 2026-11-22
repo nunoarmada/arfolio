@@ -838,6 +838,7 @@
       "pdf_rejected": "The AI service could not read this PDF. It may be protected with a password, too long or damaged.",
       "ai_key_rejected": "The AI service rejected the installation's API key. Ask an owner to check it in Settings › Services.",
       "ai_busy": "The AI service is busy. Try again in a few minutes.",
+      "pdf_multiple_accounts": "This PDF lists movements of more than one account or card, so it cannot be imported into a single account.",
       "invalid_input": "Some values are not valid. Check the fields and try again."
     },
     "conflict": {
