@@ -24,6 +24,7 @@ export type ValidationReason =
   | 'already_undone'
   | 'column_missing'
   | 'invalid_file'
+  | 'resave_spreadsheet'
   | 'template_protected'
   | 'group_not_empty'
   | 'already_transfer'
@@ -40,7 +41,8 @@ const REASONS: Array<[RegExp, ValidationReason]> = [
   [/account is archived/i, 'account_archived'],
   [/already undone/i, 'already_undone'],
   [/column .* was not found|has no .* column|header row is beyond/i, 'column_missing'],
-  [/not a valid xlsx|zip bomb|corrupt|unreadable|malformed|workbook has no/i, 'invalid_file'],
+  [/save it as \.xlsx|password-protected|workbooks are not supported/i, 'resave_spreadsheet'],
+  [/not a valid xlsx?\b|zip bomb|corrupt|unreadable|malformed|workbook has no/i, 'invalid_file'],
   [/template (groups|categories) cannot be deleted/i, 'template_protected'],
   [/still has categories/i, 'group_not_empty'],
   [/already part of a transfer/i, 'already_transfer'],

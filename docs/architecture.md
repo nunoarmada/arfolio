@@ -51,7 +51,7 @@ Amounts are integers in minor units (cents) with an ISO currency, never floats. 
 
 ## Connectors and the sync pipeline
 
-Every source implements one connector interface (consent, list accounts, fetch transactions and balances, positions for brokers). Enable Banking covers European banks through PSD2 consent; Trading 212 uses the broker's API with a read-only key. Statement files (CSV, XLSX, OFX) and manual entry are first-class alternatives.
+Every source implements one connector interface (consent, list accounts, fetch transactions and balances, positions for brokers). Enable Banking covers European banks through PSD2 consent; Trading 212 uses the broker's API with a read-only key. Statement files (CSV, XLSX, XLS, OFX) and manual entry are first-class alternatives.
 
 A sync of one connection:
 

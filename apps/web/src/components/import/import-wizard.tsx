@@ -31,7 +31,7 @@ import { ImportStepper } from './import-stepper';
 
 type Step = 'upload' | 'columns' | 'preview' | 'confirm' | 'result';
 const NEW_ACCOUNT = '__new__';
-const ACCEPT = '.csv,.tsv,.txt,.xlsx,.ofx,.qfx';
+const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx';
 const EXTENSIONS = ACCEPT.split(',');
 const PREVIEW_DEBOUNCE_MS = 400;
 const MAX_MB = Math.round(MAX_IMPORT_BYTES / (1024 * 1024));

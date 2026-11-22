@@ -10,6 +10,9 @@ const REVOLUT = fileURLToPath(
 const STATEMENT_XLSX = fileURLToPath(
   new URL('../../../packages/services/test/fixtures/import/statement.xlsx', import.meta.url),
 );
+const STATEMENT_XLS = fileURLToPath(
+  new URL('../../../packages/services/test/fixtures/import/statement.xls', import.meta.url),
+);
 
 const RESTAURANTS = /Restaurantes e cafés|Restaurants and cafes/;
 const SALARY = /^Salário$|^Salary$/;
@@ -262,6 +265,19 @@ test.describe('phase 1: accounts, import, review', () => {
     await page.goto(`/import?account=${accountId}`);
     await page.locator('#import-file').setInputFiles(STATEMENT_XLSX);
     await expect(page.getByTestId('chosen-file')).toHaveText('statement.xlsx');
+    await page.getByRole('button', { name: 'Ler ficheiro' }).click();
+    await expect(page.getByRole('cell', { name: 'Grocer Example' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    // Preview only: nothing is committed, so the later steps keep their counts.
+    await expect(page.getByTestId('stat-new')).toHaveText('3');
+    await expect(page.getByTestId('stat-skipped')).toHaveText('2');
+    await expect(page.getByTestId('stat-error')).toHaveText('0');
+  });
+
+  test('a legacy XLS statement is read by the server and previewed', async () => {
+    await page.goto(`/import?account=${accountId}`);
+    await page.locator('#import-file').setInputFiles(STATEMENT_XLS);
+    await expect(page.getByTestId('chosen-file')).toHaveText('statement.xls');
     await page.getByRole('button', { name: 'Ler ficheiro' }).click();
     await expect(page.getByRole('cell', { name: 'Grocer Example' })).toBeVisible();
     await page.getByRole('button', { name: 'Continuar' }).click();
