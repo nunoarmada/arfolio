@@ -29,9 +29,37 @@ export type ValidationReason =
   | 'template_protected'
   | 'group_not_empty'
   | 'already_transfer'
+  | 'ai_unavailable'
+  | 'confirmation_required'
+  | 'rate_limited'
+  | 'not_a_pdf'
+  | 'pdf_no_rows'
+  | 'pdf_too_long'
+  | 'ai_unusable'
+  | 'ai_timeout'
+  | 'ai_unreachable'
+  | 'pdf_rejected'
+  | 'ai_key_rejected'
+  | 'ai_busy'
+  | 'pdf_multiple_accounts'
+  /** Set by the client when a request got no answer at all; no service message maps to it. */
+  | 'connection_lost'
   | 'invalid_input';
 
 const REASONS: Array<[RegExp, ValidationReason]> = [
+  [/AI is not available for this household/, 'ai_unavailable'],
+  [/confirmation is required/, 'confirmation_required'],
+  [/Too many PDF statements/, 'rate_limited'],
+  [/is not a PDF/, 'not_a_pdf'],
+  [/No movements were found in this PDF/, 'pdf_no_rows'],
+  [/too many movements/, 'pdf_too_long'],
+  [/AI answer could not be used/, 'ai_unusable'],
+  [/took too long to answer/, 'ai_timeout'],
+  [/could not be reached/, 'ai_unreachable'],
+  [/AI service could not read this PDF/, 'pdf_rejected'],
+  [/AI service rejected the API key/, 'ai_key_rejected'],
+  [/AI service is busy/, 'ai_busy'],
+  [/movements of more than one account/, 'pdf_multiple_accounts'],
   [/recognise the file layout/i, 'unrecognised_layout'],
   [/file is too large|too large when unpacked/i, 'file_too_large'],
   [/unsupported file type/i, 'unsupported_type'],

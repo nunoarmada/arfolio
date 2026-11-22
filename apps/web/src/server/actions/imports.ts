@@ -7,6 +7,7 @@ import {
   deleteImportPreset,
   getImportBatchSummary,
   MAX_IMPORT_BYTES,
+  MAX_PDF_STATEMENT_ROWS,
   parseFile,
   previewImport,
   reviewCount,
@@ -15,6 +16,7 @@ import {
   type ColumnMapping,
   type ImportPreview,
 } from '@arfolio/services';
+import { extractPdfForImport, type PdfExtractionDto } from '../pdf-import';
 import { getServiceCtx } from '../service-ctx';
 import { run, validationReason, type ActionResult } from './result';
 
@@ -98,6 +100,11 @@ function mappingOf(form: FormData): ColumnMapping | undefined {
   }
 }
 
+/** A PDF statement read by AI is previewed whole (`allRows`): every row is seen before import. */
+function rowLimitOf(form: FormData): { rowLimit?: number } {
+  return form.get('allRows') === 'true' ? { rowLimit: MAX_PDF_STATEMENT_ROWS } : {};
+}
+
 function accountOf(form: FormData): string {
   const id = form.get('accountId');
   return typeof id === 'string' ? id : '';
@@ -116,7 +123,13 @@ export async function analyseImportAction(form: FormData): Promise<ActionResult<
       samples: table.rows.filter((r) => r.some((c) => c.trim() !== '')).slice(0, SAMPLE_ROWS),
     };
     try {
-      const preview = await previewImport(ctx, { accountId: accountOf(form), file });
+      const mapping = mappingOf(form);
+      const preview = await previewImport(ctx, {
+        accountId: accountOf(form),
+        file,
+        ...(mapping ? { mapping } : {}),
+        ...rowLimitOf(form),
+      });
       return { file: info, preview: toPreviewDto(preview) };
     } catch (error) {
       if (
@@ -130,6 +143,19 @@ export async function analyseImportAction(form: FormData): Promise<ActionResult<
   });
 }
 
+/** Reads a PDF statement with AI and returns it as a CSV for the wizard to map and preview. */
+export async function extractPdfStatementAction(
+  form: FormData,
+): Promise<ActionResult<PdfExtractionDto>> {
+  return run(async () =>
+    extractPdfForImport(await getServiceCtx(await headers()), {
+      accountId: accountOf(form),
+      file: await readUpload(form),
+      confirmed: form.get('confirmed') === 'true',
+    }),
+  );
+}
+
 export async function previewImportAction(form: FormData): Promise<ActionResult<PreviewDto>> {
   return run(async () => {
     const ctx = await getServiceCtx(await headers());
@@ -140,6 +166,7 @@ export async function previewImportAction(form: FormData): Promise<ActionResult<
         accountId: accountOf(form),
         file,
         ...(mapping ? { mapping } : {}),
+        ...rowLimitOf(form),
       }),
     );
   });

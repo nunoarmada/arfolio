@@ -87,7 +87,7 @@ has "$D" "name: pfm-secrets$"; check "defaults: generated secret name" $?
 has "$D" 'name: pfm-secrets-bootstrap'; check "defaults: bootstrap job + RBAC" $?
 has "$D" 'optional: true'; check "defaults: optional secret keys are optional" $?
 for app in pfm-web pfm-worker; do
-  for k in ENABLE_BANKING_APP_ID ENABLE_BANKING_PRIVATE_KEY ENABLE_BANKING_API_URL ANTHROPIC_API_KEY AI_CATEGORISATION_MODEL AI_REPORT_MODEL AI_VALUATION_MODEL MERCHANT_LOGOS VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT PUSH_ALLOWED_HOSTS MCP_ALLOWED_REDIRECT_URIS; do
+  for k in ENABLE_BANKING_APP_ID ENABLE_BANKING_PRIVATE_KEY ENABLE_BANKING_API_URL ANTHROPIC_API_KEY AI_CATEGORISATION_MODEL AI_REPORT_MODEL AI_VALUATION_MODEL AI_IMPORT_MODEL MERCHANT_LOGOS VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT PUSH_ALLOWED_HOSTS MCP_ALLOWED_REDIRECT_URIS; do
     [ "$(tenv "$D" Deployment "$app" "$k" .valueFrom.secretKeyRef.optional)" = "true" ]; check "defaults: $app reads optional $k from the optional secret" $?
   done
   [ "$(tenv "$D" Deployment "$app" ENCRYPTION_KEY .valueFrom.secretKeyRef.optional)" = "" ]; check "defaults: $app requires ENCRYPTION_KEY" $?

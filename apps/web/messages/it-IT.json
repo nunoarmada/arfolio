@@ -425,6 +425,7 @@
       "categorisationModel": "Inserire il nome di un modello.",
       "reportModel": "Inserire il nome di un modello.",
       "valuationModel": "Inserire il nome di un modello.",
+      "importModel": "Inserire il nome di un modello.",
       "valuationPortals": "Controllare gli host: uno per riga, come idealista.pt, fino a 20 per elenco.",
       "appId": "Inserire l’ID dell’applicazione.",
       "privateKey": "Non è una chiave privata RSA valida. Incollare l’intero PEM, comprese le righe BEGIN ed END.",
@@ -444,8 +445,10 @@
       "reportModel": "Modello per i report",
       "reportModelHint": "Scrive il report mensile.",
       "valuationModel": "Modello per le valutazioni",
+      "importModel": "Modello per l’importazione degli estratti conto",
       "valuationModelHint": "Stima il valore di beni come immobili e veicoli.",
-      "removeWarning": "Categorie, report e valutazioni con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
+      "importModelHint": "Legge gli estratti conto PDF nella procedura guidata di importazione.",
+      "removeWarning": "Categorie, report, valutazioni e importazione di estratti conto PDF con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
       "test": "Verifica la chiave API"
     },
     "portals": {
@@ -823,6 +826,20 @@
       "template_protected": "Le categorie e i gruppi predefiniti non possono essere eliminati. Archiviarli.",
       "group_not_empty": "Il gruppo contiene ancora categorie. Eliminarle o archiviarle prima.",
       "already_transfer": "Uno dei movimenti fa già parte di un giroconto. Scollegarlo prima.",
+      "ai_unavailable": "Gli estratti conto PDF vengono letti con l'IA, che non è attivata per questo nucleo familiare.",
+      "confirmation_required": "Confermare che il file può essere inviato prima di continuare.",
+      "rate_limited": "Troppi estratti conto PDF nell'ultima ora. Riprovare più tardi.",
+      "not_a_pdf": "Il file non è un PDF.",
+      "pdf_no_rows": "Nessun movimento trovato in questo PDF.",
+      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta (circa 200). Dividere il PDF e importare ogni parte.",
+      "ai_unusable": "L'IA non è riuscita a leggere questo estratto conto in modo affidabile. Non è stato importato nulla.",
+      "ai_timeout": "Il servizio di IA ha impiegato troppo tempo a rispondere. Riprovare.",
+      "ai_unreachable": "Impossibile raggiungere il servizio di IA. Riprovare più tardi.",
+      "pdf_rejected": "Il servizio di IA non è riuscito a leggere questo PDF. Potrebbe essere protetto da password, troppo lungo o danneggiato.",
+      "ai_key_rejected": "Il servizio di IA ha rifiutato la chiave API dell'installazione. Chiedere a un proprietario di verificarla in Impostazioni › Servizi.",
+      "ai_busy": "Il servizio di IA è occupato. Riprovare tra qualche minuto.",
+      "pdf_multiple_accounts": "Questo PDF elenca movimenti di più di un conto, quindi non può essere importato in un solo conto.",
+      "connection_lost": "La connessione è stata interrotta. Riprovare.",
       "invalid_input": "Alcuni valori non sono validi. Controllare i campi e riprovare."
     },
     "conflict": {
@@ -1186,7 +1203,8 @@
       "revolut": "Estratto conto CSV Revolut",
       "pt_bank": "Estratto conto CSV di banca portoghese",
       "generic": "Estratto conto CSV generico",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF letto dall'IA"
     },
     "upload": {
       "title": "Scegliere un conto e un file",
@@ -1194,13 +1212,23 @@
       "chooseAccount": "Scegli un conto",
       "newAccount": "Crea un nuovo conto…",
       "drop": "Trascinare qui il file dell’estratto conto.",
-      "accepts": "Accetta file .csv, .xlsx, .xls e .ofx fino a {max} MB.",
+      "accepts": "Accetta file .csv, .xlsx, .xls, .ofx e .pdf fino a {max} MB.",
       "chooseFile": "Scegli file",
-      "badType": "Tipo di file non supportato. Usare CSV, XLSX, XLS o OFX.",
+      "badType": "Tipo di file non supportato. Usare CSV, XLSX, XLS, OFX o PDF.",
       "tooLarge": "Il file è troppo grande. Il limite è {max} MB.",
       "empty": "Il file è vuoto.",
       "continue": "Leggi file",
-      "reading": "Lettura del file…"
+      "reading": "Lettura del file…",
+      "pdf": {
+        "title": "Questo file verrà inviato ad Anthropic",
+        "body": "Gli estratti conto PDF vengono letti con l’IA. L’intero file, con tutto ciò che contiene (nomi, numeri di conto o di carta, saldi e movimenti), viene inviato ad Anthropic con la chiave API di questa installazione. Controllare il risultato prima di importare.",
+        "unavailable": "Gli estratti conto PDF vengono letti con l’IA, che non è attivata per questo nucleo familiare.",
+        "switchOn": "Attiva l’IA",
+        "setUp": "Configura l’IA",
+        "askOwner": "Chiedere a un proprietario del nucleo familiare di attivarla.",
+        "send": "Invia e leggi file",
+        "reading": "Lettura dell’estratto conto. Può richiedere un minuto."
+      }
     },
     "columns": {
       "title": "Colonne del file",
@@ -1240,6 +1268,7 @@
     },
     "preview": {
       "title": "Anteprima",
+      "pdfSource": "Letto dall’IA a partire da {name}. Controllare ogni riga con l’estratto conto.",
       "new": "Nuovi",
       "duplicates": "Duplicati",
       "skippedRows": "Saltate",
@@ -1859,11 +1888,11 @@
   },
   "aiSettings": {
     "title": "IA: categorie e report",
-    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione.",
+    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione. Legge anche gli estratti conto PDF nella procedura di importazione. Gli estratti conto PDF vengono inviati per intero, solo quando qualcuno lo conferma per quel file.",
     "sentTitle": "Cosa viene inviato",
     "sentLabel": "Per le categorie",
     "sentBody": "descrizione e controparte del movimento, senza IBAN, numeri di carta, email, numeri di telefono o lunghe sequenze di cifre; importo e valuta; mese (non il giorno); nomi delle categorie del nucleo familiare.",
-    "neverLabel": "Mai inviato",
+    "neverLabel": "Mai inviato per categorie e report",
     "neverBody": "nomi dei conti, IBAN, saldi dei singoli conti, note, nomi dei membri del nucleo familiare.",
     "caveat": "Per le categorie, una descrizione può includere il nome di un esercente o di una persona così come compare nell’estratto conto. I report non includono mai le descrizioni.",
     "provider": "Fornitore: Anthropic · categorie: modello {model} · report: modello {reportModel}",

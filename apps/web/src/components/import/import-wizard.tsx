@@ -8,6 +8,7 @@ import type { ColumnMapping } from '@arfolio/services';
 import {
   analyseImportAction,
   commitImportAction,
+  extractPdfStatementAction,
   previewImportAction,
   type AnalysisDto,
   type CommitDto,
@@ -16,6 +17,7 @@ import {
 import type { AccountDto } from '@/server/serialize';
 import { cn } from '@/lib/cn';
 import { MAX_IMPORT_BYTES } from '@/lib/import-limits';
+import { orConnectionLost } from '@/lib/import-request';
 import { AccountFormSheet } from '../accounts/account-form-sheet';
 import { UndoImportDialog } from '../accounts/undo-import-dialog';
 import { Alert } from '../ui/alert';
@@ -28,10 +30,11 @@ import { useFailureMessage } from '../use-action-error';
 import { ColumnMapper, isComplete, type EditableMapping } from './column-mapper';
 import { ImportPreviewTable } from './import-preview-table';
 import { ImportStepper } from './import-stepper';
+import { canReadPdf, PdfNotice, type ImportAiState } from './pdf-notice';
 
 type Step = 'upload' | 'columns' | 'preview' | 'confirm' | 'result';
 const NEW_ACCOUNT = '__new__';
-const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx';
+const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.pdf';
 const EXTENSIONS = ACCEPT.split(',');
 const PREVIEW_DEBOUNCE_MS = 400;
 const MAX_MB = Math.round(MAX_IMPORT_BYTES / (1024 * 1024));
@@ -50,6 +53,12 @@ function formData(
   return form;
 }
 
+/** A preview request for a CSV read from a PDF: every row comes back, so every row is seen. */
+function allRows(form: FormData): FormData {
+  form.set('allRows', 'true');
+  return form;
+}
+
 /**
  * Upload, map columns, preview, confirm, result. Back keeps what was entered. The file lives in
  * the browser until the final step; each preview sends it again, so nothing is stored on the
@@ -60,11 +69,13 @@ export function ImportWizard({
   initialAccountId,
   currencies,
   defaultCurrency,
+  ai,
 }: {
   accounts: AccountDto[];
   initialAccountId?: string;
   currencies: Array<{ value: string; label: string }>;
   defaultCurrency: string;
+  ai: ImportAiState;
 }) {
   const t = useTranslations('import');
   const failure = useFailureMessage();
@@ -74,11 +85,18 @@ export function ImportWizard({
   );
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [step, setStep] = useState<Step>('upload');
+  // The file the steps after upload work on: the chosen file, or the CSV built from a PDF.
   const [file, setFile] = useState<File | null>(null);
+  // A chosen PDF, kept until the user picks something else; it is only sent on request.
+  const [pdf, setPdf] = useState<File | null>(null);
+  // Set once the AI has read `pdfName` into `file`.
+  const [source, setSource] = useState<{ pdfName: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisDto | null>(null);
   const [mapping, setMapping] = useState<EditableMapping | null>(null);
   const [preview, setPreview] = useState<PreviewDto | null>(null);
+  // The mapping (as `JSON.stringify`) that `preview` was computed for.
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -90,6 +108,12 @@ export function ImportWizard({
   const [undone, setUndone] = useState(false);
   const [pending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
+  // What an in-flight extraction compares against when it completes.
+  const live = useRef({ pdf, accountId });
+  live.current = { pdf, accountId };
+  // The live preview's latest request; an answer to an older one is dropped. Reading another file
+  // advances it too, so a late answer about the previous file cannot replace the new preview.
+  const requestId = useRef(0);
 
   const isOfx = analysis?.file.kind === 'ofx';
   const steps = [
@@ -101,40 +125,112 @@ export function ImportWizard({
   const account = accounts.find((a) => a.id === accountId);
   const newRows = preview ? preview.stats.valid - preview.stats.duplicates : 0;
 
+  /** Drops everything derived from the previous file, including a CSV read from a PDF. */
+  function clearExtraction() {
+    requestId.current += 1;
+    setPreviewing(false);
+    setSource(null);
+    setFile(null);
+    setAnalysis(null);
+    setPreview(null);
+    setPreviewKey(null);
+    setMapping(null);
+    setError(null);
+  }
+
+  function chooseAccount(id: string) {
+    if (id !== accountId && source) clearExtraction();
+    setAccountId(id);
+  }
+
   function chooseFile(next: File | undefined) {
+    if (pending) return;
     setFileError(null);
     if (!next) return;
     const lower = next.name.toLowerCase();
     if (!EXTENSIONS.some((ext) => lower.endsWith(ext))) return setFileError(t('upload.badType'));
     if (next.size > MAX_IMPORT_BYTES) return setFileError(t('upload.tooLarge', { max: MAX_MB }));
     if (next.size === 0) return setFileError(t('upload.empty'));
-    setFile(next);
+    if (source) clearExtraction();
     setFormatName(next.name.replace(/\.[^.]+$/, ''));
+    if (lower.endsWith('.pdf')) {
+      setPdf(next);
+      setFile(null);
+    } else {
+      setPdf(null);
+      setFile(next);
+    }
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
+    if (pending) return;
     chooseFile(e.dataTransfer.files[0]);
   }
 
   function analyse() {
     if (!file || !accountId) return;
+    requestId.current += 1;
+    setPreviewing(false);
     setError(null);
     startTransition(async () => {
-      const res = await analyseImportAction(formData(file, accountId));
+      const res = await orConnectionLost(
+        () => analyseImportAction(formData(file, accountId)),
+        'connection_lost',
+      );
       if (!res.ok) return setError(failure(res));
       const { data } = res;
+      const initial = data.preview?.mapping ?? {
+        headerRow: data.file.headerRow,
+        dateFormat: 'auto' as const,
+      };
       setAnalysis(data);
       setPreview(data.preview);
-      setMapping(data.preview?.mapping ?? { headerRow: data.file.headerRow, dateFormat: 'auto' });
+      setMapping(initial);
+      setPreviewKey(data.preview ? JSON.stringify(initial) : null);
       setTab('all');
       setStep(data.file.kind === 'ofx' ? 'preview' : 'columns');
     });
   }
 
+  function extractPdf() {
+    if (!pdf || !accountId || !canReadPdf(ai)) return;
+    requestId.current += 1;
+    setPreviewing(false);
+    setError(null);
+    startTransition(async () => {
+      const started = pdf;
+      const startedAccount = accountId;
+      const form = formData(pdf, accountId);
+      form.set('confirmed', 'true');
+      const extracted = await orConnectionLost(() => extractPdfStatementAction(form), 'ai_timeout');
+      if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
+      if (!extracted.ok) return setError(failure(extracted));
+      const { csv, filename, mapping: found } = extracted.data;
+      const generated = new File([csv], filename, { type: 'text/csv' });
+      const res = await orConnectionLost(
+        () => analyseImportAction(allRows(formData(generated, startedAccount, found))),
+        'connection_lost',
+      );
+      // The person changed the file or account meanwhile: this result belongs to the old one.
+      if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
+      if (!res.ok) return setError(failure(res));
+      const { data } = res;
+      const initial = data.preview?.mapping ?? found;
+      setFile(generated);
+      setSource({ pdfName: started.name });
+      setAnalysis(data);
+      setPreview(data.preview);
+      setMapping(initial);
+      setPreviewKey(data.preview ? JSON.stringify(initial) : null);
+      setTab('all');
+      // The mapping came from the AI, so the preview is the first thing to check.
+      setStep(data.preview ? 'preview' : 'columns');
+    });
+  }
+
   // Live preview while the user edits the mapping (debounced; stale answers are dropped).
-  const requestId = useRef(0);
   const refreshPreview = useCallback(
     (next: EditableMapping) => {
       if (!file || !accountId || !isComplete(next)) {
@@ -143,11 +239,16 @@ export function ImportWizard({
       }
       const id = (requestId.current += 1);
       setPreviewing(true);
-      void previewImportAction(formData(file, accountId, next)).then((res) => {
+      const form = formData(file, accountId, next);
+      void orConnectionLost(
+        () => previewImportAction(source ? allRows(form) : form),
+        'connection_lost',
+      ).then((res) => {
         if (id !== requestId.current) return;
         setPreviewing(false);
         if (res.ok) {
           setPreview(res.data);
+          setPreviewKey(JSON.stringify(next));
           setError(null);
         } else {
           setPreview(null);
@@ -155,9 +256,11 @@ export function ImportWizard({
         }
       });
     },
-    [accountId, failure, file],
+    [accountId, failure, file, source],
   );
   const mappingKey = JSON.stringify(mapping);
+  // The preview shown is the one for the current mapping, and no refresh is waiting or running.
+  const previewCurrent = preview !== null && previewKey === mappingKey && !previewing;
   const first = useRef(true);
   useEffect(() => {
     if (step !== 'columns' || !mapping) return;
@@ -174,7 +277,7 @@ export function ImportWizard({
   }, [step]);
 
   function commit() {
-    if (!file || !accountId) return;
+    if (!file || !accountId || !previewCurrent) return;
     setError(null);
     startTransition(async () => {
       const res = await commitImportAction(
@@ -182,7 +285,7 @@ export function ImportWizard({
           file,
           accountId,
           mapping && isComplete(mapping) && !isOfx ? mapping : null,
-          saveFormat && !isOfx ? formatName.trim() : undefined,
+          saveFormat && !isOfx && !source ? formatName.trim() : undefined,
         ),
       );
       if (!res.ok) return setError(failure(res));
@@ -192,18 +295,16 @@ export function ImportWizard({
   }
 
   function reset() {
-    setFile(null);
-    setAnalysis(null);
-    setMapping(null);
-    setPreview(null);
+    setPdf(null);
+    clearExtraction();
     setResult(null);
     setUndone(false);
-    setError(null);
     setSaveFormat(false);
     setStep('upload');
   }
 
   const presetLabel = (key: string | null): string => {
+    if (source) return t('presets.pdfAi');
     if (!key) return t('presets.ofx');
     if (key.startsWith('household:')) return key.slice('household:'.length);
     return t(`presets.${key}`);
@@ -240,10 +341,11 @@ export function ImportWizard({
             {(p) => (
               <Select
                 {...p}
+                disabled={pending}
                 value={accountId}
                 onChange={(e) => {
                   if (e.target.value === NEW_ACCOUNT) setCreatingAccount(true);
-                  else setAccountId(e.target.value);
+                  else chooseAccount(e.target.value);
                 }}
               >
                 <option value="">{t('upload.chooseAccount')}</option>
@@ -262,7 +364,7 @@ export function ImportWizard({
           <div
             onDragOver={(e) => {
               e.preventDefault();
-              setDragging(true);
+              if (!pending) setDragging(true);
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
@@ -277,9 +379,9 @@ export function ImportWizard({
             >
               <FileUp className="size-5" />
             </span>
-            {file ? (
+            {pdf || file ? (
               <p className="text-base font-medium" data-testid="chosen-file">
-                {file.name}
+                {(pdf ?? file)?.name}
               </p>
             ) : (
               <p className="text-base">{t('upload.drop')}</p>
@@ -291,10 +393,15 @@ export function ImportWizard({
               type="file"
               accept={ACCEPT}
               className="sr-only"
+              disabled={pending}
               aria-label={t('upload.chooseFile')}
               onChange={(e) => chooseFile(e.target.files?.[0])}
             />
-            <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+            <Button
+              variant="secondary"
+              disabled={pending}
+              onClick={() => fileInput.current?.click()}
+            >
               {t('upload.chooseFile')}
             </Button>
             {fileError ? (
@@ -304,14 +411,21 @@ export function ImportWizard({
             ) : null}
           </div>
 
+          {pdf ? <PdfNotice ai={ai} /> : null}
+
           <Button
-            onClick={analyse}
+            onClick={pdf ? extractPdf : analyse}
             loading={pending}
-            disabled={!file || !accountId}
+            disabled={pdf ? !accountId || !canReadPdf(ai) : !file || !accountId}
             className="justify-self-start"
           >
-            {pending ? t('upload.reading') : t('upload.continue')}
+            {pending ? t('upload.reading') : pdf ? t('upload.pdf.send') : t('upload.continue')}
           </Button>
+          {pdf ? (
+            <p aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
+              {pending ? t('upload.pdf.reading') : null}
+            </p>
+          ) : null}
         </Card>
       ) : null}
 
@@ -347,33 +461,37 @@ export function ImportWizard({
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-1">
-            <Checkbox
-              label={t('columns.saveFormat')}
-              checked={saveFormat}
-              onChange={(e) => setSaveFormat(e.target.checked)}
-            />
-            {saveFormat ? (
-              <Field label={t('columns.formatName')}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    value={formatName}
-                    maxLength={100}
-                    onChange={(e) => setFormatName(e.target.value)}
-                  />
-                )}
-              </Field>
-            ) : null}
-          </div>
+          {source ? null : (
+            <div className="grid grid-cols-1 gap-1">
+              <Checkbox
+                label={t('columns.saveFormat')}
+                checked={saveFormat}
+                onChange={(e) => setSaveFormat(e.target.checked)}
+              />
+              {saveFormat ? (
+                <Field label={t('columns.formatName')}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      value={formatName}
+                      maxLength={100}
+                      onChange={(e) => setFormatName(e.target.value)}
+                    />
+                  )}
+                </Field>
+              ) : null}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setStep('upload')}>
               {t('back')}
             </Button>
             <Button
-              disabled={!preview || previewing || (saveFormat && formatName.trim() === '')}
-              onClick={() => setStep('preview')}
+              disabled={!previewCurrent || (saveFormat && !source && formatName.trim() === '')}
+              onClick={() => {
+                if (previewCurrent) setStep('preview');
+              }}
             >
               {t('continue')}
             </Button>
@@ -386,6 +504,13 @@ export function ImportWizard({
           <h2 id="preview-title" className="text-heading">
             {t('preview.title')}
           </h2>
+          {source ? (
+            <Alert tone="info">
+              <p data-testid="pdf-source-line">
+                {t('preview.pdfSource', { name: source.pdfName })}
+              </p>
+            </Alert>
+          ) : null}
           <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               ['new', t('preview.new'), newRows],
@@ -437,7 +562,7 @@ export function ImportWizard({
             ) : (
               <p className="text-sm text-muted-foreground">{t('preview.tabEmpty')}</p>
             )}
-            {preview.stats.total > preview.rows.length ? (
+            {!source && preview.stats.total > preview.rows.length ? (
               <p className="text-sm text-muted-foreground">
                 {t('preview.firstRows', { shown: preview.rows.length, total: preview.stats.total })}
               </p>
@@ -445,10 +570,15 @@ export function ImportWizard({
           </div>
 
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setStep(isOfx ? 'upload' : 'columns')}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setStep(isOfx ? 'upload' : 'columns');
+              }}
+            >
               {t('back')}
             </Button>
-            <Button disabled={newRows === 0} onClick={() => setStep('confirm')}>
+            <Button disabled={newRows === 0 || !previewCurrent} onClick={() => setStep('confirm')}>
               {t('continue')}
             </Button>
           </div>
@@ -468,7 +598,7 @@ export function ImportWizard({
           <dl className="divide-y divide-border rounded-md bg-surface-2 px-4">
             {[
               [t('confirm.account'), account.name],
-              [t('confirm.file'), file.name],
+              [t('confirm.file'), source?.pdfName ?? file.name],
               [t('confirm.format'), presetLabel(preview.presetKey)],
               [
                 t('confirm.ignored'),
@@ -488,7 +618,7 @@ export function ImportWizard({
             <Button variant="secondary" disabled={pending} onClick={() => setStep('preview')}>
               {t('back')}
             </Button>
-            <Button loading={pending} onClick={commit}>
+            <Button loading={pending} disabled={!previewCurrent} onClick={commit}>
               {pending ? t('confirm.running') : t('confirm.action', { count: newRows })}
             </Button>
           </div>
@@ -561,7 +691,7 @@ export function ImportWizard({
         defaultCurrency={defaultCurrency}
         onSaved={(created) => {
           setAccounts((cur) => [...cur, created]);
-          setAccountId(created.id);
+          chooseAccount(created.id);
         }}
       />
     </div>

@@ -114,6 +114,7 @@ export function integrationConfigFixture(
       categorisation: { ...set('claude-haiku-5-5'), source: 'default' },
       report: { ...set('claude-opus-5-5'), source: 'default' },
       valuation: { ...set('claude-opus-5-5'), source: 'default' },
+      import: { ...set('claude-opus-5-5'), source: 'default' },
     },
     valuationPortals: { ...set(DEFAULT_VALUATION_PORTALS), source: 'default' },
     enableBanking: {

@@ -55,6 +55,7 @@ describe('integration config resolver', () => {
       source: 'default',
     });
     expect(cfg.models.valuation).toMatchObject({ value: 'claude-opus-5-5', source: 'default' });
+    expect(cfg.models.import).toMatchObject({ value: 'claude-opus-5-5', source: 'default' });
     expect(cfg.enableBanking.apiUrl).toMatchObject({
       value: 'https://api.enablebanking.com',
       source: 'default',
@@ -67,6 +68,22 @@ describe('integration config resolver', () => {
     });
     expect(isAiAvailable(cfg)).toBe(false);
     expect(isBankingConfigured(cfg)).toBe(false);
+  });
+
+  it('the import model: db beats default, env beats db, empty env is unset', async () => {
+    await put('ai.importModel', 'claude-import-db');
+    expect((await resolve()).models.import).toMatchObject({
+      value: 'claude-import-db',
+      source: 'db',
+    });
+    expect((await resolve({ AI_IMPORT_MODEL: 'claude-import-env' })).models.import).toMatchObject({
+      value: 'claude-import-env',
+      source: 'env',
+    });
+    expect((await resolve({ AI_IMPORT_MODEL: '' })).models.import).toMatchObject({
+      value: 'claude-import-db',
+      source: 'db',
+    });
   });
 
   it('an unreadable db value is unset', async () => {

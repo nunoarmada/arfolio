@@ -578,7 +578,7 @@ describe('monthly ai reports', () => {
       expect(body).not.toContain('Maria');
       expect(body).not.toContain('Fernandes');
       expect(body).toContain(gym.name);
-      const sent = JSON.parse(requests[0]!.messages[0]!.content);
+      const sent = JSON.parse(requests[0]!.messages[0]!.content as string);
       expect(sent.anomalies.map((a: { type: string }) => a.type)).toEqual(
         expect.arrayContaining(['new_recurring', 'recurring_price_change']),
       );
@@ -595,7 +595,9 @@ describe('monthly ai reports', () => {
       const { client, requests } = fake();
       await generateReport(deps(client), await pendingRow(w, { locale }));
       expect(requests[0]!.system.map((b) => b.text).join('\n')).toMatch(expected);
-      expect(JSON.parse(requests[0]!.messages[0]!.content)).toMatchObject({ month: MONTH });
+      expect(JSON.parse(requests[0]!.messages[0]!.content as string)).toMatchObject({
+        month: MONTH,
+      });
     });
 
     it('keeps the report pending with backoff on 429 and 5xx, then fails after 4 attempts', async () => {

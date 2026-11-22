@@ -106,6 +106,7 @@ export function ColumnMapper({
       )}
       <div className="md:col-span-2">
         <Checkbox
+          data-testid="invert-sign"
           label={t('invertSign')}
           hint={t('invertSignHint')}
           checked={mapping.invertSign === true}

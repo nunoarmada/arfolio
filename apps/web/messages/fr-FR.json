@@ -425,6 +425,7 @@
       "categorisationModel": "Saisissez un nom de modèle.",
       "reportModel": "Saisissez un nom de modèle.",
       "valuationModel": "Saisissez un nom de modèle.",
+      "importModel": "Saisissez un nom de modèle.",
       "valuationPortals": "Vérifiez les domaines : un par ligne, comme idealista.pt, jusqu’à 20 par liste.",
       "appId": "Saisissez l’identifiant de l’application.",
       "privateKey": "Ce n’est pas une clé privée RSA valide. Collez le PEM complet, y compris les lignes BEGIN et END.",
@@ -444,8 +445,10 @@
       "reportModel": "Modèle pour les rapports",
       "reportModelHint": "Rédige le rapport mensuel.",
       "valuationModel": "Modèle pour les estimations",
+      "importModel": "Modèle pour l’import de relevés",
       "valuationModelHint": "Estime la valeur de biens tels que l’immobilier et les véhicules.",
-      "removeWarning": "Les catégories, rapports et estimations par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
+      "importModelHint": "Lit les relevés PDF dans l’assistant d’import.",
+      "removeWarning": "Les catégories, rapports, estimations et l’import de relevés PDF par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
       "test": "Tester la clé d’API"
     },
     "portals": {
@@ -823,6 +826,20 @@
       "template_protected": "Les catégories et groupes intégrés ne peuvent pas être supprimés. Archivez-les plutôt.",
       "group_not_empty": "Le groupe contient encore des catégories. Supprimez-les ou archivez-les d’abord.",
       "already_transfer": "L’une des opérations fait déjà partie d’un virement. Dissociez-la d’abord.",
+      "ai_unavailable": "Les relevés PDF sont lus par l'IA, qui n'est pas activée pour ce foyer.",
+      "confirmation_required": "Confirmez que le fichier peut être envoyé avant de continuer.",
+      "rate_limited": "Trop de relevés PDF au cours de la dernière heure. Réessayez plus tard.",
+      "not_a_pdf": "Le fichier n'est pas un PDF.",
+      "pdf_no_rows": "Aucun mouvement n'a été trouvé dans ce PDF.",
+      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois (environ 200). Divisez le PDF et importez chaque partie.",
+      "ai_unusable": "L'IA n'a pas pu lire ce relevé de façon fiable. Rien n'a été importé.",
+      "ai_timeout": "Le service d'IA a mis trop de temps à répondre. Réessayez.",
+      "ai_unreachable": "Le service d'IA n'a pas pu être joint. Réessayez plus tard.",
+      "pdf_rejected": "Le service d'IA n'a pas pu lire ce PDF. Il est peut-être protégé par un mot de passe, trop long ou endommagé.",
+      "ai_key_rejected": "Le service d'IA a refusé la clé d'API de l'installation. Demandez à un propriétaire de la vérifier dans Réglages › Services.",
+      "ai_busy": "Le service d'IA est occupé. Réessayez dans quelques minutes.",
+      "pdf_multiple_accounts": "Ce PDF contient des mouvements de plusieurs comptes, il ne peut donc pas être importé dans un seul compte.",
+      "connection_lost": "La connexion a été interrompue. Réessayez.",
       "invalid_input": "Certaines valeurs ne sont pas valides. Vérifiez les champs et réessayez."
     },
     "conflict": {
@@ -1186,7 +1203,8 @@
       "revolut": "Relevé CSV Revolut",
       "pt_bank": "Relevé CSV de banque portugaise",
       "generic": "Relevé CSV générique",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF lu par l'IA"
     },
     "upload": {
       "title": "Choisir un compte et un fichier",
@@ -1194,13 +1212,23 @@
       "chooseAccount": "Choisir un compte",
       "newAccount": "Créer un nouveau compte…",
       "drop": "Déposez le fichier de relevé ici.",
-      "accepts": "Accepte les fichiers .csv, .xlsx, .xls et .ofx jusqu’à {max} Mo.",
+      "accepts": "Accepte les fichiers .csv, .xlsx, .xls, .ofx et .pdf jusqu’à {max} Mo.",
       "chooseFile": "Choisir un fichier",
-      "badType": "Type de fichier non pris en charge. Utilisez CSV, XLSX, XLS ou OFX.",
+      "badType": "Type de fichier non pris en charge. Utilisez CSV, XLSX, XLS, OFX ou PDF.",
       "tooLarge": "Le fichier est trop volumineux. La limite est de {max} Mo.",
       "empty": "Le fichier est vide.",
       "continue": "Lire le fichier",
-      "reading": "Lecture du fichier…"
+      "reading": "Lecture du fichier…",
+      "pdf": {
+        "title": "Ce fichier sera envoyé à Anthropic",
+        "body": "Les relevés PDF sont lus par l’IA. Le fichier entier, avec tout ce qu’il contient (noms, numéros de compte ou de carte, soldes et opérations), est envoyé à Anthropic avec la clé d’API de cette installation. Vérifiez le résultat avant d’importer.",
+        "unavailable": "Les relevés PDF sont lus par l’IA, qui n’est pas activée pour ce foyer.",
+        "switchOn": "Activer l’IA",
+        "setUp": "Configurer l’IA",
+        "askOwner": "Demandez à un propriétaire du foyer de l’activer.",
+        "send": "Envoyer et lire le fichier",
+        "reading": "Lecture du relevé. Cela peut prendre une minute."
+      }
     },
     "columns": {
       "title": "Colonnes du fichier",
@@ -1240,6 +1268,7 @@
     },
     "preview": {
       "title": "Aperçu",
+      "pdfSource": "Lu par l’IA à partir de {name}. Vérifiez chaque ligne avec le relevé.",
       "new": "Nouvelles",
       "duplicates": "Doublons",
       "skippedRows": "Ignorées",
@@ -1859,11 +1888,11 @@
   },
   "aiSettings": {
     "title": "IA : catégories et rapports",
-    "help": "Suggère des catégories pour les opérations que les règles et la mémoire ont laissées sans catégorie et, au début de chaque mois, rédige un rapport sur le mois précédent dans Analyses › Rapports. Une catégorie est toujours appliquée ; avec une confiance plus faible, l’opération reste dans À vérifier pour que vous la confirmiez, et après trois échecs elle passe dans Autres et est signalée à vérifier.",
+    "help": "Suggère des catégories pour les opérations que les règles et la mémoire ont laissées sans catégorie et, au début de chaque mois, rédige un rapport sur le mois précédent dans Analyses › Rapports. Une catégorie est toujours appliquée ; avec une confiance plus faible, l’opération reste dans À vérifier pour que vous la confirmiez, et après trois échecs elle passe dans Autres et est signalée à vérifier. Elle lit aussi les relevés PDF dans l’assistant d’importation. Les relevés PDF sont envoyés en entier, uniquement quand quelqu’un le confirme pour ce fichier.",
     "sentTitle": "Ce qui est envoyé",
     "sentLabel": "Pour les catégories",
     "sentBody": "libellé et contrepartie de l’opération, sans IBAN, numéros de carte, e-mails, numéros de téléphone ni longues suites de chiffres ; montant et devise ; mois (pas le jour) ; noms des catégories du foyer.",
-    "neverLabel": "Jamais envoyé",
+    "neverLabel": "Jamais envoyé pour les catégories et les rapports",
     "neverBody": "noms des comptes, IBAN, soldes des comptes individuels, notes, noms des membres du foyer.",
     "caveat": "Pour les catégories, un libellé peut contenir le nom d’un commerçant ou d’une personne tel qu’il figure sur le relevé. Les rapports n’incluent jamais les libellés.",
     "provider": "Fournisseur : Anthropic · catégories : modèle {model} · rapports : modèle {reportModel}",

@@ -425,6 +425,7 @@
       "categorisationModel": "Introduzca el nombre de un modelo.",
       "reportModel": "Introduzca el nombre de un modelo.",
       "valuationModel": "Introduzca el nombre de un modelo.",
+      "importModel": "Introduzca el nombre de un modelo.",
       "valuationPortals": "Revise los dominios: uno por línea, como idealista.pt, hasta 20 en cada lista.",
       "appId": "Introduzca el ID de la aplicación.",
       "privateKey": "No es una clave privada RSA válida. Pegue el PEM completo, incluidas las líneas BEGIN y END.",
@@ -444,8 +445,10 @@
       "reportModel": "Modelo para informes",
       "reportModelHint": "Redacta el informe mensual.",
       "valuationModel": "Modelo para valoraciones",
+      "importModel": "Modelo para importar extractos",
       "valuationModelHint": "Estima el valor de bienes como inmuebles y vehículos.",
-      "removeWarning": "Las categorías, los informes y las valoraciones con IA dejarán de funcionar hasta que vuelva a añadir una clave.",
+      "importModelHint": "Lee extractos en PDF en el asistente de importación.",
+      "removeWarning": "Las categorías, los informes, las valoraciones y la importación de extractos en PDF con IA dejarán de funcionar hasta que vuelva a añadir una clave.",
       "test": "Probar la clave de API"
     },
     "portals": {
@@ -823,6 +826,20 @@
       "template_protected": "Las categorías y los grupos predefinidos no se pueden eliminar. Archívelos en su lugar.",
       "group_not_empty": "El grupo todavía tiene categorías. Elimínelas o archívelas primero.",
       "already_transfer": "Uno de los movimientos ya forma parte de una transferencia. Desvincúlelo primero.",
+      "ai_unavailable": "Los extractos en PDF se leen con IA, que no está activada para este hogar.",
+      "confirmation_required": "Confirme que el archivo puede enviarse antes de continuar.",
+      "rate_limited": "Demasiados extractos en PDF en la última hora. Inténtelo de nuevo más tarde.",
+      "not_a_pdf": "El archivo no es un PDF.",
+      "pdf_no_rows": "No se encontraron movimientos en este PDF.",
+      "pdf_too_long": "El extracto tiene demasiados movimientos para leerlo de una vez (unos 200). Divida el PDF e importe cada parte.",
+      "ai_unusable": "La IA no pudo leer este extracto de forma fiable. No se importó nada.",
+      "ai_timeout": "El servicio de IA tardó demasiado en responder. Inténtelo de nuevo.",
+      "ai_unreachable": "No se pudo contactar con el servicio de IA. Inténtelo de nuevo más tarde.",
+      "pdf_rejected": "El servicio de IA no pudo leer este PDF. Puede estar protegido con contraseña, ser demasiado largo o estar dañado.",
+      "ai_key_rejected": "El servicio de IA rechazó la clave de API de la instalación. Pida a un propietario que la revise en Ajustes › Servicios.",
+      "ai_busy": "El servicio de IA está ocupado. Inténtelo de nuevo dentro de unos minutos.",
+      "pdf_multiple_accounts": "Este PDF incluye movimientos de más de una cuenta, por lo que no puede importarse en una sola cuenta.",
+      "connection_lost": "La conexión se interrumpió. Inténtelo de nuevo.",
       "invalid_input": "Algunos valores no son válidos. Revise los campos e inténtelo de nuevo."
     },
     "conflict": {
@@ -1186,7 +1203,8 @@
       "revolut": "Extracto CSV de Revolut",
       "pt_bank": "Extracto CSV de banco portugués",
       "generic": "Extracto CSV genérico",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF leído por IA"
     },
     "upload": {
       "title": "Elija una cuenta y un archivo",
@@ -1194,13 +1212,23 @@
       "chooseAccount": "Elegir una cuenta",
       "newAccount": "Crear una cuenta nueva…",
       "drop": "Suelte aquí el archivo del extracto.",
-      "accepts": "Admite .csv, .xlsx, .xls y .ofx de hasta {max} MB.",
+      "accepts": "Admite .csv, .xlsx, .xls, .ofx y .pdf de hasta {max} MB.",
       "chooseFile": "Elegir archivo",
-      "badType": "Tipo de archivo no admitido. Use CSV, XLSX, XLS u OFX.",
+      "badType": "Tipo de archivo no admitido. Use CSV, XLSX, XLS, OFX o PDF.",
       "tooLarge": "El archivo es demasiado grande. El límite es de {max} MB.",
       "empty": "El archivo está vacío.",
       "continue": "Leer archivo",
-      "reading": "Leyendo el archivo…"
+      "reading": "Leyendo el archivo…",
+      "pdf": {
+        "title": "Este archivo se enviará a Anthropic",
+        "body": "Los extractos en PDF se leen con IA. El archivo completo, con todo lo que contiene (nombres, números de cuenta o de tarjeta, saldos y movimientos), se envía a Anthropic con la clave de API de esta instalación. Compruebe el resultado antes de importar.",
+        "unavailable": "Los extractos en PDF se leen con IA, que no está activada para este hogar.",
+        "switchOn": "Activar la IA",
+        "setUp": "Configurar la IA",
+        "askOwner": "Pida a un propietario del hogar que la active.",
+        "send": "Enviar y leer archivo",
+        "reading": "Leyendo el extracto. Puede tardar un minuto."
+      }
     },
     "columns": {
       "title": "Columnas del archivo",
@@ -1240,6 +1268,7 @@
     },
     "preview": {
       "title": "Vista previa",
+      "pdfSource": "Leído por IA a partir de {name}. Compruebe cada fila con el extracto.",
       "new": "Nuevos",
       "duplicates": "Duplicados",
       "skippedRows": "Omitidos",
@@ -1859,11 +1888,11 @@
   },
   "aiSettings": {
     "title": "IA: categorías e informes",
-    "help": "Sugiere categorías para los movimientos que las reglas y la memoria dejaron sin categorizar y, al comienzo de cada mes, redacta un informe del mes anterior en Análisis › Informes. Siempre aplica una categoría; con menor confianza, el movimiento permanece en Por revisar para que usted lo confirme, y tras tres intentos fallidos pasa a Otros y se marca para revisión.",
+    "help": "Sugiere categorías para los movimientos que las reglas y la memoria dejaron sin categorizar y, al comienzo de cada mes, redacta un informe del mes anterior en Análisis › Informes. Siempre aplica una categoría; con menor confianza, el movimiento permanece en Por revisar para que usted lo confirme, y tras tres intentos fallidos pasa a Otros y se marca para revisión. También lee extractos en PDF en el asistente de importación. Los extractos en PDF se envían completos, solo cuando alguien lo confirma para ese archivo.",
     "sentTitle": "Qué se envía",
     "sentLabel": "Para las categorías",
     "sentBody": "descripción y contraparte del movimiento, sin IBAN, números de tarjeta, correos electrónicos, teléfonos ni secuencias largas de dígitos; importe y moneda; mes (no el día); los nombres de las categorías del hogar.",
-    "neverLabel": "Nunca se envía",
+    "neverLabel": "Nunca se envía en las categorías y los informes",
     "neverBody": "nombres de cuentas, IBAN, saldos de cuentas individuales, notas, nombres de los miembros del hogar.",
     "caveat": "En las categorías, una descripción puede incluir el nombre de un comercio o de una persona tal como figura en el extracto. Los informes nunca incluyen descripciones.",
     "provider": "Proveedor: Anthropic · categorías: modelo {model} · informes: modelo {reportModel}",

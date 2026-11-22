@@ -84,6 +84,14 @@ export default defineConfig({
       dependencies: ['phase1'],
       use: ip(14),
     },
+    // Reading a PDF statement with AI in the import wizard, against the fake Anthropic API from
+    // run.ts. Creates its own accounts and removes them, and puts the AI switch back.
+    {
+      name: 'pdf-import',
+      testMatch: /pdf-import\.spec\.ts/,
+      dependencies: ['phase1'],
+      use: ip(16),
+    },
     { name: 'privacy', testMatch: /privacy\.spec\.ts/, dependencies: ['phase1'], use: ip(15) },
   ],
 });

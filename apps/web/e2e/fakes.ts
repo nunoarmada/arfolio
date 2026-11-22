@@ -265,3 +265,113 @@ export async function startFakeTrading212(): Promise<FakeServer> {
   });
   return listen(server);
 }
+
+/** The installation key the main e2e instance is started with; the fake insists on it. */
+export const FAKE_ANTHROPIC_KEY = 'sk-ant-e2e-fake-key-statement';
+
+/** What the fake Messages API saw in its last request, reduced to what the contract needs. */
+export interface FakeAnthropicRequest {
+  apiKey: string | undefined;
+  documentMediaTypes: string[];
+  hasTools: boolean;
+}
+
+/**
+ * A fake Messages API (`POST /v1/messages`) that answers a PDF statement request with two fixed
+ * movements, as the structured JSON the service reads from the text block. It refuses (HTTP 400) a
+ * request that breaks the contract: wrong key, no PDF document block, or any tool.
+ *
+ * The spec runs in another process than this one, so what it needs (the request count, the last
+ * request, a per-test delay, a longer answer) is also served under `/__fake/` on the same port.
+ */
+export async function startFakeAnthropic(): Promise<
+  FakeServer & {
+    requests: () => number;
+    lastRequest: () => FakeAnthropicRequest | undefined;
+    setDelay: (ms: number) => void;
+  }
+> {
+  let count = 0;
+  let last: FakeAnthropicRequest | undefined;
+  let delayMs = 0;
+  // Set through `/__fake/rows`: answer with this many generated movements instead of the two.
+  let generatedRows: number | null = null;
+  const fixedRows = [
+    { date: '2026-04-02', description: 'Grocer Example', amount: '-12.30' },
+    { date: '2026-04-03', description: 'Refund, "Example" Shop', amount: '5.00' },
+  ];
+  const answer = () => ({
+    accounts: 1,
+    currency: 'EUR',
+    rows:
+      generatedRows === null
+        ? fixedRows
+        : Array.from({ length: generatedRows }, (_, i) => ({
+            date: `2026-05-${String((i % 28) + 1).padStart(2, '0')}`,
+            description: `Movement ${i + 1} Example`,
+            amount: `-${i + 1}.00`,
+          })),
+  });
+  const server = createServer((req, res) => {
+    void (async () => {
+      const path = new URL(req.url ?? '/', 'http://fake').pathname;
+      if (req.method === 'GET' && path === '/__fake/state') {
+        return send(res, 200, { requests: count, last: last ?? null, delayMs });
+      }
+      if (req.method === 'POST' && path === '/__fake/delay') {
+        delayMs = Number(((await readJson(req)) as { ms?: number }).ms ?? 0);
+        return send(res, 204);
+      }
+      if (req.method === 'POST' && path === '/__fake/rows') {
+        const { count } = (await readJson(req)) as { count?: number | null };
+        generatedRows = typeof count === 'number' ? count : null;
+        return send(res, 204);
+      }
+      if (req.method !== 'POST' || path !== '/v1/messages') {
+        return send(res, 404, { type: 'error', error: { type: 'not_found_error', message: 'x' } });
+      }
+      const body = await readJson(req);
+      count += 1;
+      const blocks = (body.messages as { content?: unknown }[] | undefined)?.flatMap((m) =>
+        Array.isArray(m.content) ? (m.content as Record<string, unknown>[]) : [],
+      );
+      last = {
+        apiKey: req.headers['x-api-key'] as string | undefined,
+        documentMediaTypes: (blocks ?? [])
+          .filter((b) => b.type === 'document')
+          .map((b) => String((b.source as { media_type?: string } | undefined)?.media_type)),
+        hasTools: 'tools' in body,
+      };
+      if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+      if (
+        last.apiKey !== FAKE_ANTHROPIC_KEY ||
+        !last.documentMediaTypes.includes('application/pdf') ||
+        last.hasTools
+      ) {
+        return send(res, 400, {
+          type: 'error',
+          error: { type: 'invalid_request_error', message: 'the request broke the e2e contract' },
+        });
+      }
+      return send(res, 200, {
+        id: 'msg_e2e_fake',
+        type: 'message',
+        role: 'assistant',
+        model: String(body.model),
+        content: [{ type: 'text', text: JSON.stringify(answer()) }],
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 10 },
+      });
+    })().catch(() => send(res, 500, { type: 'error', error: { type: 'api_error', message: 'x' } }));
+  });
+  const fake = await listen(server);
+  return {
+    ...fake,
+    requests: () => count,
+    lastRequest: () => last,
+    setDelay: (ms) => {
+      delayMs = ms;
+    },
+  };
+}

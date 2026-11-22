@@ -14,7 +14,14 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { runMigrations } from '../../../packages/db/src/index.js';
 import startCluster from '../../../packages/db/test/global-setup';
-import { FAKE_T212, startFakeEnableBanking, startFakeTrading212, type FakeServer } from './fakes';
+import {
+  FAKE_ANTHROPIC_KEY,
+  FAKE_T212,
+  startFakeAnthropic,
+  startFakeEnableBanking,
+  startFakeTrading212,
+  type FakeServer,
+} from './fakes';
 
 const webDir = fileURLToPath(new URL('..', import.meta.url));
 const APP_PASSWORD = 'e2e-app-password';
@@ -106,7 +113,9 @@ async function main(): Promise<number> {
       publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     });
     const fakeBroker = await startFakeTrading212();
-    fakes.push(fakeBank, fakeBroker);
+    // Answers the PDF statement import; only the instance that has a key is pointed at it.
+    const fakeAnthropic = await startFakeAnthropic();
+    fakes.push(fakeBank, fakeBroker, fakeAnthropic);
 
     const port = await freePort();
     const baseUrl = `http://localhost:${port}`;
@@ -126,8 +135,10 @@ async function main(): Promise<number> {
       ENABLE_BANKING_PRIVATE_KEY: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
       ENABLE_BANKING_API_URL: fakeBank.url,
       TRADING212_API_URL: `${fakeBroker.url}/api/v0`,
-      // Makes the AI switch available; nothing here ever calls Anthropic (the worker is not run).
-      ANTHROPIC_API_KEY: 'sk-ant-e2e-not-a-real-key',
+      // Makes the AI switch available. The only Anthropic call in the run is the web app's PDF
+      // statement import, which goes to the fake (ANTHROPIC_BASE_URL, main instance only).
+      ANTHROPIC_API_KEY: FAKE_ANTHROPIC_KEY,
+      E2E_FAKE_ANTHROPIC_URL: fakeAnthropic.url,
       E2E_DATABASE_URL: withDb(),
       E2E_T212_KEY: FAKE_T212.key,
       E2E_T212_SECRET: FAKE_T212.secret,
@@ -146,7 +157,7 @@ async function main(): Promise<number> {
 
     server = spawn('pnpm', ['exec', 'next', 'start', '-p', String(port)], {
       cwd: webDir,
-      env,
+      env: { ...env, ANTHROPIC_BASE_URL: fakeAnthropic.url },
       stdio: ['ignore', 'inherit', 'inherit'],
     });
     await waitFor(`${baseUrl}/api/health`, server);

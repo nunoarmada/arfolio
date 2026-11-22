@@ -51,7 +51,7 @@ Amounts are integers in minor units (cents) with an ISO currency, never floats. 
 
 ## Connectors and the sync pipeline
 
-Every source implements one connector interface (consent, list accounts, fetch transactions and balances, positions for brokers). Enable Banking covers European banks through PSD2 consent; Trading 212 uses the broker's API with a read-only key. Statement files (CSV, XLSX, XLS, OFX) and manual entry are first-class alternatives.
+Every source implements one connector interface (consent, list accounts, fetch transactions and balances, positions for brokers). Enable Banking covers European banks through PSD2 consent; Trading 212 uses the broker's API with a read-only key. Statement files (CSV, XLSX, XLS, OFX; a PDF can be read with AI, see [AI features](ai.md)) and manual entry are first-class alternatives.
 
 A sync of one connection:
 
@@ -77,7 +77,7 @@ The MCP server is a Streamable HTTP endpoint at `/api/mcp` using the official Ty
 
 ## AI
 
-AI is opt-in twice: the installation needs an Anthropic key and each household switches it on. Requests go from the worker (and the report and valuation jobs) straight to the Anthropic API. Inputs are redacted or aggregated before leaving the server; what exactly is sent is listed in [AI features](ai.md).
+AI is opt-in twice: the installation needs an Anthropic key and each household switches it on. Requests go straight from your server to the Anthropic API: from the worker for categorisation, merchants, reports and valuations, and from the web app for PDF statement import. Worker inputs are redacted or aggregated before leaving the server. A PDF statement is the exception: the whole file is sent as it is, only after a confirmation per file. What exactly is sent is listed in [AI features](ai.md).
 
 ## Internationalisation
 

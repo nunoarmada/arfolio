@@ -425,6 +425,7 @@
       "categorisationModel": "Enter a model name.",
       "reportModel": "Enter a model name.",
       "valuationModel": "Enter a model name.",
+      "importModel": "Enter a model name.",
       "valuationPortals": "Check the hosts: one per line, like idealista.pt, up to 20 in each list.",
       "appId": "Enter the application ID.",
       "privateKey": "This is not a valid RSA private key. Paste the whole PEM, including the BEGIN and END lines.",
@@ -444,8 +445,10 @@
       "reportModel": "Model for reports",
       "reportModelHint": "Writes the monthly report.",
       "valuationModel": "Model for valuations",
+      "importModel": "Statement import model",
       "valuationModelHint": "Estimates the value of assets such as property and vehicles.",
-      "removeWarning": "AI categories, reports and valuations stop working until you add a key again.",
+      "importModelHint": "Reads PDF statements in the import wizard.",
+      "removeWarning": "AI categories, reports, valuations and PDF statement import stop working until you add a key again.",
       "test": "Test API key"
     },
     "portals": {
@@ -823,6 +826,20 @@
       "template_protected": "Built-in categories and groups cannot be deleted. Archive them instead.",
       "group_not_empty": "The group still has categories. Delete or archive them first.",
       "already_transfer": "One of the transactions is already part of a transfer. Unlink it first.",
+      "ai_unavailable": "PDF statements are read with AI, which is not switched on for this household.",
+      "confirmation_required": "Confirm that the file may be sent before continuing.",
+      "rate_limited": "Too many PDF statements in the last hour. Try again later.",
+      "not_a_pdf": "The file is not a PDF.",
+      "pdf_no_rows": "No movements were found in this PDF.",
+      "pdf_too_long": "The statement has too many movements to read at once (about 200). Split the PDF and import each part.",
+      "ai_unusable": "The AI could not read this statement reliably. Nothing was imported.",
+      "ai_timeout": "The AI service took too long to answer. Try again.",
+      "ai_unreachable": "The AI service could not be reached. Try again later.",
+      "pdf_rejected": "The AI service could not read this PDF. It may be protected with a password, too long or damaged.",
+      "ai_key_rejected": "The AI service rejected the installation's API key. Ask an owner to check it in Settings › Services.",
+      "ai_busy": "The AI service is busy. Try again in a few minutes.",
+      "pdf_multiple_accounts": "This PDF lists movements of more than one account, so it cannot be imported into a single account.",
+      "connection_lost": "The connection was interrupted. Try again.",
       "invalid_input": "Some values are not valid. Check the fields and try again."
     },
     "conflict": {
@@ -1186,7 +1203,8 @@
       "revolut": "Revolut CSV statement",
       "pt_bank": "Portuguese bank CSV statement",
       "generic": "Generic CSV statement",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF read by AI"
     },
     "upload": {
       "title": "Choose an account and a file",
@@ -1194,13 +1212,23 @@
       "chooseAccount": "Choose an account",
       "newAccount": "Create a new account…",
       "drop": "Drop the statement file here.",
-      "accepts": "Accepts .csv, .xlsx, .xls and .ofx up to {max} MB.",
+      "accepts": "Accepts .csv, .xlsx, .xls, .ofx and .pdf up to {max} MB.",
       "chooseFile": "Choose file",
-      "badType": "Unsupported file type. Use CSV, XLSX, XLS or OFX.",
+      "badType": "Unsupported file type. Use CSV, XLSX, XLS, OFX or PDF.",
       "tooLarge": "The file is too large. The limit is {max} MB.",
       "empty": "The file is empty.",
       "continue": "Read file",
-      "reading": "Reading the file…"
+      "reading": "Reading the file…",
+      "pdf": {
+        "title": "This file will be sent to Anthropic",
+        "body": "PDF statements are read with AI. The whole file, with everything in it (names, account or card numbers, balances and movements), is sent to Anthropic using this installation's API key. Check the result before importing.",
+        "unavailable": "PDF statements are read with AI, which is not switched on for this household.",
+        "switchOn": "Switch AI on",
+        "setUp": "Set up AI",
+        "askOwner": "Ask an owner of the household to switch it on.",
+        "send": "Send and read file",
+        "reading": "Reading the statement. This can take a minute."
+      }
     },
     "columns": {
       "title": "File columns",
@@ -1240,6 +1268,7 @@
     },
     "preview": {
       "title": "Preview",
+      "pdfSource": "Read by AI from {name}. Check every row against the statement.",
       "new": "New",
       "duplicates": "Duplicates",
       "skippedRows": "Skipped",
@@ -1859,11 +1888,11 @@
   },
   "aiSettings": {
     "title": "AI: categories and reports",
-    "help": "Suggests categories for movements that rules and memory left uncategorised and, at the start of each month, writes a report on the previous month in Insights › Reports. It always applies a category; with lower confidence the movement stays in To review for you to confirm, and after three failed attempts it goes to Other and is flagged for review.",
+    "help": "Suggests categories for movements that rules and memory left uncategorised and, at the start of each month, writes a report on the previous month in Insights › Reports. It always applies a category; with lower confidence the movement stays in To review for you to confirm, and after three failed attempts it goes to Other and is flagged for review. It also reads PDF statements in the import wizard. PDF statements are sent whole, only when someone confirms it for that file.",
     "sentTitle": "What is sent",
     "sentLabel": "For categories",
     "sentBody": "movement description and counterparty, without IBANs, card numbers, emails, phone numbers or long digit sequences; amount and currency; month (not the day); the household's category names.",
-    "neverLabel": "Never sent",
+    "neverLabel": "Never sent for categories and reports",
     "neverBody": "account names, IBANs, balances of individual accounts, notes, household member names.",
     "caveat": "For categories, a description can include a merchant's or a person's name as it appears on the statement. Reports never include descriptions.",
     "provider": "Provider: Anthropic · categories: model {model} · reports: model {reportModel}",

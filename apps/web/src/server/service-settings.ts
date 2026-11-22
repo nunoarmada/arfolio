@@ -38,6 +38,7 @@ export const SERVICE_KEYS = [
   'ai.categorisationModel',
   'ai.reportModel',
   'ai.valuationModel',
+  'ai.importModel',
   'ai.valuationPortals',
   'enableBanking.appId',
   'enableBanking.privateKey',
@@ -142,6 +143,8 @@ function resolvedFor(cfg: IntegrationConfig, key: InstanceSettingKey): Resolved<
       return cfg.models.report;
     case 'ai.valuationModel':
       return cfg.models.valuation;
+    case 'ai.importModel':
+      return cfg.models.import;
     case 'ai.valuationPortals':
       return cfg.valuationPortals;
     case 'enableBanking.appId':

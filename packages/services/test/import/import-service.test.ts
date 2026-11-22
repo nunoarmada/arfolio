@@ -16,6 +16,7 @@ import {
   listImportBatches,
   listImportPresets,
   markTransfer,
+  MAX_PDF_STATEMENT_ROWS,
   NotFoundError,
   previewImport,
   seedCategoryTemplates,
@@ -81,6 +82,35 @@ describe('file import', () => {
       });
       expect(preview.rows).toHaveLength(50);
       expect(preview.stats).toMatchObject({ total: 80, valid: 80 });
+    });
+
+    it('returns every row up to the PDF statement maximum with rowLimit', async () => {
+      const acc = await account();
+      const lines = Array.from({ length: 80 }, (_, i) => `2026-01-01,Row ${i},-${i + 1}.00`);
+      const csv = csvFile(['Date,Description,Amount', ...lines].join('\n'));
+      const preview = await previewImport(a, {
+        accountId: acc,
+        file: csv,
+        rowLimit: MAX_PDF_STATEMENT_ROWS,
+      });
+      expect(preview.rows).toHaveLength(80);
+      expect(preview.rows[79]).toMatchObject({ status: 'ok', row: { description: 'Row 79' } });
+      const two = await previewImport(a, { accountId: acc, file: csv, rowLimit: 2 });
+      expect(two.rows).toHaveLength(2);
+    });
+
+    it.each([0, 1.5, MAX_PDF_STATEMENT_ROWS + 1])('rejects rowLimit %s', async (rowLimit) => {
+      const acc = await account();
+      await expect(
+        previewImport(a, {
+          accountId: acc,
+          file: csvFile('Date,Description,Amount\n2026-01-01,Row,-1.00\n'),
+          rowLimit,
+        }),
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        issues: [expect.objectContaining({ path: ['rowLimit'] })],
+      });
     });
 
     it('marks rows that already exist as duplicates', async () => {

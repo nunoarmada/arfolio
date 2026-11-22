@@ -23,7 +23,7 @@ Open **Settings > Services** as a household owner. Everything on it applies to t
 
 | Section           | Fields                                                                                                          | Environment variables                                                         |
 | ----------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| AI                | Anthropic API key, model for categories, model for reports, model for valuations; **Test API key**              | `ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL` |
+| AI                | Anthropic API key, model for categories, model for reports, model for valuations, model for statement import; **Test API key** | `ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL` |
 | Valuation portals | Websites the AI may search per kind of asset (property, vehicles, other items), one host per line, 20 at most   | none (page only)                                                              |
 | Bank connections  | The redirect URL to register, Application ID, private key, API address; **Test bank connection**                | `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL` |
 | Email             | SMTP address (`smtp://` or `smtps://`, no query string), sender; **Send test email**                            | `SMTP_URL`, `MAIL_FROM`                                                       |
@@ -33,7 +33,7 @@ Behaviour worth knowing:
 - **Secrets are write-only.** A saved API key, private key or SMTP address is never shown again, never sent back to the browser, and never written to logs or the audit log (which records only which setting changed). You can only replace or remove it.
 - **Fresh sign-in.** Changing these settings requires that you signed in within the last 10 minutes. If the page says so, sign out and in again, then retry.
 - **When changes take effect.** Saving applies at once for the web app; the worker picks the change up within about a minute. Environment variables are read at start-up, so restart after changing them.
-- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports) and `claude-opus-5-5` (valuations). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
+- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
 - **Invalid or unreadable values.** A saved value that no longer validates is ignored and the page asks you to enter it again. A saved value that cannot be decrypted (the `ENCRYPTION_KEY` changed) is treated as not set and shown as unreadable: enter it again to replace it.
 
 ### The encryption key
@@ -105,7 +105,11 @@ These have no field on the Services page.
 
 ### Settings that are also on the Services page
 
-`ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `SMTP_URL` and `MAIL_FROM` are optional. Leave them out of `.env` to manage them from the app. The compose file already passes them through when you set them. In Helm they go in the optional Secret (`<fullname>-optional`): see [Kubernetes](kubernetes.md).
+`ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`, `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `SMTP_URL` and `MAIL_FROM` are optional. Leave them out of `.env` to manage them from the app. The compose file already passes them through when you set them. In Helm they go in the optional Secret (`<fullname>-optional`): see [Kubernetes](kubernetes.md).
+
+### Reverse proxy timeouts
+
+Reading a PDF statement with AI is a single request that can take up to two minutes. If your reverse proxy closes responses sooner (many default to 30 or 60 seconds), long statements fail even though the server is still working. Raise the proxy's response timeout to at least two minutes for the app. Other requests are not affected. See [AI features](ai.md#statement-import-from-pdf).
 
 ## What leaves your server
 

@@ -39,6 +39,7 @@ const MESSAGE_ID = {
   'ai.categorisationModel': 'categorisationModel',
   'ai.reportModel': 'reportModel',
   'ai.valuationModel': 'valuationModel',
+  'ai.importModel': 'importModel',
   'ai.valuationPortals': 'valuationPortals',
   'enableBanking.appId': 'appId',
   'enableBanking.privateKey': 'privateKey',
@@ -632,6 +633,7 @@ export function ServicesForm({ view }: { view: ServicesView }) {
     'ai.categorisationModel',
     'ai.reportModel',
     'ai.valuationModel',
+    'ai.importModel',
     'ai.valuationPortals',
   ] as const;
 
@@ -687,6 +689,13 @@ export function ServicesForm({ view }: { view: ServicesView }) {
             field={f['ai.valuationModel']}
             label={t('ai.valuationModel')}
             hint={t('ai.valuationModelHint')}
+            resetLabel={t('actions.useDefault')}
+          />
+          <PlainRow
+            key={rowKey(f['ai.importModel'])}
+            field={f['ai.importModel']}
+            label={t('ai.importModel')}
+            hint={t('ai.importModelHint')}
             resetLabel={t('actions.useDefault')}
           />
           <PortalsRow key={rowKey(f['ai.valuationPortals'])} field={f['ai.valuationPortals']} />

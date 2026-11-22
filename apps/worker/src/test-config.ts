@@ -19,6 +19,7 @@ export function makeConfig(
     categorisationModel?: string;
     reportModel?: string;
     valuationModel?: string;
+    importModel?: string;
     portals?: IntegrationConfig['valuationPortals']['value'];
     enableBanking?: { appId?: string; privateKey?: string; apiUrl?: string };
   } = {},
@@ -31,6 +32,7 @@ export function makeConfig(
       categorisation: resolved(over.categorisationModel ?? 'cat-model', 'default'),
       report: resolved(over.reportModel ?? 'report-model', 'default'),
       valuation: resolved(over.valuationModel ?? 'valuation-model', 'default'),
+      import: resolved(over.importModel ?? 'import-model', 'default'),
     },
     valuationPortals: resolved(over.portals ?? DEFAULT_VALUATION_PORTALS, 'default'),
     enableBanking: {
