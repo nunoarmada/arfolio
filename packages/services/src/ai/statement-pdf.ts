@@ -92,22 +92,29 @@ function isCalendarDate(value: string): boolean {
 
 /** A valid row with its description tidied, or `null` when the row cannot be trusted. */
 function cleanRow(row: Row): Row | null {
-  const description = row.description.replace(/\s+/g, ' ').trim();
+  // Control characters (NUL included, which the database rejects) count as whitespace.
+  const description = row.description
+    .replace(/\p{Cc}/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (description.length < 1 || description.length > MAX_DESCRIPTION) return null;
   if (!isCalendarDate(row.date)) return null;
   if (!/^-?\d{1,12}(\.\d{1,2})?$/.test(row.amount)) return null;
   return { date: row.date, description, amount: row.amount };
 }
 
-/** RFC 4180: a field with a comma, a quote or a line break is quoted, quotes are doubled. */
-function csvField(value: string): string {
-  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+/**
+ * RFC 4180 quoting, always, with quotes doubled. A description is always quoted so that `;` or
+ * `|` in it cannot make the delimiter detection pick another separator than the comma.
+ */
+function quoted(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 function toCsv(rows: Row[]): string {
   const lines = [
     PDF_STATEMENT_HEADERS.join(','),
-    ...rows.map((r) => [r.date, r.description, r.amount].map(csvField).join(',')),
+    ...rows.map((r) => [r.date, quoted(r.description), r.amount].join(',')),
   ];
   return `${lines.join('\n')}\n`;
 }

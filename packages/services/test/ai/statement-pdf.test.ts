@@ -110,7 +110,7 @@ describe('extractPdfStatement', () => {
     );
     const out = await t.run();
     expect(out.csv).toBe(
-      `${PDF_STATEMENT_HEADERS.join(',')}\n2026-03-02,Grocer Example,-23.45\n2026-03-03,Salary Example Corp,1500\n`,
+      `${PDF_STATEMENT_HEADERS.join(',')}\n2026-03-02,"Grocer Example",-23.45\n2026-03-03,"Salary Example Corp",1500\n`,
     );
     expect(out.rows).toBe(2);
   });
@@ -123,6 +123,24 @@ describe('extractPdfStatement', () => {
       status: 'ok',
       row: { description: 'Shop "A", Example Lisbon' },
     });
+  });
+
+  it.each([['COMPRA;LOJA;LISBOA;PT'], ['POS | SHOP | CITY | PT']])(
+    'keeps the header readable when every description is %s',
+    async (description) => {
+      const t = setup(() => parsed(Array.from({ length: 4 }, () => row({ description }))));
+      const rows = await roundTrip((await t.run()).csv);
+      expect(rows).toHaveLength(4);
+      for (const r of rows) {
+        expect(r).toMatchObject({ status: 'ok', row: { description, amount: -2345 } });
+      }
+    },
+  );
+
+  it('drops control characters from descriptions', async () => {
+    const t = setup(() => parsed([row({ description: 'Grocer\u0000 Example\u0007' })]));
+    const rows = await roundTrip((await t.run()).csv);
+    expect(rows[0]).toMatchObject({ status: 'ok', row: { description: 'Grocer Example' } });
   });
 
   it('keeps a description that looks like a formula as text', async () => {
