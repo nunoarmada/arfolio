@@ -14,6 +14,7 @@ const DIR_TYPE_STREAM = 2;
 const DIR_TYPE_ROOT = 5;
 
 const notXls = () => new ValidationError('The file is not a valid XLS workbook');
+const protectedWorkbook = () => new ValidationError('The workbook is password-protected');
 
 export function isCompoundFile(buf: Buffer): boolean {
   return buf.length >= CFB_SIGNATURE.length && buf.subarray(0, 8).equals(CFB_SIGNATURE);
@@ -95,10 +96,14 @@ export function readWorkbookStream(buf: Buffer): Buffer {
       }
     }
     const entry = streams.get('workbook') ?? streams.get('book');
+    // A password-protected OOXML workbook is a compound file too, holding the encrypted archive.
+    if (!entry && streams.has('encryptedpackage')) throw protectedWorkbook();
     if (!entry || !root) throw notXls();
     const start = entry.readUInt32LE(116);
     const length = entry.readUInt32LE(120);
-    if (entry.readUInt32LE(124) !== 0 || length > buf.length) throw notXls();
+    // The high half of the size only counts with 4096-byte sectors; writers of 512-byte-sector
+    // files often left it uninitialised.
+    if ((shift === 12 && entry.readUInt32LE(124) !== 0) || length > buf.length) throw notXls();
 
     if (length >= buf.readUInt32LE(56)) {
       const data = chain(start);
@@ -308,7 +313,7 @@ function readGlobals(wb: Buffer): Globals {
     pos = record.next;
     const { type, data } = record;
     if (type === R.EOF) break;
-    if (type === R.FILEPASS) throw new ValidationError('The workbook is password-protected');
+    if (type === R.FILEPASS) throw protectedWorkbook();
     if (type === R.DATEMODE) globals.date1904 = data.readUInt16LE(0) === 1;
     if (type === R.XF) xfFormats.push(data.readUInt16LE(2));
     if (type === R.FORMAT) {

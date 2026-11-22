@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { MAX_IMPORT_ROWS, ValidationError } from '../../src/index.js';
 import { parseXls, readWorkbookStream } from '../../src/import/xls.js';
@@ -27,6 +29,19 @@ describe('readWorkbookStream', () => {
   it('accepts the legacy stream name Book', () => {
     const payload = patterned(5000);
     expect(readWorkbookStream(buildCfb(payload, { name: 'Book' })).equals(payload)).toBe(true);
+  });
+
+  it('ignores the high half of the stream size, which old writers left uninitialised', () => {
+    const payload = patterned(5000);
+    const file = buildCfb(payload, { sizeHigh: 0xdeadbeef });
+    expect(readWorkbookStream(file).equals(payload)).toBe(true);
+  });
+
+  it('reports an encrypted Office document as password-protected', () => {
+    expectInvalid(
+      () => readWorkbookStream(buildCfb(patterned(5000), { name: 'EncryptedPackage' })),
+      'The workbook is password-protected',
+    );
   });
 
   it('rejects a file without the compound signature', () => {
@@ -109,6 +124,14 @@ describe('parseXls', () => {
 
   it('does not treat quoted letters as a date format', () => {
     expect(one([[{ date: 12.5, format: '0.00" dias"' }]])).toEqual([['12.5']]);
+  });
+
+  it('does not treat bracketed colours and locale tags as a date format', () => {
+    const cells = ['[Red]0.00', '[$-409]#,##0.00', '[Blue]General'].map((format) => ({
+      date: 12.5,
+      format,
+    }));
+    expect(one([cells])).toEqual([['12.5', '12.5', '12.5']]);
   });
 
   it('reads the cached result of a formula, never the formula', () => {
@@ -194,5 +217,30 @@ describe('parseXls', () => {
       stream.writeUInt32LE(1_000_000, sst + 8);
       expectInvalid(() => parseXls(buildCfb(stream)));
     });
+  });
+});
+
+/** Files written by LibreOffice (fictional data), so the reader is checked against a real writer. */
+describe('parseXls: files written by LibreOffice', () => {
+  const fixture = (name: string) =>
+    readFileSync(fileURLToPath(new URL(`../fixtures/import/${name}`, import.meta.url)));
+
+  it('reads a small workbook stored in the mini stream', () => {
+    const file = fixture('libreoffice-small.xls');
+    expect(readWorkbookStream(file).length).toBeLessThan(4096);
+    expect(parseXls(file)).toEqual([
+      ['Date', 'Description', 'Amount', 'Balance'],
+      ['2026-03-02', 'Café Açúcar Exemplo €', '-23.45', '1976.55'],
+      ['2026-03-03', 'Salary Example Corp', '1500', '3476.55'],
+    ]);
+  });
+
+  it('reads a long non-ASCII text that spans several records', () => {
+    const long = 'Padaria Exemplo € '.repeat(520).trim();
+    expect(parseXls(fixture('libreoffice-long-text.xls'))).toEqual([
+      ['Date', 'Description', 'Amount'],
+      ['2026-03-05', long, '-1234.56'],
+      ['2026-03-06', 'Rent Example', '-700'],
+    ]);
   });
 });

@@ -819,6 +819,7 @@
       "column_missing": "One of the chosen columns is not in the file. Go back and choose the columns again.",
       "invalid_file": "The file could not be read. Check that it is a statement exported from your bank.",
       "resave_spreadsheet": "This Excel file cannot be read as it is. Open it in a spreadsheet app, save it as .xlsx and import that file.",
+      "protected_file": "The file is protected with a password. Remove the password in a spreadsheet app, save the file and import it again.",
       "template_protected": "Built-in categories and groups cannot be deleted. Archive them instead.",
       "group_not_empty": "The group still has categories. Delete or archive them first.",
       "already_transfer": "One of the transactions is already part of a transfer. Unlink it first.",

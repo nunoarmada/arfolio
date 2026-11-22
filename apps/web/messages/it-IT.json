@@ -819,6 +819,7 @@
       "column_missing": "Una delle colonne scelte non è presente nel file. Tornare indietro e scegliere di nuovo le colonne.",
       "invalid_file": "Impossibile leggere il file. Verificare che sia un estratto conto esportato dalla propria banca.",
       "resave_spreadsheet": "Impossibile leggere questo file Excel così com’è. Aprirlo in un foglio di calcolo, salvarlo come .xlsx e importare quel file.",
+      "protected_file": "Il file è protetto da password. Rimuovere la password in un foglio di calcolo, salvare il file e importarlo di nuovo.",
       "template_protected": "Le categorie e i gruppi predefiniti non possono essere eliminati. Archiviarli.",
       "group_not_empty": "Il gruppo contiene ancora categorie. Eliminarle o archiviarle prima.",
       "already_transfer": "Uno dei movimenti fa già parte di un giroconto. Scollegarlo prima.",

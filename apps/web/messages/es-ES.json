@@ -819,6 +819,7 @@
       "column_missing": "Una de las columnas elegidas no está en el archivo. Vuelva atrás y elija las columnas de nuevo.",
       "invalid_file": "No se pudo leer el archivo. Compruebe que es un extracto exportado desde su banco.",
       "resave_spreadsheet": "No se puede leer este archivo de Excel tal como está. Ábralo en una hoja de cálculo, guárdelo como .xlsx e importe ese archivo.",
+      "protected_file": "El archivo está protegido con contraseña. Quite la contraseña en una hoja de cálculo, guarde el archivo e impórtelo de nuevo.",
       "template_protected": "Las categorías y los grupos predefinidos no se pueden eliminar. Archívelos en su lugar.",
       "group_not_empty": "El grupo todavía tiene categorías. Elimínelas o archívelas primero.",
       "already_transfer": "Uno de los movimientos ya forma parte de una transferencia. Desvincúlelo primero.",

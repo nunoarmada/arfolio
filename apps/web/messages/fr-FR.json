@@ -819,6 +819,7 @@
       "column_missing": "L’une des colonnes choisies n’est pas dans le fichier. Revenez en arrière et choisissez de nouveau les colonnes.",
       "invalid_file": "Le fichier n’a pas pu être lu. Vérifiez qu’il s’agit d’un relevé exporté depuis votre banque.",
       "resave_spreadsheet": "Ce fichier Excel ne peut pas être lu tel quel. Ouvrez-le dans un tableur, enregistrez-le au format .xlsx et importez ce fichier.",
+      "protected_file": "Le fichier est protégé par un mot de passe. Retirez le mot de passe dans un tableur, enregistrez le fichier et importez-le à nouveau.",
       "template_protected": "Les catégories et groupes intégrés ne peuvent pas être supprimés. Archivez-les plutôt.",
       "group_not_empty": "Le groupe contient encore des catégories. Supprimez-les ou archivez-les d’abord.",
       "already_transfer": "L’une des opérations fait déjà partie d’un virement. Dissociez-la d’abord.",

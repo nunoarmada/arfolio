@@ -22,7 +22,14 @@ function u32Table(values: number[], unit: number): Buffer {
   return out;
 }
 
-function dirEntry(name: string, type: number, child: number, start: number, size: number): Buffer {
+function dirEntry(
+  name: string,
+  type: number,
+  child: number,
+  start: number,
+  size: number,
+  sizeHigh = 0,
+): Buffer {
   const entry = Buffer.alloc(128);
   entry.write(name, 0, 'utf16le');
   entry.writeUInt16LE((name.length + 1) * 2, 64);
@@ -33,6 +40,7 @@ function dirEntry(name: string, type: number, child: number, start: number, size
   entry.writeUInt32LE(child >>> 0, 76);
   entry.writeUInt32LE(start >>> 0, 116);
   entry.writeUInt32LE(size, 120);
+  entry.writeUInt32LE(sizeHigh >>> 0, 124);
   return entry;
 }
 
@@ -41,6 +49,8 @@ export interface CfbOptions {
   name?: string;
   /** Store the stream in the mini stream (default: whenever it is under 4096 bytes). */
   mini?: boolean;
+  /** High 32 bits of the stream size, which old writers of 512-byte-sector files left as garbage. */
+  sizeHigh?: number;
   /** Last-minute edit of the FAT (sector index -> next sector), to build corrupt files. */
   fatPatch?: (fat: number[]) => void;
 }
@@ -91,7 +101,7 @@ export function buildCfb(stream: Buffer, opts: CfbOptions = {}): Buffer {
       mini
         ? dirEntry('Root Entry', 5, 1, 0, miniSectors * MINI_SECTOR)
         : dirEntry('Root Entry', 5, 1, END_OF_CHAIN, 0),
-      dirEntry(opts.name ?? 'Workbook', 2, FREE, 0, stream.length),
+      dirEntry(opts.name ?? 'Workbook', 2, FREE, 0, stream.length, opts.sizeHigh),
     ]),
     SECTOR,
   );
