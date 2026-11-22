@@ -121,6 +121,55 @@ describe('parseFile: ofx', () => {
   });
 });
 
+describe('parseFile: xls', () => {
+  it('reads a legacy workbook like its XLSX twin', async () => {
+    const table = await parseFile(fixture('statement.xls'), 'statement.xls');
+    expect(table.kind).toBe('xlsx');
+    expect(table.headerRow).toBe(3);
+    expect(table.headers).toEqual(['Date', 'Description', 'Amount', 'Balance']);
+    const twin = await parseFile(fixture('statement.xlsx'), 'statement.xlsx');
+    expect(table.grid).toEqual(twin.grid);
+    expect(table.rows[0]).toEqual(['2026-03-02', 'Grocer Example', '-23.45', '1976.55']);
+  });
+
+  it('accepts the extension in any case', async () => {
+    const table = await parseFile(fixture('statement.xls'), 'STATEMENT.XLS');
+    expect(table.headers).toEqual(['Date', 'Description', 'Amount', 'Balance']);
+  });
+
+  it('reads an XLSX archive that was named .xls', async () => {
+    const table = await parseFile(fixture('statement.xlsx'), 'statement.xls');
+    expect(table.kind).toBe('xlsx');
+    expect(table.headers).toEqual(['Date', 'Description', 'Amount', 'Balance']);
+  });
+
+  it('reads a legacy workbook that was named .xlsx', async () => {
+    const table = await parseFile(fixture('statement.xls'), 'statement.xlsx');
+    expect(table.headers).toEqual(['Date', 'Description', 'Amount', 'Balance']);
+  });
+
+  it('rejects text or HTML named .xls', async () => {
+    const html = Buffer.from('<html><table><tr><td>x</td></tr></table></html>');
+    const run = parseFile(html, 'statement.xls');
+    await expect(run).rejects.toThrow(ValidationError);
+    await expect(run).rejects.toThrow(
+      'The file is not a valid XLS workbook: save it as .xlsx or CSV',
+    );
+  });
+
+  it('applies the size limit before parsing', async () => {
+    await expect(parseFile(Buffer.alloc(MAX_IMPORT_BYTES + 1), 'big.xls')).rejects.toThrow(
+      /too large/,
+    );
+  });
+
+  it('names XLS among the supported types', async () => {
+    await expect(parseFile(Buffer.from('x'), 'statement.pdf')).rejects.toThrow(
+      'Unsupported file type: use CSV, OFX, XLS or XLSX',
+    );
+  });
+});
+
 describe('parseFile: xlsx', () => {
   it('reads title rows, real dates, numbers and a totals footer as plain strings', async () => {
     const table = await parseFile(fixture('statement.xlsx'), 'statement.xlsx');
