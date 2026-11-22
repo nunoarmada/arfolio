@@ -99,11 +99,14 @@ export function ImportWizard({
   const [undone, setUndone] = useState(false);
   const [pending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
+  // What an in-flight extraction compares against when it completes.
+  const live = useRef({ pdf, accountId });
+  live.current = { pdf, accountId };
 
   const isOfx = analysis?.file.kind === 'ofx';
   const steps = [
     { id: 'upload', label: t('steps.upload') },
-    ...(isOfx || source ? [] : [{ id: 'columns', label: t('steps.columns') }]),
+    ...(isOfx ? [] : [{ id: 'columns', label: t('steps.columns') }]),
     { id: 'preview', label: t('steps.preview') },
     { id: 'confirm', label: t('steps.confirm') },
   ];
@@ -126,6 +129,7 @@ export function ImportWizard({
   }
 
   function chooseFile(next: File | undefined) {
+    if (pending) return;
     setFileError(null);
     if (!next) return;
     const lower = next.name.toLowerCase();
@@ -146,6 +150,7 @@ export function ImportWizard({
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
+    if (pending) return;
     chooseFile(e.dataTransfer.files[0]);
   }
 
@@ -168,17 +173,22 @@ export function ImportWizard({
     if (!pdf || !accountId || !canReadPdf(ai)) return;
     setError(null);
     startTransition(async () => {
+      const started = pdf;
+      const startedAccount = accountId;
       const form = formData(pdf, accountId);
       form.set('confirmed', 'true');
       const extracted = await extractPdfStatementAction(form);
+      if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
       if (!extracted.ok) return setError(failure(extracted));
       const { csv, filename, mapping: found } = extracted.data;
       const generated = new File([csv], filename, { type: 'text/csv' });
-      const res = await analyseImportAction(formData(generated, accountId, found));
+      const res = await analyseImportAction(formData(generated, startedAccount, found));
+      // The person changed the file or account meanwhile: this result belongs to the old one.
+      if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
       if (!res.ok) return setError(failure(res));
       const { data } = res;
       setFile(generated);
-      setSource({ pdfName: pdf.name });
+      setSource({ pdfName: started.name });
       setAnalysis(data);
       setPreview(data.preview);
       setMapping(data.preview?.mapping ?? found);
@@ -237,7 +247,7 @@ export function ImportWizard({
           file,
           accountId,
           mapping && isComplete(mapping) && !isOfx ? mapping : null,
-          saveFormat && !isOfx ? formatName.trim() : undefined,
+          saveFormat && !isOfx && !source ? formatName.trim() : undefined,
         ),
       );
       if (!res.ok) return setError(failure(res));
@@ -315,7 +325,7 @@ export function ImportWizard({
           <div
             onDragOver={(e) => {
               e.preventDefault();
-              setDragging(true);
+              if (!pending) setDragging(true);
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
@@ -412,32 +422,36 @@ export function ImportWizard({
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-1">
-            <Checkbox
-              label={t('columns.saveFormat')}
-              checked={saveFormat}
-              onChange={(e) => setSaveFormat(e.target.checked)}
-            />
-            {saveFormat ? (
-              <Field label={t('columns.formatName')}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    value={formatName}
-                    maxLength={100}
-                    onChange={(e) => setFormatName(e.target.value)}
-                  />
-                )}
-              </Field>
-            ) : null}
-          </div>
+          {source ? null : (
+            <div className="grid grid-cols-1 gap-1">
+              <Checkbox
+                label={t('columns.saveFormat')}
+                checked={saveFormat}
+                onChange={(e) => setSaveFormat(e.target.checked)}
+              />
+              {saveFormat ? (
+                <Field label={t('columns.formatName')}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      value={formatName}
+                      maxLength={100}
+                      onChange={(e) => setFormatName(e.target.value)}
+                    />
+                  )}
+                </Field>
+              ) : null}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setStep('upload')}>
               {t('back')}
             </Button>
             <Button
-              disabled={!preview || previewing || (saveFormat && formatName.trim() === '')}
+              disabled={
+                !preview || previewing || (saveFormat && !source && formatName.trim() === '')
+              }
               onClick={() => setStep('preview')}
             >
               {t('continue')}
@@ -520,8 +534,7 @@ export function ImportWizard({
             <Button
               variant="secondary"
               onClick={() => {
-                if (source) clearExtraction();
-                setStep(isOfx || source ? 'upload' : 'columns');
+                setStep(isOfx ? 'upload' : 'columns');
               }}
             >
               {t('back')}
@@ -639,7 +652,7 @@ export function ImportWizard({
         defaultCurrency={defaultCurrency}
         onSaved={(created) => {
           setAccounts((cur) => [...cur, created]);
-          setAccountId(created.id);
+          chooseAccount(created.id);
         }}
       />
     </div>
