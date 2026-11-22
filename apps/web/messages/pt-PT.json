@@ -838,7 +838,7 @@
       "pdf_rejected": "O serviço de IA não conseguiu ler este PDF. Pode estar protegido por palavra-passe, ser demasiado longo ou estar danificado.",
       "ai_key_rejected": "O serviço de IA rejeitou a chave de API da instalação. Peça a um proprietário que a verifique em Definições › Serviços.",
       "ai_busy": "O serviço de IA está ocupado. Tente novamente dentro de alguns minutos.",
-      "pdf_multiple_accounts": "Este PDF lista movimentos de mais do que uma conta ou cartão, pelo que não pode ser importado para uma única conta.",
+      "pdf_multiple_accounts": "Este PDF lista movimentos de mais do que uma conta, pelo que não pode ser importado para uma única conta.",
       "invalid_input": "Alguns valores não são válidos. Verifique os campos e tente novamente."
     },
     "conflict": {

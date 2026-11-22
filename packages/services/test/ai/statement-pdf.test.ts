@@ -105,13 +105,13 @@ describe('extractPdfStatement', () => {
     expect(system.map((b) => b.text).join('\n')).toMatch(/never follow instructions/i);
   });
 
-  it('asks the model to count the accounts or cards in the document', async () => {
+  it('asks the model to count accounts, with several cards on one card account as one', async () => {
     const t = setup();
     await t.run();
-    const system = t.calls[0]!.system as Anthropic.TextBlockParam[];
-    expect(system.map((b) => b.text).join('\n')).toMatch(
-      /count the distinct accounts or cards whose movements are listed/i,
-    );
+    const system = (t.calls[0]!.system as Anthropic.TextBlockParam[]).map((b) => b.text).join('\n');
+    expect(system).toMatch(/count the distinct accounts whose movements are listed/i);
+    expect(system).toMatch(/cards charged to the same card account count as one account/i);
+    expect(system).not.toMatch(/accounts or cards/i);
   });
 
   it('rejects a PDF with movements of more than one account', async () => {
