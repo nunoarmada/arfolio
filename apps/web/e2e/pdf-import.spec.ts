@@ -75,8 +75,10 @@ test.describe('PDF statement import with AI', () => {
       await sql(`delete from import_batch where account_id = any($1)`, [list]);
       await sql(`delete from financial_account where id = any($1)`, [list]);
     }
-    // Switching AI on and creating accounts write audit rows: shared state other specs read.
-    await sql(`delete from audit_log where created_at >= $1`, [startedAt]);
+    // Switching AI on and creating accounts may write audit rows: shared state other specs read.
+    await sql(`delete from audit_log where created_at >= $1 and action like 'account.%'`, [
+      startedAt,
+    ]);
   }
 
   test.beforeAll(async ({ browser }) => {
@@ -94,13 +96,22 @@ test.describe('PDF statement import with AI', () => {
     await addAccount(ACCOUNT_B);
   });
   test.afterAll(async () => {
-    try {
-      await setFakeDelay(0);
-      await clean();
-      await sql('update household_settings set ai_enabled = $1', [originalAiEnabled]);
-    } finally {
-      await context.close();
+    // Every step runs even when an earlier one throws: the household is shared with other specs.
+    const steps: (() => Promise<unknown>)[] = [
+      () => sql('update household_settings set ai_enabled = $1', [originalAiEnabled]),
+      () => setFakeDelay(0),
+      () => clean(),
+      () => context?.close() ?? Promise.resolve(),
+    ];
+    const failures: unknown[] = [];
+    for (const step of steps) {
+      try {
+        await step();
+      } catch (error) {
+        failures.push(error);
+      }
     }
+    if (failures.length > 0) throw failures[0];
   });
 
   test('with household AI off, choosing a PDF says it is not switched on and sends nothing', async () => {
@@ -150,11 +161,34 @@ test.describe('PDF statement import with AI', () => {
     await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
     expect(await requests()).toBe(1);
 
+    // Inverting the sign on the Columns step re-previews the extraction without a new request.
+    const spend = page.getByRole('row', { name: /Grocer Example/ });
+    const refund = page.getByRole('row', { name: /Refund/ });
+    const invert = page.getByTestId('invert-sign');
+    await invert.check();
+    // The live preview on the Columns step is debounced: wait for it before continuing, as a
+    // person reading it would (Continue straight after the tick would still hold the old rows).
+    await expect(spend).toContainText(/(?<![-−]\s?)12,30/);
+    await expect(refund).toContainText(/[-−]\s?5,00/);
     await page.getByRole('button', { name: 'Continuar' }).click();
     await expect(page.getByTestId('stat-new')).toHaveText('2');
+    await expect(spend).toContainText(/(?<![-−]\s?)12,30/);
+    await expect(spend).not.toContainText(/[-−]\s?12,30/);
+    await expect(refund).toContainText(/[-−]\s?5,00/);
+    expect(await requests()).toBe(1);
+
+    // Back to the original signs, so the import at the end keeps them.
+    await page.getByRole('button', { name: 'Voltar' }).click();
+    await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
+    await invert.uncheck();
+    await expect(spend).toContainText(/[-−]\s?12,30/);
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(spend).toContainText(/[-−]\s?12,30/);
+    await expect(refund).not.toContainText(/[-−]\s?5,00/);
     expect(await requests()).toBe(1);
 
     await page.getByRole('button', { name: 'Voltar' }).click();
+    await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
     await page.getByRole('button', { name: 'Voltar' }).click();
     await expect(page.getByTestId('chosen-file')).toHaveText('statement.pdf');
     await expect(page.getByTestId('pdf-notice')).toContainText('Anthropic');
@@ -178,6 +212,18 @@ test.describe('PDF statement import with AI', () => {
     await page.goto(`/accounts/${ids[ACCOUNT_B]}`);
     await expect(page.getByText('Grocer Example')).toBeVisible();
     await expect(page.getByText('Refund, "Example" Shop')).toBeVisible();
+
+    // The signs survived the round trip through the Columns step, and account A got nothing.
+    const amounts = (id: string) =>
+      sql<{ description: string; amount: string }>(
+        'select raw_description as description, amount from transaction where account_id = $1 order by raw_description',
+        [id],
+      );
+    expect(await amounts(ids[ACCOUNT_B]!)).toEqual([
+      { description: 'Grocer Example', amount: '-1230' },
+      { description: 'Refund, "Example" Shop', amount: '500' },
+    ]);
+    expect(await amounts(ids[ACCOUNT_A]!)).toEqual([]);
   });
 
   test('while the PDF is being read, the account and the file cannot be changed', async () => {
