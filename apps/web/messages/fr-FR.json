@@ -1206,13 +1206,23 @@
       "chooseAccount": "Choisir un compte",
       "newAccount": "Créer un nouveau compte…",
       "drop": "Déposez le fichier de relevé ici.",
-      "accepts": "Accepte les fichiers .csv, .xlsx, .xls et .ofx jusqu’à {max} Mo.",
+      "accepts": "Accepte les fichiers .csv, .xlsx, .xls, .ofx et .pdf jusqu’à {max} Mo.",
       "chooseFile": "Choisir un fichier",
-      "badType": "Type de fichier non pris en charge. Utilisez CSV, XLSX, XLS ou OFX.",
+      "badType": "Type de fichier non pris en charge. Utilisez CSV, XLSX, XLS, OFX ou PDF.",
       "tooLarge": "Le fichier est trop volumineux. La limite est de {max} Mo.",
       "empty": "Le fichier est vide.",
       "continue": "Lire le fichier",
-      "reading": "Lecture du fichier…"
+      "reading": "Lecture du fichier…",
+      "pdf": {
+        "title": "Ce fichier sera envoyé à Anthropic",
+        "body": "Les relevés PDF sont lus par l’IA. Le fichier entier, avec tout ce qu’il contient (noms, numéros de compte ou de carte, soldes et opérations), est envoyé à Anthropic avec la clé d’API de cette installation. Vérifiez le résultat avant d’importer.",
+        "unavailable": "Les relevés PDF sont lus par l’IA, qui n’est pas activée pour ce foyer.",
+        "switchOn": "Activer l’IA",
+        "setUp": "Configurer l’IA",
+        "askOwner": "Demandez à un propriétaire du foyer de l’activer.",
+        "send": "Envoyer et lire le fichier",
+        "reading": "Lecture du relevé. Cela peut prendre une minute."
+      }
     },
     "columns": {
       "title": "Colonnes du fichier",
@@ -1250,6 +1260,7 @@
     },
     "preview": {
       "title": "Aperçu",
+      "pdfSource": "Lu par l’IA à partir de {name}. Vérifiez chaque ligne avec le relevé.",
       "new": "Nouvelles",
       "duplicates": "Doublons",
       "skippedRows": "Ignorées",

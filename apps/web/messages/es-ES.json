@@ -1206,13 +1206,23 @@
       "chooseAccount": "Elegir una cuenta",
       "newAccount": "Crear una cuenta nueva…",
       "drop": "Suelte aquí el archivo del extracto.",
-      "accepts": "Admite .csv, .xlsx, .xls y .ofx de hasta {max} MB.",
+      "accepts": "Admite .csv, .xlsx, .xls, .ofx y .pdf de hasta {max} MB.",
       "chooseFile": "Elegir archivo",
-      "badType": "Tipo de archivo no admitido. Use CSV, XLSX, XLS u OFX.",
+      "badType": "Tipo de archivo no admitido. Use CSV, XLSX, XLS, OFX o PDF.",
       "tooLarge": "El archivo es demasiado grande. El límite es de {max} MB.",
       "empty": "El archivo está vacío.",
       "continue": "Leer archivo",
-      "reading": "Leyendo el archivo…"
+      "reading": "Leyendo el archivo…",
+      "pdf": {
+        "title": "Este archivo se enviará a Anthropic",
+        "body": "Los extractos en PDF se leen con IA. El archivo completo, con todo lo que contiene (nombres, números de cuenta o de tarjeta, saldos y movimientos), se envía a Anthropic con la clave de API de esta instalación. Compruebe el resultado antes de importar.",
+        "unavailable": "Los extractos en PDF se leen con IA, que no está activada para este hogar.",
+        "switchOn": "Activar la IA",
+        "setUp": "Configurar la IA",
+        "askOwner": "Pida a un propietario del hogar que la active.",
+        "send": "Enviar y leer archivo",
+        "reading": "Leyendo el extracto. Puede tardar un minuto."
+      }
     },
     "columns": {
       "title": "Columnas del archivo",
@@ -1250,6 +1260,7 @@
     },
     "preview": {
       "title": "Vista previa",
+      "pdfSource": "Leído por IA a partir de {name}. Compruebe cada fila con el extracto.",
       "new": "Nuevos",
       "duplicates": "Duplicados",
       "skippedRows": "Omitidos",

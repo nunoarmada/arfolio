@@ -1,4 +1,4 @@
-import { listAccounts } from '@arfolio/services';
+import { isAiAvailable, listAccounts } from '@arfolio/services';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
 import { headers } from 'next/headers';
@@ -7,7 +7,8 @@ import type { Metadata } from 'next';
 import { ImportWizard } from '@/components/import/import-wizard';
 import { PageHeader } from '@/components/page-header';
 import { currencyOptions } from '@/lib/format';
-import { loadHouseholdFormat } from '@/server/household-format';
+import { loadAiEnabled, loadHouseholdFormat } from '@/server/household-format';
+import { getIntegrationConfig } from '@/server/integration-config';
 import { toAccountDto } from '@/server/serialize';
 import { toServiceCtx } from '@/server/service-ctx';
 import { requireMember } from '@/server/session';
@@ -32,7 +33,12 @@ export default async function ImportPage({
   ]);
   const accountParam = query.account && UUID.test(query.account) ? query.account : undefined;
   const ctx = toServiceCtx(session);
-  const [accounts, format] = await Promise.all([listAccounts(ctx), loadHouseholdFormat(ctx)]);
+  const [accounts, format, aiEnabled, integrationConfig] = await Promise.all([
+    listAccounts(ctx),
+    loadHouseholdFormat(ctx),
+    loadAiEnabled(ctx),
+    getIntegrationConfig(),
+  ]);
   const back = accountParam ? `/accounts/${accountParam}` : '/transactions';
   return (
     <PageContainer width="full">
@@ -53,6 +59,11 @@ export default async function ImportPage({
         initialAccountId={accountParam}
         currencies={currencyOptions(locale)}
         defaultCurrency={format.currency}
+        ai={{
+          available: isAiAvailable(integrationConfig),
+          enabled: aiEnabled,
+          canEnable: ctx.role === 'owner',
+        }}
       />
     </PageContainer>
   );

@@ -1206,13 +1206,23 @@
       "chooseAccount": "Scegli un conto",
       "newAccount": "Crea un nuovo conto…",
       "drop": "Trascinare qui il file dell’estratto conto.",
-      "accepts": "Accetta file .csv, .xlsx, .xls e .ofx fino a {max} MB.",
+      "accepts": "Accetta file .csv, .xlsx, .xls, .ofx e .pdf fino a {max} MB.",
       "chooseFile": "Scegli file",
-      "badType": "Tipo di file non supportato. Usare CSV, XLSX, XLS o OFX.",
+      "badType": "Tipo di file non supportato. Usare CSV, XLSX, XLS, OFX o PDF.",
       "tooLarge": "Il file è troppo grande. Il limite è {max} MB.",
       "empty": "Il file è vuoto.",
       "continue": "Leggi file",
-      "reading": "Lettura del file…"
+      "reading": "Lettura del file…",
+      "pdf": {
+        "title": "Questo file verrà inviato ad Anthropic",
+        "body": "Gli estratti conto PDF vengono letti con l’IA. L’intero file, con tutto ciò che contiene (nomi, numeri di conto o di carta, saldi e movimenti), viene inviato ad Anthropic con la chiave API di questa installazione. Controllare il risultato prima di importare.",
+        "unavailable": "Gli estratti conto PDF vengono letti con l’IA, che non è attivata per questo nucleo familiare.",
+        "switchOn": "Attiva l’IA",
+        "setUp": "Configura l’IA",
+        "askOwner": "Chiedere a un proprietario del nucleo familiare di attivarla.",
+        "send": "Invia e leggi file",
+        "reading": "Lettura dell’estratto conto. Può richiedere un minuto."
+      }
     },
     "columns": {
       "title": "Colonne del file",
@@ -1250,6 +1260,7 @@
     },
     "preview": {
       "title": "Anteprima",
+      "pdfSource": "Letto dall’IA a partire da {name}. Controllare ogni riga con l’estratto conto.",
       "new": "Nuovi",
       "duplicates": "Duplicati",
       "skippedRows": "Saltate",

@@ -1206,13 +1206,23 @@
       "chooseAccount": "Escolher conta",
       "newAccount": "Criar nova conta…",
       "drop": "Largue aqui o ficheiro do extrato.",
-      "accepts": "Aceita .csv, .xlsx, .xls e .ofx até {max} MB.",
+      "accepts": "Aceita .csv, .xlsx, .xls, .ofx e .pdf até {max} MB.",
       "chooseFile": "Escolher ficheiro",
-      "badType": "Tipo de ficheiro não suportado. Use CSV, XLSX, XLS ou OFX.",
+      "badType": "Tipo de ficheiro não suportado. Use CSV, XLSX, XLS, OFX ou PDF.",
       "tooLarge": "O ficheiro é demasiado grande. O limite é {max} MB.",
       "empty": "O ficheiro está vazio.",
       "continue": "Ler ficheiro",
-      "reading": "A ler o ficheiro…"
+      "reading": "A ler o ficheiro…",
+      "pdf": {
+        "title": "Este ficheiro será enviado à Anthropic",
+        "body": "Os extratos em PDF são lidos com IA. O ficheiro inteiro, com tudo o que contém (nomes, números de conta ou de cartão, saldos e movimentos), é enviado à Anthropic com a chave de API desta instalação. Confira o resultado antes de importar.",
+        "unavailable": "Os extratos em PDF são lidos com IA, que não está ativada para este agregado.",
+        "switchOn": "Ativar a IA",
+        "setUp": "Configurar a IA",
+        "askOwner": "Peça a um proprietário do agregado que a ative.",
+        "send": "Enviar e ler ficheiro",
+        "reading": "A ler o extrato. Pode demorar um minuto."
+      }
     },
     "columns": {
       "title": "Colunas do ficheiro",
@@ -1250,6 +1260,7 @@
     },
     "preview": {
       "title": "Pré-visualizar",
+      "pdfSource": "Lido por IA a partir de {name}. Confira cada linha com o extrato.",
       "new": "Novos",
       "duplicates": "Duplicados",
       "skippedRows": "Ignorados",

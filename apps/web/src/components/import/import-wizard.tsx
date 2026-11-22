@@ -8,6 +8,7 @@ import type { ColumnMapping } from '@arfolio/services';
 import {
   analyseImportAction,
   commitImportAction,
+  extractPdfStatementAction,
   previewImportAction,
   type AnalysisDto,
   type CommitDto,
@@ -28,10 +29,11 @@ import { useFailureMessage } from '../use-action-error';
 import { ColumnMapper, isComplete, type EditableMapping } from './column-mapper';
 import { ImportPreviewTable } from './import-preview-table';
 import { ImportStepper } from './import-stepper';
+import { canReadPdf, PdfNotice, type ImportAiState } from './pdf-notice';
 
 type Step = 'upload' | 'columns' | 'preview' | 'confirm' | 'result';
 const NEW_ACCOUNT = '__new__';
-const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx';
+const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.pdf';
 const EXTENSIONS = ACCEPT.split(',');
 const PREVIEW_DEBOUNCE_MS = 400;
 const MAX_MB = Math.round(MAX_IMPORT_BYTES / (1024 * 1024));
@@ -60,11 +62,13 @@ export function ImportWizard({
   initialAccountId,
   currencies,
   defaultCurrency,
+  ai,
 }: {
   accounts: AccountDto[];
   initialAccountId?: string;
   currencies: Array<{ value: string; label: string }>;
   defaultCurrency: string;
+  ai: ImportAiState;
 }) {
   const t = useTranslations('import');
   const failure = useFailureMessage();
@@ -74,7 +78,12 @@ export function ImportWizard({
   );
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [step, setStep] = useState<Step>('upload');
+  // The file the steps after upload work on: the chosen file, or the CSV built from a PDF.
   const [file, setFile] = useState<File | null>(null);
+  // A chosen PDF, kept until the user picks something else; it is only sent on request.
+  const [pdf, setPdf] = useState<File | null>(null);
+  // Set once the AI has read `pdfName` into `file`.
+  const [source, setSource] = useState<{ pdfName: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisDto | null>(null);
   const [mapping, setMapping] = useState<EditableMapping | null>(null);
@@ -94,12 +103,27 @@ export function ImportWizard({
   const isOfx = analysis?.file.kind === 'ofx';
   const steps = [
     { id: 'upload', label: t('steps.upload') },
-    ...(isOfx ? [] : [{ id: 'columns', label: t('steps.columns') }]),
+    ...(isOfx || source ? [] : [{ id: 'columns', label: t('steps.columns') }]),
     { id: 'preview', label: t('steps.preview') },
     { id: 'confirm', label: t('steps.confirm') },
   ];
   const account = accounts.find((a) => a.id === accountId);
   const newRows = preview ? preview.stats.valid - preview.stats.duplicates : 0;
+
+  /** Drops everything derived from the previous file, including a CSV read from a PDF. */
+  function clearExtraction() {
+    setSource(null);
+    setFile(null);
+    setAnalysis(null);
+    setPreview(null);
+    setMapping(null);
+    setError(null);
+  }
+
+  function chooseAccount(id: string) {
+    if (id !== accountId && source) clearExtraction();
+    setAccountId(id);
+  }
 
   function chooseFile(next: File | undefined) {
     setFileError(null);
@@ -108,8 +132,15 @@ export function ImportWizard({
     if (!EXTENSIONS.some((ext) => lower.endsWith(ext))) return setFileError(t('upload.badType'));
     if (next.size > MAX_IMPORT_BYTES) return setFileError(t('upload.tooLarge', { max: MAX_MB }));
     if (next.size === 0) return setFileError(t('upload.empty'));
-    setFile(next);
+    if (source) clearExtraction();
     setFormatName(next.name.replace(/\.[^.]+$/, ''));
+    if (lower.endsWith('.pdf')) {
+      setPdf(next);
+      setFile(null);
+    } else {
+      setPdf(null);
+      setFile(next);
+    }
   }
 
   function onDrop(e: DragEvent) {
@@ -130,6 +161,30 @@ export function ImportWizard({
       setMapping(data.preview?.mapping ?? { headerRow: data.file.headerRow, dateFormat: 'auto' });
       setTab('all');
       setStep(data.file.kind === 'ofx' ? 'preview' : 'columns');
+    });
+  }
+
+  function extractPdf() {
+    if (!pdf || !accountId || !canReadPdf(ai)) return;
+    setError(null);
+    startTransition(async () => {
+      const form = formData(pdf, accountId);
+      form.set('confirmed', 'true');
+      const extracted = await extractPdfStatementAction(form);
+      if (!extracted.ok) return setError(failure(extracted));
+      const { csv, filename, mapping: found } = extracted.data;
+      const generated = new File([csv], filename, { type: 'text/csv' });
+      const res = await analyseImportAction(formData(generated, accountId, found));
+      if (!res.ok) return setError(failure(res));
+      const { data } = res;
+      setFile(generated);
+      setSource({ pdfName: pdf.name });
+      setAnalysis(data);
+      setPreview(data.preview);
+      setMapping(data.preview?.mapping ?? found);
+      setTab('all');
+      // The mapping came from the AI, so the preview is the first thing to check.
+      setStep(data.preview ? 'preview' : 'columns');
     });
   }
 
@@ -192,13 +247,10 @@ export function ImportWizard({
   }
 
   function reset() {
-    setFile(null);
-    setAnalysis(null);
-    setMapping(null);
-    setPreview(null);
+    setPdf(null);
+    clearExtraction();
     setResult(null);
     setUndone(false);
-    setError(null);
     setSaveFormat(false);
     setStep('upload');
   }
@@ -240,10 +292,11 @@ export function ImportWizard({
             {(p) => (
               <Select
                 {...p}
+                disabled={pending}
                 value={accountId}
                 onChange={(e) => {
                   if (e.target.value === NEW_ACCOUNT) setCreatingAccount(true);
-                  else setAccountId(e.target.value);
+                  else chooseAccount(e.target.value);
                 }}
               >
                 <option value="">{t('upload.chooseAccount')}</option>
@@ -277,9 +330,9 @@ export function ImportWizard({
             >
               <FileUp className="size-5" />
             </span>
-            {file ? (
+            {pdf || file ? (
               <p className="text-base font-medium" data-testid="chosen-file">
-                {file.name}
+                {(pdf ?? file)?.name}
               </p>
             ) : (
               <p className="text-base">{t('upload.drop')}</p>
@@ -291,10 +344,15 @@ export function ImportWizard({
               type="file"
               accept={ACCEPT}
               className="sr-only"
+              disabled={pending}
               aria-label={t('upload.chooseFile')}
               onChange={(e) => chooseFile(e.target.files?.[0])}
             />
-            <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+            <Button
+              variant="secondary"
+              disabled={pending}
+              onClick={() => fileInput.current?.click()}
+            >
               {t('upload.chooseFile')}
             </Button>
             {fileError ? (
@@ -304,14 +362,21 @@ export function ImportWizard({
             ) : null}
           </div>
 
+          {pdf ? <PdfNotice ai={ai} /> : null}
+
           <Button
-            onClick={analyse}
+            onClick={pdf ? extractPdf : analyse}
             loading={pending}
-            disabled={!file || !accountId}
+            disabled={pdf ? !accountId || !canReadPdf(ai) : !file || !accountId}
             className="justify-self-start"
           >
-            {pending ? t('upload.reading') : t('upload.continue')}
+            {pending ? t('upload.reading') : pdf ? t('upload.pdf.send') : t('upload.continue')}
           </Button>
+          {pdf ? (
+            <p aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
+              {pending ? t('upload.pdf.reading') : null}
+            </p>
+          ) : null}
         </Card>
       ) : null}
 
@@ -386,6 +451,13 @@ export function ImportWizard({
           <h2 id="preview-title" className="text-heading">
             {t('preview.title')}
           </h2>
+          {source ? (
+            <Alert tone="info">
+              <p data-testid="pdf-source-line">
+                {t('preview.pdfSource', { name: source.pdfName })}
+              </p>
+            </Alert>
+          ) : null}
           <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               ['new', t('preview.new'), newRows],
@@ -445,7 +517,13 @@ export function ImportWizard({
           </div>
 
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setStep(isOfx ? 'upload' : 'columns')}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (source) clearExtraction();
+                setStep(isOfx || source ? 'upload' : 'columns');
+              }}
+            >
               {t('back')}
             </Button>
             <Button disabled={newRows === 0} onClick={() => setStep('confirm')}>
@@ -468,7 +546,7 @@ export function ImportWizard({
           <dl className="divide-y divide-border rounded-md bg-surface-2 px-4">
             {[
               [t('confirm.account'), account.name],
-              [t('confirm.file'), file.name],
+              [t('confirm.file'), source?.pdfName ?? file.name],
               [t('confirm.format'), presetLabel(preview.presetKey)],
               [
                 t('confirm.ignored'),

@@ -1206,13 +1206,23 @@
       "chooseAccount": "Choose an account",
       "newAccount": "Create a new account…",
       "drop": "Drop the statement file here.",
-      "accepts": "Accepts .csv, .xlsx, .xls and .ofx up to {max} MB.",
+      "accepts": "Accepts .csv, .xlsx, .xls, .ofx and .pdf up to {max} MB.",
       "chooseFile": "Choose file",
-      "badType": "Unsupported file type. Use CSV, XLSX, XLS or OFX.",
+      "badType": "Unsupported file type. Use CSV, XLSX, XLS, OFX or PDF.",
       "tooLarge": "The file is too large. The limit is {max} MB.",
       "empty": "The file is empty.",
       "continue": "Read file",
-      "reading": "Reading the file…"
+      "reading": "Reading the file…",
+      "pdf": {
+        "title": "This file will be sent to Anthropic",
+        "body": "PDF statements are read with AI. The whole file, with everything in it (names, account or card numbers, balances and movements), is sent to Anthropic using this installation's API key. Check the result before importing.",
+        "unavailable": "PDF statements are read with AI, which is not switched on for this household.",
+        "switchOn": "Switch AI on",
+        "setUp": "Set up AI",
+        "askOwner": "Ask an owner of the household to switch it on.",
+        "send": "Send and read file",
+        "reading": "Reading the statement. This can take a minute."
+      }
     },
     "columns": {
       "title": "File columns",
@@ -1250,6 +1260,7 @@
     },
     "preview": {
       "title": "Preview",
+      "pdfSource": "Read by AI from {name}. Check every row against the statement.",
       "new": "New",
       "duplicates": "Duplicates",
       "skippedRows": "Skipped",
