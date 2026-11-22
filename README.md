@@ -70,24 +70,24 @@ Server basics (database, secrets, public URL) are environment variables in `.env
 Your data stays in your database. Arfolio talks to these outside services only when you set them up:
 
 - **Enable Banking**, to connect European banks. Their restricted production mode is meant for linking your own accounts; see [enablebanking.com](https://enablebanking.com) for their current terms. The [bank sync guide](docs/bank-sync.md) walks through it.
-- **Anthropic**, if you add your own API key and a household switches AI on. Descriptions are redacted (IBANs, card numbers, emails, phone numbers and long digit runs removed) and reports use aggregates only. [AI features](docs/ai.md) lists exactly what is sent.
+- **Anthropic**, if you add your own API key and a household switches AI on. Descriptions are redacted (IBANs, card numbers, emails, phone numbers and long digit runs removed) and reports use aggregates only. The exception is PDF statement import, which sends the whole file as it is, after a confirmation per file. [AI features](docs/ai.md) lists exactly what is sent.
 - **Google's favicon service**, to show merchant logos. It learns the merchant's website, never your transactions. Turn it off with `MERCHANT_LOGOS=off`.
 
 Without an Enable Banking application and an Anthropic key Arfolio still works: add accounts by hand or import statements.
 
 ## Documentation
 
-| Guide                                            | What is in it                                                                     |
-| ------------------------------------------------ | --------------------------------------------------------------------------------- |
-| [Install with Docker Compose](docs/install.md)   | Step by step install, HTTPS, first run                                            |
-| [Install on Kubernetes](docs/kubernetes.md)      | The Helm chart (full values in the [chart README](deploy/helm/arfolio/README.md)) |
-| [Configuration](docs/configuration.md)           | Every environment variable and the Services page, with precedence                 |
-| [Bank sync](docs/bank-sync.md)                   | Enable Banking and Trading 212 step by step                                       |
-| [AI features](docs/ai.md)                        | What is sent to Anthropic, redaction, models, costs, valuation portals            |
-| [Connect Claude (MCP)](docs/mcp.md)              | claude.ai, Claude Code, tokens, revoking access                                   |
-| [Backup and upgrade](docs/backup-and-upgrade.md) | `ENCRYPTION_KEY`, backup, restore, upgrades, pre-release installs                 |
-| [Architecture](docs/architecture.md)             | Stack, tenancy, security model, jobs                                              |
-| [Changelog](CHANGELOG.md)                        | What changed in each release                                                      |
+| Guide                                            | What is in it                                                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| [Install with Docker Compose](docs/install.md)   | Step by step install, HTTPS, first run                                             |
+| [Install on Kubernetes](docs/kubernetes.md)      | The Helm chart (full values in the [chart README](deploy/helm/arfolio/README.md))  |
+| [Configuration](docs/configuration.md)           | Every environment variable and the Services page, with precedence                  |
+| [Bank sync](docs/bank-sync.md)                   | Enable Banking and Trading 212 step by step                                        |
+| [AI features](docs/ai.md)                        | What is sent to Anthropic, redaction, PDF import, models, costs, valuation portals |
+| [Connect Claude (MCP)](docs/mcp.md)              | claude.ai, Claude Code, tokens, revoking access                                    |
+| [Backup and upgrade](docs/backup-and-upgrade.md) | `ENCRYPTION_KEY`, backup, restore, upgrades, pre-release installs                  |
+| [Architecture](docs/architecture.md)             | Stack, tenancy, security model, jobs                                               |
+| [Changelog](CHANGELOG.md)                        | What changed in each release                                                       |
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) (including the demo data seed) and the [Code of Conduct](CODE_OF_CONDUCT.md). Security reports: [SECURITY.md](SECURITY.md). Brand assets: [docs/brand](docs/brand/README.md).
 

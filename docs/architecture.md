@@ -77,7 +77,7 @@ The MCP server is a Streamable HTTP endpoint at `/api/mcp` using the official Ty
 
 ## AI
 
-AI is opt-in twice: the installation needs an Anthropic key and each household switches it on. Requests go from the worker (and the report and valuation jobs) straight to the Anthropic API. Inputs are redacted or aggregated before leaving the server; what exactly is sent is listed in [AI features](ai.md).
+AI is opt-in twice: the installation needs an Anthropic key and each household switches it on. Requests go straight from your server to the Anthropic API: from the worker for categorisation, merchants, reports and valuations, and from the web app for PDF statement import. Worker inputs are redacted or aggregated before leaving the server. A PDF statement is the exception: the whole file is sent as it is, only after a confirmation per file. What exactly is sent is listed in [AI features](ai.md).
 
 ## Internationalisation
 
