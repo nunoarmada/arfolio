@@ -17,7 +17,7 @@ A budget is only a plan until it is compared with what actually happened, and do
 
 ## Features
 
-- **Accounts and bank sync:** European banks through Enable Banking, Trading 212 for investments, statement import (CSV, XLSX, OFX) and manual accounts, including cards and loans.
+- **Accounts and bank sync:** European banks through Enable Banking, Trading 212 for investments, statement import (CSV, XLSX, XLS, OFX) and manual accounts, including cards and loans.
 - **Transactions:** search and filters, categories, rules, merchant memory, a review inbox for the movements the app was unsure about, automatic detection of transfers between your accounts, recurring payments.
 - **AI categorisation (optional):** a model suggests categories for what your rules left over; you stay in control.
 - **Budgets and saving lines:** an annual budget of income, expenses and savings, budget versus actual by line and group, and a transfer plan from your main account.

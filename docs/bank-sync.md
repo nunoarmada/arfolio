@@ -88,4 +88,4 @@ Connection secrets (bank session ids and Trading 212 keys) are encrypted with `E
 
 ## 4. Not covered by a connection
 
-For a bank Enable Banking does not cover, or to load history older than the bank provides, import statements (CSV, XLSX or OFX) from an account's **Import statement** screen (saved formats live under **Settings > Import formats**), or add transactions by hand.
+For a bank Enable Banking does not cover, or to load history older than the bank provides, import statements (CSV, XLSX, XLS or OFX) from an account's **Import statement** screen (saved formats live under **Settings > Import formats**), or add transactions by hand.

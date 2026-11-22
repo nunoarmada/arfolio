@@ -111,7 +111,11 @@ describe('run', () => {
 describe('validationReason', () => {
   it.each([
     ['The file is too large (maximum 10 MB)', 'file_too_large'],
-    ['Unsupported file type: use CSV, OFX or XLSX', 'unsupported_type'],
+    ['Unsupported file type: use CSV, OFX, XLS or XLSX', 'unsupported_type'],
+    ['The file is not a valid XLS workbook', 'invalid_file'],
+    ['The file is not a valid XLS workbook: save it as .xlsx or CSV', 'resave_spreadsheet'],
+    ['The workbook is password-protected', 'protected_file'],
+    ['Excel 95 and older workbooks are not supported', 'resave_spreadsheet'],
     ['The file has no rows to import', 'no_rows'],
     ['The statement is in USD but the account is in EUR', 'currency_mismatch'],
     ['Account is archived', 'account_archived'],
