@@ -4,6 +4,7 @@ import { createDb, schema, withHousehold, type Db } from '@arfolio/db';
 import {
   createAccount,
   ForbiddenError,
+  MAX_IMPORT_BYTES,
   NotFoundError,
   PDF_STATEMENT_MAPPING,
   ValidationError,
@@ -143,6 +144,24 @@ describe('extractPdfForImport', () => {
       extractPdfForImport(ctx, input({ accountId: randomUUID() }), deps),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(ex).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['bytes that are not a PDF', Buffer.from('PK\u0003\u0004 zip'), 'The file is not a PDF'],
+    [
+      'a file over the size limit',
+      Buffer.concat([Buffer.from('%PDF-'), Buffer.alloc(MAX_IMPORT_BYTES)]),
+      'The file is too large (maximum 10 MB)',
+    ],
+  ])('rejects %s without taking a slot of the hourly limit', async (_name, buffer, message) => {
+    const { deps, extract: ex } = makeDeps({
+      limiter: createRateLimiter({ max: 1, windowMs: 3_600_000 }),
+    });
+    await expect(
+      extractPdfForImport(ctx, input({ file: { buffer, filename: 'statement.pdf' } }), deps),
+    ).rejects.toThrow(new ValidationError(message));
+    expect(ex).not.toHaveBeenCalled();
+    await expect(extractPdfForImport(ctx, input(), deps)).resolves.toMatchObject({ rows: 1 });
   });
 
   it('allows 10 extractions per household per hour, a failed one included', async () => {

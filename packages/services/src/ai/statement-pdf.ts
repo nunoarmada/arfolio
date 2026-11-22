@@ -123,6 +123,16 @@ function toCsv(rows: Row[]): string {
   return `${lines.join('\n')}\n`;
 }
 
+/** Throws unless the bytes start with the PDF signature and fit the import size limit. */
+export function assertPdfStatementFile(pdf: Buffer): void {
+  if (pdf.subarray(0, 5).toString('latin1') !== '%PDF-') {
+    throw new ValidationError('The file is not a PDF');
+  }
+  if (pdf.length > MAX_IMPORT_BYTES) {
+    throw new ValidationError('The file is too large (maximum 10 MB)');
+  }
+}
+
 /**
  * Reads the movements of a PDF bank or card statement with one model call and renders them as a
  * CSV (`PDF_STATEMENT_HEADERS`) for the import wizard to map with `PDF_STATEMENT_MAPPING`.
@@ -136,12 +146,7 @@ export async function extractPdfStatement(
 ): Promise<{ csv: string; rows: number }> {
   const { logger } = deps;
   const { pdf, accountCurrency } = input;
-  if (pdf.subarray(0, 5).toString('latin1') !== '%PDF-') {
-    throw new ValidationError('The file is not a PDF');
-  }
-  if (pdf.length > MAX_IMPORT_BYTES) {
-    throw new ValidationError('The file is too large (maximum 10 MB)');
-  }
+  assertPdfStatementFile(pdf);
 
   const reject = (code: string, message: string): never => {
     logger.warn(`pdf statement rejected: ${code}`);

@@ -277,6 +277,7 @@ export { fetchMerchantLogos, LOGO_MAX_PER_RUN } from './merchant-logos.js';
 export type { FetchMerchantLogosDeps, FetchMerchantLogosResult } from './merchant-logos.js';
 export { redactForAi } from './ai/redact.js';
 export {
+  assertPdfStatementFile,
   extractPdfStatement,
   MAX_PDF_STATEMENT_ROWS,
   PDF_STATEMENT_HEADERS,

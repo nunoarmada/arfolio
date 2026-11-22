@@ -1,5 +1,6 @@
 import {
   assertCanWrite,
+  assertPdfStatementFile,
   createAnthropicClient,
   extractPdfStatement,
   listAccounts,
@@ -40,8 +41,8 @@ const logger = {
 /**
  * Reads a PDF statement with AI for the import wizard. Every gate runs on the server and before
  * the model is reached: write role, per-file confirmation, installation key, household AI switch,
- * the account, then the hourly limit. The slot is taken before the call, so a failed extraction
- * still counts.
+ * the account, the file's PDF signature and size, then the hourly limit. The slot is taken
+ * before the call, so a failed extraction still counts.
  */
 export async function extractPdfForImport(
   ctx: ServiceCtx,
@@ -63,6 +64,8 @@ export async function extractPdfForImport(
   }
   const account = (await listAccounts(ctx)).find((a) => a.id === input.accountId);
   if (!account) throw new NotFoundError('Account');
+  // A wrong file must not use up one of the hourly extractions.
+  assertPdfStatementFile(input.file.buffer);
   if (!(deps.limiter ?? defaultLimiter).take(ctx.householdId)) {
     throw new ValidationError('Too many PDF statements were sent in the last hour');
   }
