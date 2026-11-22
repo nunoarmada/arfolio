@@ -282,7 +282,7 @@ export interface FakeAnthropicRequest {
  * request that breaks the contract: wrong key, no PDF document block, or any tool.
  *
  * The spec runs in another process than this one, so what it needs (the request count, the last
- * request, a per-test delay) is also served under `/__fake/` on the same port.
+ * request, a per-test delay, a longer answer) is also served under `/__fake/` on the same port.
  */
 export async function startFakeAnthropic(): Promise<
   FakeServer & {
@@ -294,14 +294,24 @@ export async function startFakeAnthropic(): Promise<
   let count = 0;
   let last: FakeAnthropicRequest | undefined;
   let delayMs = 0;
-  const answer = {
+  // Set through `/__fake/rows`: answer with this many generated movements instead of the two.
+  let generatedRows: number | null = null;
+  const fixedRows = [
+    { date: '2026-04-02', description: 'Grocer Example', amount: '-12.30' },
+    { date: '2026-04-03', description: 'Refund, "Example" Shop', amount: '5.00' },
+  ];
+  const answer = () => ({
     accounts: 1,
     currency: 'EUR',
-    rows: [
-      { date: '2026-04-02', description: 'Grocer Example', amount: '-12.30' },
-      { date: '2026-04-03', description: 'Refund, "Example" Shop', amount: '5.00' },
-    ],
-  };
+    rows:
+      generatedRows === null
+        ? fixedRows
+        : Array.from({ length: generatedRows }, (_, i) => ({
+            date: `2026-05-${String((i % 28) + 1).padStart(2, '0')}`,
+            description: `Movement ${i + 1} Example`,
+            amount: `-${i + 1}.00`,
+          })),
+  });
   const server = createServer((req, res) => {
     void (async () => {
       const path = new URL(req.url ?? '/', 'http://fake').pathname;
@@ -310,6 +320,11 @@ export async function startFakeAnthropic(): Promise<
       }
       if (req.method === 'POST' && path === '/__fake/delay') {
         delayMs = Number(((await readJson(req)) as { ms?: number }).ms ?? 0);
+        return send(res, 204);
+      }
+      if (req.method === 'POST' && path === '/__fake/rows') {
+        const { count } = (await readJson(req)) as { count?: number | null };
+        generatedRows = typeof count === 'number' ? count : null;
         return send(res, 204);
       }
       if (req.method !== 'POST' || path !== '/v1/messages') {
@@ -343,7 +358,7 @@ export async function startFakeAnthropic(): Promise<
         type: 'message',
         role: 'assistant',
         model: String(body.model),
-        content: [{ type: 'text', text: JSON.stringify(answer) }],
+        content: [{ type: 'text', text: JSON.stringify(answer()) }],
         stop_reason: 'end_turn',
         stop_sequence: null,
         usage: { input_tokens: 10, output_tokens: 10 },

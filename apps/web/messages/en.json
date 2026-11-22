@@ -1202,7 +1202,8 @@
       "revolut": "Revolut CSV statement",
       "pt_bank": "Portuguese bank CSV statement",
       "generic": "Generic CSV statement",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF read by AI"
     },
     "upload": {
       "title": "Choose an account and a file",

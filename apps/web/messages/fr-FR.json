@@ -1202,7 +1202,8 @@
       "revolut": "Relevé CSV Revolut",
       "pt_bank": "Relevé CSV de banque portugaise",
       "generic": "Relevé CSV générique",
-      "ofx": "OFX"
+      "ofx": "OFX",
+      "pdfAi": "PDF lu par l'IA"
     },
     "upload": {
       "title": "Choisir un compte et un fichier",

@@ -17,6 +17,7 @@ import {
 import type { AccountDto } from '@/server/serialize';
 import { cn } from '@/lib/cn';
 import { MAX_IMPORT_BYTES } from '@/lib/import-limits';
+import { orConnectionLost } from '@/lib/import-request';
 import { AccountFormSheet } from '../accounts/account-form-sheet';
 import { UndoImportDialog } from '../accounts/undo-import-dialog';
 import { Alert } from '../ui/alert';
@@ -49,6 +50,12 @@ function formData(
   form.set('accountId', accountId);
   if (mapping) form.set('mapping', JSON.stringify(mapping));
   if (presetName) form.set('presetName', presetName);
+  return form;
+}
+
+/** A preview request for a CSV read from a PDF: every row comes back, so every row is seen. */
+function allRows(form: FormData): FormData {
+  form.set('allRows', 'true');
   return form;
 }
 
@@ -88,6 +95,8 @@ export function ImportWizard({
   const [analysis, setAnalysis] = useState<AnalysisDto | null>(null);
   const [mapping, setMapping] = useState<EditableMapping | null>(null);
   const [preview, setPreview] = useState<PreviewDto | null>(null);
+  // The mapping (as `JSON.stringify`) that `preview` was computed for.
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -119,6 +128,7 @@ export function ImportWizard({
     setFile(null);
     setAnalysis(null);
     setPreview(null);
+    setPreviewKey(null);
     setMapping(null);
     setError(null);
   }
@@ -161,9 +171,14 @@ export function ImportWizard({
       const res = await analyseImportAction(formData(file, accountId));
       if (!res.ok) return setError(failure(res));
       const { data } = res;
+      const initial = data.preview?.mapping ?? {
+        headerRow: data.file.headerRow,
+        dateFormat: 'auto' as const,
+      };
       setAnalysis(data);
       setPreview(data.preview);
-      setMapping(data.preview?.mapping ?? { headerRow: data.file.headerRow, dateFormat: 'auto' });
+      setMapping(initial);
+      setPreviewKey(data.preview ? JSON.stringify(initial) : null);
       setTab('all');
       setStep(data.file.kind === 'ofx' ? 'preview' : 'columns');
     });
@@ -177,21 +192,25 @@ export function ImportWizard({
       const startedAccount = accountId;
       const form = formData(pdf, accountId);
       form.set('confirmed', 'true');
-      const extracted = await extractPdfStatementAction(form);
+      const extracted = await orConnectionLost(() => extractPdfStatementAction(form));
       if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
       if (!extracted.ok) return setError(failure(extracted));
       const { csv, filename, mapping: found } = extracted.data;
       const generated = new File([csv], filename, { type: 'text/csv' });
-      const res = await analyseImportAction(formData(generated, startedAccount, found));
+      const res = await orConnectionLost(() =>
+        analyseImportAction(allRows(formData(generated, startedAccount, found))),
+      );
       // The person changed the file or account meanwhile: this result belongs to the old one.
       if (live.current.pdf !== started || live.current.accountId !== startedAccount) return;
       if (!res.ok) return setError(failure(res));
       const { data } = res;
+      const initial = data.preview?.mapping ?? found;
       setFile(generated);
       setSource({ pdfName: started.name });
       setAnalysis(data);
       setPreview(data.preview);
-      setMapping(data.preview?.mapping ?? found);
+      setMapping(initial);
+      setPreviewKey(data.preview ? JSON.stringify(initial) : null);
       setTab('all');
       // The mapping came from the AI, so the preview is the first thing to check.
       setStep(data.preview ? 'preview' : 'columns');
@@ -208,21 +227,27 @@ export function ImportWizard({
       }
       const id = (requestId.current += 1);
       setPreviewing(true);
-      void previewImportAction(formData(file, accountId, next)).then((res) => {
-        if (id !== requestId.current) return;
-        setPreviewing(false);
-        if (res.ok) {
-          setPreview(res.data);
-          setError(null);
-        } else {
-          setPreview(null);
-          setError(failure(res));
-        }
-      });
+      const form = formData(file, accountId, next);
+      void orConnectionLost(() => previewImportAction(source ? allRows(form) : form)).then(
+        (res) => {
+          if (id !== requestId.current) return;
+          setPreviewing(false);
+          if (res.ok) {
+            setPreview(res.data);
+            setPreviewKey(JSON.stringify(next));
+            setError(null);
+          } else {
+            setPreview(null);
+            setError(failure(res));
+          }
+        },
+      );
     },
-    [accountId, failure, file],
+    [accountId, failure, file, source],
   );
   const mappingKey = JSON.stringify(mapping);
+  // The preview shown is the one for the current mapping, and no refresh is waiting or running.
+  const previewCurrent = preview !== null && previewKey === mappingKey && !previewing;
   const first = useRef(true);
   useEffect(() => {
     if (step !== 'columns' || !mapping) return;
@@ -239,7 +264,7 @@ export function ImportWizard({
   }, [step]);
 
   function commit() {
-    if (!file || !accountId) return;
+    if (!file || !accountId || !previewCurrent) return;
     setError(null);
     startTransition(async () => {
       const res = await commitImportAction(
@@ -266,6 +291,7 @@ export function ImportWizard({
   }
 
   const presetLabel = (key: string | null): string => {
+    if (source) return t('presets.pdfAi');
     if (!key) return t('presets.ofx');
     if (key.startsWith('household:')) return key.slice('household:'.length);
     return t(`presets.${key}`);
@@ -449,10 +475,10 @@ export function ImportWizard({
               {t('back')}
             </Button>
             <Button
-              disabled={
-                !preview || previewing || (saveFormat && !source && formatName.trim() === '')
-              }
-              onClick={() => setStep('preview')}
+              disabled={!previewCurrent || (saveFormat && !source && formatName.trim() === '')}
+              onClick={() => {
+                if (previewCurrent) setStep('preview');
+              }}
             >
               {t('continue')}
             </Button>
@@ -523,7 +549,7 @@ export function ImportWizard({
             ) : (
               <p className="text-sm text-muted-foreground">{t('preview.tabEmpty')}</p>
             )}
-            {preview.stats.total > preview.rows.length ? (
+            {!source && preview.stats.total > preview.rows.length ? (
               <p className="text-sm text-muted-foreground">
                 {t('preview.firstRows', { shown: preview.rows.length, total: preview.stats.total })}
               </p>
@@ -539,7 +565,7 @@ export function ImportWizard({
             >
               {t('back')}
             </Button>
-            <Button disabled={newRows === 0} onClick={() => setStep('confirm')}>
+            <Button disabled={newRows === 0 || !previewCurrent} onClick={() => setStep('confirm')}>
               {t('continue')}
             </Button>
           </div>
@@ -579,7 +605,7 @@ export function ImportWizard({
             <Button variant="secondary" disabled={pending} onClick={() => setStep('preview')}>
               {t('back')}
             </Button>
-            <Button loading={pending} onClick={commit}>
+            <Button loading={pending} disabled={!previewCurrent} onClick={commit}>
               {pending ? t('confirm.running') : t('confirm.action', { count: newRows })}
             </Button>
           </div>

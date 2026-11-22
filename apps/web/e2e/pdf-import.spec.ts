@@ -37,6 +37,15 @@ async function setFakeDelay(ms: number): Promise<void> {
   });
 }
 
+/** Makes the fake answer with `count` generated movements; null restores the two fixed ones. */
+async function setFakeRows(count: number | null): Promise<void> {
+  await fetch(fakeUrl('/__fake/rows'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ count }),
+  });
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('PDF statement import with AI', () => {
@@ -100,6 +109,7 @@ test.describe('PDF statement import with AI', () => {
     const steps: (() => Promise<unknown>)[] = [
       () => sql('update household_settings set ai_enabled = $1', [originalAiEnabled]),
       () => setFakeDelay(0),
+      () => setFakeRows(null),
       () => clean(),
       () => context?.close() ?? Promise.resolve(),
     ];
@@ -165,12 +175,14 @@ test.describe('PDF statement import with AI', () => {
     const spend = page.getByRole('row', { name: /Grocer Example/ });
     const refund = page.getByRole('row', { name: /Refund/ });
     const invert = page.getByTestId('invert-sign');
+    const proceed = page.getByRole('button', { name: 'Continuar' });
     await invert.check();
-    // The live preview on the Columns step is debounced: wait for it before continuing, as a
-    // person reading it would (Continue straight after the tick would still hold the old rows).
+    // Until the live preview shows the new mapping, Continue cannot move on with the old rows.
+    await expect(proceed).toBeDisabled();
+    await expect(proceed).toBeEnabled();
     await expect(spend).toContainText(/(?<![-−]\s?)12,30/);
     await expect(refund).toContainText(/[-−]\s?5,00/);
-    await page.getByRole('button', { name: 'Continuar' }).click();
+    await proceed.click();
     await expect(page.getByTestId('stat-new')).toHaveText('2');
     await expect(spend).toContainText(/(?<![-−]\s?)12,30/);
     await expect(spend).not.toContainText(/[-−]\s?12,30/);
@@ -181,8 +193,9 @@ test.describe('PDF statement import with AI', () => {
     await page.getByRole('button', { name: 'Voltar' }).click();
     await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
     await invert.uncheck();
-    await expect(spend).toContainText(/[-−]\s?12,30/);
-    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(proceed).toBeDisabled();
+    // No explicit wait for the live preview: Continue only becomes clickable once it is current.
+    await proceed.click();
     await expect(spend).toContainText(/[-−]\s?12,30/);
     await expect(refund).not.toContainText(/[-−]\s?5,00/);
     expect(await requests()).toBe(1);
@@ -206,6 +219,8 @@ test.describe('PDF statement import with AI', () => {
     expect(await requests()).toBe(2);
 
     await page.getByRole('button', { name: 'Continuar' }).click();
+    // A PDF has no file format of its own: the confirmation says how it was read.
+    await expect(page.getByText('PDF lido por IA')).toBeVisible();
     await page.getByRole('button', { name: 'Importar 2 movimentos' }).click();
     await expect(page.getByRole('heading', { name: '2 movimentos importados.' })).toBeVisible();
 
@@ -241,6 +256,53 @@ test.describe('PDF statement import with AI', () => {
       await setFakeDelay(0);
     }
   });
+
+  test('every movement read from a PDF is in the preview, not only the first 50', async () => {
+    await setFakeRows(60);
+    try {
+      await page.goto(`/import?account=${ids[ACCOUNT_A]}`);
+      await page.locator('#import-file').setInputFiles(PDF);
+      await page.getByRole('button', { name: SEND }).click();
+      await expect(page.getByTestId('stat-new')).toHaveText('60');
+      await expect(page.getByTestId('import-preview').locator('tbody tr')).toHaveCount(60);
+      const last = page.getByRole('cell', { name: 'Movement 60 Example' });
+      await last.scrollIntoViewIfNeeded();
+      await expect(last).toBeVisible();
+      await expect(page.getByText(/A mostrar as primeiras/)).toHaveCount(0);
+    } finally {
+      await setFakeRows(null);
+    }
+  });
+
+  for (const [which, failing] of [
+    ['reading the PDF', 1],
+    ['previewing what was read', 2],
+  ] as const) {
+    test(`a connection cut while ${which} keeps the PDF and says to try again`, async () => {
+      await page.goto(`/import?account=${ids[ACCOUNT_A]}`);
+      await page.locator('#import-file').setInputFiles(PDF);
+      let actions = 0;
+      // Server actions are POSTs carrying a Next-Action header; the chosen one never answers.
+      await page.route('**/*', async (route) => {
+        const request = route.request();
+        if (request.method() === 'POST' && request.headers()['next-action']) {
+          actions += 1;
+          if (actions === failing) return route.abort('failed');
+        }
+        return route.continue();
+      });
+      try {
+        await page.getByRole('button', { name: SEND }).click();
+        await expect(
+          page.getByRole('alert').filter({ hasText: 'O serviço de IA demorou demasiado' }),
+        ).toBeVisible();
+        await expect(page.getByTestId('chosen-file')).toHaveText('statement.pdf');
+        await expect(page.getByRole('button', { name: SEND })).toBeEnabled();
+      } finally {
+        await page.unroute('**/*');
+      }
+    });
+  }
 
   test('on an instance without an AI key, choosing a PDF says it is unavailable', async () => {
     const before = await requests();
