@@ -75,6 +75,12 @@ How the extracted movements enter the wizard, decided here:
 3. The answer is validated and turned into a CSV with the fixed header `Date,Description,Amount`
    (ISO dates, dot decimals, signed amounts). The browser wraps it as a file named after the original
    (`statement.pdf` → `statement.pdf.csv`) and runs the normal analysis on it.
+   - The browser sends an explicit column mapping with it (ISO dates, dot decimal, one signed amount
+     column), so a format the household saved for a real CSV with the same column names can never be
+     applied to it. (My call.)
+   - The generated file belongs to the account and the PDF it was made for: choosing another account or
+     another file discards it, and the PDF is sent again on the next confirmation. That keeps the currency
+     check below valid without carrying the currency through the CSV. (My call.)
 4. The person lands on the preview, as with any recognised layout, with a line above the table: "Read by
    AI from a PDF. Check every row against the statement." Back goes to the column step as usual.
 5. Confirm imports through the unchanged commit path. The batch is recorded with source `csv` and the
@@ -109,10 +115,23 @@ How the extracted movements enter the wizard, decided here:
 
 ### Access and limits
 
-- The action requires a role that can write, like the rest of the import.
-- Rate limit: 10 extractions per household per hour, in memory per web process. (My call: enough for
-  catching up on a year of statements, low enough to stop a runaway loop from spending the owner's money.)
-- The action checks the file starts with `%PDF-` and is at most 10 MB before calling the model.
+- The gates are enforced by the server action, not only by the wizard: it requires a role that can write,
+  re-checks that the installation has a key and the household has AI switched on, and rejects a request
+  that does not carry the confirmation field. A test proves that a request failing any of these never
+  reaches the model.
+- The wizard page works out on the server whether AI is available for the household and whether the
+  current person may switch it on (owners can, as `docs/ai.md` says), and passes only those two facts to
+  the wizard.
+- Rate limit: 10 extractions per household per hour, in memory per web process, counting every request
+  that reaches the model, whatever its outcome. With several web replicas the effective limit is per
+  replica; that is accepted and documented. (My call: enough for catching up on a year of statements, low
+  enough to stop a runaway loop from spending the owner's money.)
+- The action checks the file starts with `%PDF-` and is at most 10 MB before calling the model. The
+  provider's own limits (32 MB per request and 600 pages at the time of writing) are above that; a
+  statement the provider rejects as too long gets its own message.
+- The request can run for up to two minutes. A reverse proxy in front of the app with a shorter response
+  timeout will cut long statements off: `docs/configuration.md` says so, and the wizard shows the timeout
+  message when the request fails without an answer. No proxy configuration is changed by this work.
 
 ### Privacy and documentation
 
