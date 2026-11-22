@@ -47,7 +47,12 @@ describe('pingAnthropic', () => {
 
 describe('parseInstanceSetting', () => {
   it('rejects a model name that is empty or contains whitespace', () => {
-    for (const key of ['ai.categorisationModel', 'ai.reportModel', 'ai.valuationModel'] as const) {
+    for (const key of [
+      'ai.categorisationModel',
+      'ai.reportModel',
+      'ai.valuationModel',
+      'ai.importModel',
+    ] as const) {
       for (const bad of ['', 'claude x', 'claude\tx', ' claude-x', 'claude-x\n']) {
         expect(parseInstanceSetting(key, bad), `${key}=${JSON.stringify(bad)}`).toEqual({
           ok: false,

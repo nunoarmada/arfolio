@@ -425,6 +425,7 @@
       "categorisationModel": "Enter a model name.",
       "reportModel": "Enter a model name.",
       "valuationModel": "Enter a model name.",
+      "importModel": "Enter a model name.",
       "valuationPortals": "Check the hosts: one per line, like idealista.pt, up to 20 in each list.",
       "appId": "Enter the application ID.",
       "privateKey": "This is not a valid RSA private key. Paste the whole PEM, including the BEGIN and END lines.",
@@ -444,7 +445,9 @@
       "reportModel": "Model for reports",
       "reportModelHint": "Writes the monthly report.",
       "valuationModel": "Model for valuations",
+      "importModel": "Statement import model",
       "valuationModelHint": "Estimates the value of assets such as property and vehicles.",
+      "importModelHint": "Reads PDF statements in the import wizard.",
       "removeWarning": "AI categories, reports and valuations stop working until you add a key again.",
       "test": "Test API key"
     },

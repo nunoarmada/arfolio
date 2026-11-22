@@ -425,6 +425,7 @@
       "categorisationModel": "Introduzca el nombre de un modelo.",
       "reportModel": "Introduzca el nombre de un modelo.",
       "valuationModel": "Introduzca el nombre de un modelo.",
+      "importModel": "Introduzca el nombre de un modelo.",
       "valuationPortals": "Revise los dominios: uno por línea, como idealista.pt, hasta 20 en cada lista.",
       "appId": "Introduzca el ID de la aplicación.",
       "privateKey": "No es una clave privada RSA válida. Pegue el PEM completo, incluidas las líneas BEGIN y END.",
@@ -444,7 +445,9 @@
       "reportModel": "Modelo para informes",
       "reportModelHint": "Redacta el informe mensual.",
       "valuationModel": "Modelo para valoraciones",
+      "importModel": "Modelo para importar extractos",
       "valuationModelHint": "Estima el valor de bienes como inmuebles y vehículos.",
+      "importModelHint": "Lee extractos en PDF en el asistente de importación.",
       "removeWarning": "Las categorías, los informes y las valoraciones con IA dejarán de funcionar hasta que vuelva a añadir una clave.",
       "test": "Probar la clave de API"
     },

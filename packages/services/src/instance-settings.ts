@@ -9,6 +9,7 @@ export type InstanceSettingKey =
   | 'ai.categorisationModel'
   | 'ai.reportModel'
   | 'ai.valuationModel'
+  | 'ai.importModel'
   | 'ai.valuationPortals'
   | 'enableBanking.appId'
   | 'enableBanking.privateKey'

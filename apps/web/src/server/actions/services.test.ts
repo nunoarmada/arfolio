@@ -212,6 +212,22 @@ describe('services settings actions', () => {
     expect(JSON.stringify(view)).not.toContain('sk-from-env');
   });
 
+  it('the import model is saved, and refused while the env variable is set', async () => {
+    await saveSetting(owner, { key: 'ai.importModel', value: 'claude-import-test' }, deps);
+    expect(await stored('ai.importModel')).toMatchObject({ value: 'claude-import-test' });
+    expect((await loadServicesView(owner, deps)).fields['ai.importModel']).toMatchObject({
+      source: 'db',
+      value: 'claude-import-test',
+    });
+    const withEnv = depsWith({ env: { AI_IMPORT_MODEL: 'claude-from-env' } });
+    expect(
+      await run(() =>
+        saveSetting(owner, { key: 'ai.importModel', value: 'claude-other' }, withEnv),
+      ),
+    ).toEqual({ ok: false, code: 'conflict', conflict: 'set_by_environment' });
+    expect(await stored('ai.importModel')).toMatchObject({ value: 'claude-import-test' });
+  });
+
   it('invalid values are rejected and nothing is stored', async () => {
     const bad: Array<[InstanceSettingKey, string]> = [
       ['enableBanking.apiUrl', 'http://example.com'],
@@ -227,6 +243,7 @@ describe('services settings actions', () => {
       ['smtp.url', 'smtps://mail.example.test#frag'],
       ['anthropic.apiKey', '   '],
       ['ai.reportModel', ''],
+      ['ai.importModel', ''],
     ];
     for (const [key, value] of bad) {
       const result = await run(() => saveSetting(owner, { key, value }, deps));

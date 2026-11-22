@@ -425,6 +425,7 @@
       "categorisationModel": "Saisissez un nom de modèle.",
       "reportModel": "Saisissez un nom de modèle.",
       "valuationModel": "Saisissez un nom de modèle.",
+      "importModel": "Saisissez un nom de modèle.",
       "valuationPortals": "Vérifiez les domaines : un par ligne, comme idealista.pt, jusqu’à 20 par liste.",
       "appId": "Saisissez l’identifiant de l’application.",
       "privateKey": "Ce n’est pas une clé privée RSA valide. Collez le PEM complet, y compris les lignes BEGIN et END.",
@@ -444,7 +445,9 @@
       "reportModel": "Modèle pour les rapports",
       "reportModelHint": "Rédige le rapport mensuel.",
       "valuationModel": "Modèle pour les estimations",
+      "importModel": "Modèle pour l’import de relevés",
       "valuationModelHint": "Estime la valeur de biens tels que l’immobilier et les véhicules.",
+      "importModelHint": "Lit les relevés PDF dans l’assistant d’import.",
       "removeWarning": "Les catégories, rapports et estimations par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
       "test": "Tester la clé d’API"
     },

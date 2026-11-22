@@ -16,6 +16,7 @@ describe('loadEnv', () => {
       AI_CATEGORISATION_MODEL: 'claude-haiku-5-5',
       AI_REPORT_MODEL: 'claude-opus-5-5',
       AI_VALUATION_MODEL: 'claude-opus-5-5',
+      AI_IMPORT_MODEL: 'claude-opus-5-5',
       MERCHANT_LOGOS: 'on',
     });
   });

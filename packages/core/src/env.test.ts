@@ -43,6 +43,20 @@ describe('AI_VALUATION_MODEL', () => {
   });
 });
 
+describe('AI_IMPORT_MODEL', () => {
+  const parse = (extra: Record<string, string>) =>
+    parseEnv(z.object(integrationEnvShape), { ENCRYPTION_KEY: 'a'.repeat(64), ...extra });
+
+  it('defaults to the report model and treats empty as unset', () => {
+    expect(parse({}).AI_IMPORT_MODEL).toBe('claude-opus-5-5');
+    expect(parse({ AI_IMPORT_MODEL: '' }).AI_IMPORT_MODEL).toBe('claude-opus-5-5');
+  });
+
+  it('accepts an override', () => {
+    expect(parse({ AI_IMPORT_MODEL: 'custom-model' }).AI_IMPORT_MODEL).toBe('custom-model');
+  });
+});
+
 describe('TRADING212_API_URL', () => {
   const parse = (extra: Record<string, string>) =>
     parseEnv(z.object(integrationEnvShape), { ENCRYPTION_KEY: 'a'.repeat(64), ...extra });

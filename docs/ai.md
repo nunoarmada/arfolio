@@ -15,6 +15,7 @@ The AI features:
 | Merchant names and logos    | Works out the merchant's name, website and city from a movement's text, so lists show a name and a logo.            | the same categorisation model                  |
 | Monthly report              | Writes a summary of the previous month with suggestions, in **Insights > Reports**.                                  | `AI_REPORT_MODEL` (`claude-opus-5-5`)          |
 | Asset valuation             | Estimates the value of property, vehicles and other valuables once a month, from comparable listings found online.   | `AI_VALUATION_MODEL` (`claude-opus-5-5`)       |
+| Statement import from PDF   | Reads the movements of a PDF statement in the import wizard, after a confirmation per file.                         | `AI_IMPORT_MODEL` (`claude-opus-5-5`)          |
 
 Models are set on **Settings > Services > AI** or with the environment variables shown. Use any model name your Anthropic account can access.
 

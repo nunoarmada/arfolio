@@ -425,6 +425,7 @@
       "categorisationModel": "Inserire il nome di un modello.",
       "reportModel": "Inserire il nome di un modello.",
       "valuationModel": "Inserire il nome di un modello.",
+      "importModel": "Inserire il nome di un modello.",
       "valuationPortals": "Controllare gli host: uno per riga, come idealista.pt, fino a 20 per elenco.",
       "appId": "Inserire l’ID dell’applicazione.",
       "privateKey": "Non è una chiave privata RSA valida. Incollare l’intero PEM, comprese le righe BEGIN ed END.",
@@ -444,7 +445,9 @@
       "reportModel": "Modello per i report",
       "reportModelHint": "Scrive il report mensile.",
       "valuationModel": "Modello per le valutazioni",
+      "importModel": "Modello per l’importazione degli estratti conto",
       "valuationModelHint": "Stima il valore di beni come immobili e veicoli.",
+      "importModelHint": "Legge gli estratti conto PDF nella procedura guidata di importazione.",
       "removeWarning": "Categorie, report e valutazioni con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
       "test": "Verifica la chiave API"
     },
