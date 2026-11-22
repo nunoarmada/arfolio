@@ -1246,6 +1246,8 @@
       "date": "Fecha",
       "description": "Descripción",
       "twoColumns": "El importe viene en dos columnas (cargo y abono)",
+      "invertSign": "Invertir el signo de los importes",
+      "invertSignHint": "Para extractos que muestran los gastos como importes positivos, como muchos extractos de tarjeta.",
       "debit": "Cargo",
       "credit": "Abono",
       "amount": "Importe",
@@ -1262,9 +1264,7 @@
       "decimal": "Separador decimal",
       "decimalAuto": "Detectar automáticamente",
       "decimalComma": "Coma (1234,56)",
-      "decimalDot": "Punto (1234.56)",
-      "invertSign": "Invertir el signo de todos los importes",
-      "invertSignHint": "Úselo cuando el dinero gastado aparece como recibido, o al revés."
+      "decimalDot": "Punto (1234.56)"
     },
     "preview": {
       "title": "Vista previa",

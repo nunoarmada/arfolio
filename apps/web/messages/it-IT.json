@@ -1246,6 +1246,8 @@
       "date": "Data",
       "description": "Descrizione",
       "twoColumns": "L’importo è suddiviso in due colonne (addebito e accredito)",
+      "invertSign": "Inverti il segno degli importi",
+      "invertSignHint": "Per gli estratti che riportano le spese come importi positivi, come molti estratti delle carte.",
       "debit": "Addebito",
       "credit": "Accredito",
       "amount": "Importo",
@@ -1262,9 +1264,7 @@
       "decimal": "Separatore decimale",
       "decimalAuto": "Rileva automaticamente",
       "decimalComma": "Virgola (1234,56)",
-      "decimalDot": "Punto (1234.56)",
-      "invertSign": "Invertire il segno di tutti gli importi",
-      "invertSignHint": "Da usare quando il denaro speso risulta come ricevuto, o viceversa."
+      "decimalDot": "Punto (1234.56)"
     },
     "preview": {
       "title": "Anteprima",

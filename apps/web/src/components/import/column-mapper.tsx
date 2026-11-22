@@ -104,6 +104,20 @@ export function ColumnMapper({
       ) : (
         select('amountColumn', t('amount'), true)
       )}
+      <div className="md:col-span-2">
+        <Checkbox
+          data-testid="invert-sign"
+          label={t('invertSign')}
+          hint={t('invertSignHint')}
+          checked={mapping.invertSign === true}
+          onChange={(e) => {
+            const next: EditableMapping = { ...mapping };
+            if (e.target.checked) next.invertSign = true;
+            else delete next.invertSign;
+            onChange(next);
+          }}
+        />
+      </div>
       {select('valueDateColumn', t('valueDate'), false)}
       {select('counterpartyColumn', t('counterparty'), false)}
       {select('externalIdColumn', t('reference'), false)}
@@ -142,18 +156,6 @@ export function ColumnMapper({
           </Select>
         )}
       </Field>
-      <Checkbox
-        data-testid="invert-sign"
-        label={t('invertSign')}
-        hint={t('invertSignHint')}
-        checked={mapping.invertSign === true}
-        onChange={(e) => {
-          const next = { ...mapping };
-          if (e.target.checked) next.invertSign = true;
-          else delete next.invertSign;
-          onChange(next);
-        }}
-      />
     </div>
   );
 }

@@ -1246,6 +1246,8 @@
       "date": "Date",
       "description": "Description",
       "twoColumns": "The amount comes in two columns (debit and credit)",
+      "invertSign": "Reverse the sign of the amounts",
+      "invertSignHint": "For statements that list spending as positive amounts, as many card statements do.",
       "debit": "Debit",
       "credit": "Credit",
       "amount": "Amount",
@@ -1262,9 +1264,7 @@
       "decimal": "Decimal separator",
       "decimalAuto": "Detect automatically",
       "decimalComma": "Comma (1234,56)",
-      "decimalDot": "Dot (1234.56)",
-      "invertSign": "Invert the sign of every amount",
-      "invertSignHint": "Use this when money spent shows as money received, or the other way round."
+      "decimalDot": "Dot (1234.56)"
     },
     "preview": {
       "title": "Preview",

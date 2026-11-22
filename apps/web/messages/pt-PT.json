@@ -1246,6 +1246,8 @@
       "date": "Data",
       "description": "Descrição",
       "twoColumns": "O valor vem em duas colunas (débito e crédito)",
+      "invertSign": "Inverter o sinal dos valores",
+      "invertSignHint": "Para extratos que mostram as despesas como valores positivos, como muitos extratos de cartão.",
       "debit": "Débito",
       "credit": "Crédito",
       "amount": "Valor",
@@ -1262,9 +1264,7 @@
       "decimal": "Separador decimal",
       "decimalAuto": "Detetar automaticamente",
       "decimalComma": "Vírgula (1234,56)",
-      "decimalDot": "Ponto (1234.56)",
-      "invertSign": "Inverter o sinal de todos os montantes",
-      "invertSignHint": "Use quando o dinheiro gasto aparece como recebido, ou o contrário."
+      "decimalDot": "Ponto (1234.56)"
     },
     "preview": {
       "title": "Pré-visualizar",
