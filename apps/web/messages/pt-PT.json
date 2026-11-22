@@ -826,6 +826,15 @@
       "template_protected": "As categorias e grupos pré-definidos não se eliminam. Arquive-os.",
       "group_not_empty": "O grupo ainda tem categorias. Elimine ou arquive primeiro as categorias.",
       "already_transfer": "Um dos movimentos já faz parte de uma transferência. Desfaça primeiro essa ligação.",
+      "ai_unavailable": "Os extratos em PDF são lidos com IA, que não está ativada para este agregado.",
+      "confirmation_required": "Confirme que o ficheiro pode ser enviado antes de continuar.",
+      "rate_limited": "Demasiados extratos em PDF na última hora. Tente novamente mais tarde.",
+      "not_a_pdf": "O ficheiro não é um PDF.",
+      "pdf_no_rows": "Não foram encontrados movimentos neste PDF.",
+      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez. Divida o PDF e importe cada parte.",
+      "ai_unusable": "A IA não conseguiu ler este extrato de forma fiável. Nada foi importado.",
+      "ai_timeout": "O serviço de IA demorou demasiado a responder. Tente novamente.",
+      "ai_unreachable": "Não foi possível contactar o serviço de IA. Tente novamente mais tarde.",
       "invalid_input": "Alguns valores não são válidos. Verifique os campos e tente novamente."
     },
     "conflict": {

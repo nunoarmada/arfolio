@@ -826,6 +826,15 @@
       "template_protected": "Le categorie e i gruppi predefiniti non possono essere eliminati. Archiviarli.",
       "group_not_empty": "Il gruppo contiene ancora categorie. Eliminarle o archiviarle prima.",
       "already_transfer": "Uno dei movimenti fa già parte di un giroconto. Scollegarlo prima.",
+      "ai_unavailable": "Gli estratti conto PDF vengono letti con l'IA, che non è attivata per questo nucleo familiare.",
+      "confirmation_required": "Confermare che il file può essere inviato prima di continuare.",
+      "rate_limited": "Troppi estratti conto PDF nell'ultima ora. Riprovare più tardi.",
+      "not_a_pdf": "Il file non è un PDF.",
+      "pdf_no_rows": "Nessun movimento trovato in questo PDF.",
+      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta. Dividere il PDF e importare ogni parte.",
+      "ai_unusable": "L'IA non è riuscita a leggere questo estratto conto in modo affidabile. Non è stato importato nulla.",
+      "ai_timeout": "Il servizio di IA ha impiegato troppo tempo a rispondere. Riprovare.",
+      "ai_unreachable": "Impossibile raggiungere il servizio di IA. Riprovare più tardi.",
       "invalid_input": "Alcuni valori non sono validi. Controllare i campi e riprovare."
     },
     "conflict": {

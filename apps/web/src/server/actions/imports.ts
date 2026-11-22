@@ -15,6 +15,7 @@ import {
   type ColumnMapping,
   type ImportPreview,
 } from '@arfolio/services';
+import { extractPdfForImport, type PdfExtractionDto } from '../pdf-import';
 import { getServiceCtx } from '../service-ctx';
 import { run, validationReason, type ActionResult } from './result';
 
@@ -116,7 +117,12 @@ export async function analyseImportAction(form: FormData): Promise<ActionResult<
       samples: table.rows.filter((r) => r.some((c) => c.trim() !== '')).slice(0, SAMPLE_ROWS),
     };
     try {
-      const preview = await previewImport(ctx, { accountId: accountOf(form), file });
+      const mapping = mappingOf(form);
+      const preview = await previewImport(ctx, {
+        accountId: accountOf(form),
+        file,
+        ...(mapping ? { mapping } : {}),
+      });
       return { file: info, preview: toPreviewDto(preview) };
     } catch (error) {
       if (
@@ -128,6 +134,19 @@ export async function analyseImportAction(form: FormData): Promise<ActionResult<
       throw error;
     }
   });
+}
+
+/** Reads a PDF statement with AI and returns it as a CSV for the wizard to map and preview. */
+export async function extractPdfStatementAction(
+  form: FormData,
+): Promise<ActionResult<PdfExtractionDto>> {
+  return run(async () =>
+    extractPdfForImport(await getServiceCtx(await headers()), {
+      accountId: accountOf(form),
+      file: await readUpload(form),
+      confirmed: form.get('confirmed') === 'true',
+    }),
+  );
 }
 
 export async function previewImportAction(form: FormData): Promise<ActionResult<PreviewDto>> {

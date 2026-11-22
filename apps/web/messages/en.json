@@ -826,6 +826,15 @@
       "template_protected": "Built-in categories and groups cannot be deleted. Archive them instead.",
       "group_not_empty": "The group still has categories. Delete or archive them first.",
       "already_transfer": "One of the transactions is already part of a transfer. Unlink it first.",
+      "ai_unavailable": "PDF statements are read with AI, which is not switched on for this household.",
+      "confirmation_required": "Confirm that the file may be sent before continuing.",
+      "rate_limited": "Too many PDF statements in the last hour. Try again later.",
+      "not_a_pdf": "The file is not a PDF.",
+      "pdf_no_rows": "No movements were found in this PDF.",
+      "pdf_too_long": "The statement has too many movements to read at once. Split the PDF and import each part.",
+      "ai_unusable": "The AI could not read this statement reliably. Nothing was imported.",
+      "ai_timeout": "The AI service took too long to answer. Try again.",
+      "ai_unreachable": "The AI service could not be reached. Try again later.",
       "invalid_input": "Some values are not valid. Check the fields and try again."
     },
     "conflict": {

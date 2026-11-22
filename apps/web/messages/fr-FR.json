@@ -826,6 +826,15 @@
       "template_protected": "Les catégories et groupes intégrés ne peuvent pas être supprimés. Archivez-les plutôt.",
       "group_not_empty": "Le groupe contient encore des catégories. Supprimez-les ou archivez-les d’abord.",
       "already_transfer": "L’une des opérations fait déjà partie d’un virement. Dissociez-la d’abord.",
+      "ai_unavailable": "Les relevés PDF sont lus par l'IA, qui n'est pas activée pour ce foyer.",
+      "confirmation_required": "Confirmez que le fichier peut être envoyé avant de continuer.",
+      "rate_limited": "Trop de relevés PDF au cours de la dernière heure. Réessayez plus tard.",
+      "not_a_pdf": "Le fichier n'est pas un PDF.",
+      "pdf_no_rows": "Aucun mouvement n'a été trouvé dans ce PDF.",
+      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois. Divisez le PDF et importez chaque partie.",
+      "ai_unusable": "L'IA n'a pas pu lire ce relevé de façon fiable. Rien n'a été importé.",
+      "ai_timeout": "Le service d'IA a mis trop de temps à répondre. Réessayez.",
+      "ai_unreachable": "Le service d'IA n'a pas pu être joint. Réessayez plus tard.",
       "invalid_input": "Certaines valeurs ne sont pas valides. Vérifiez les champs et réessayez."
     },
     "conflict": {

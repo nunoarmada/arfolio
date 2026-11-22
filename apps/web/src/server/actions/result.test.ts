@@ -124,6 +124,15 @@ describe('validationReason', () => {
     ['The file is not a valid XLSX workbook', 'invalid_file'],
     ['Template categories cannot be deleted, archive them instead', 'template_protected'],
     ['The file has too many rows (maximum 50000 rows)', 'too_many_rows'],
+    ['AI is not available for this household', 'ai_unavailable'],
+    ['A confirmation is required before a PDF is sent', 'confirmation_required'],
+    ['Too many PDF statements were sent in the last hour', 'rate_limited'],
+    ['The file is not a PDF', 'not_a_pdf'],
+    ['No movements were found in this PDF', 'pdf_no_rows'],
+    ['The PDF statement has too many movements (maximum 500)', 'pdf_too_long'],
+    ['The AI answer could not be used', 'ai_unusable'],
+    ['The AI service took too long to answer', 'ai_timeout'],
+    ['The AI service could not be reached', 'ai_unreachable'],
     ['Something unforeseen', 'invalid_input'],
   ])('%s -> %s', (message, reason) => {
     expect(validationReason(message)).toBe(reason);
