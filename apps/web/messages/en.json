@@ -835,6 +835,9 @@
       "ai_unusable": "The AI could not read this statement reliably. Nothing was imported.",
       "ai_timeout": "The AI service took too long to answer. Try again.",
       "ai_unreachable": "The AI service could not be reached. Try again later.",
+      "pdf_rejected": "The AI service could not read this PDF. It may be protected with a password, too long or damaged.",
+      "ai_key_rejected": "The AI service rejected the installation's API key. Ask an owner to check it in Settings › Services.",
+      "ai_busy": "The AI service is busy. Try again in a few minutes.",
       "invalid_input": "Some values are not valid. Check the fields and try again."
     },
     "conflict": {

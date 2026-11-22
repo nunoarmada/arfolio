@@ -133,6 +133,9 @@ describe('validationReason', () => {
     ['The AI answer could not be used', 'ai_unusable'],
     ['The AI service took too long to answer', 'ai_timeout'],
     ['The AI service could not be reached', 'ai_unreachable'],
+    ['The AI service could not read this PDF', 'pdf_rejected'],
+    ['The AI service rejected the API key', 'ai_key_rejected'],
+    ['The AI service is busy', 'ai_busy'],
     ['Something unforeseen', 'invalid_input'],
   ])('%s -> %s', (message, reason) => {
     expect(validationReason(message)).toBe(reason);

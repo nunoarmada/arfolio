@@ -835,6 +835,9 @@
       "ai_unusable": "L'IA n'a pas pu lire ce relevé de façon fiable. Rien n'a été importé.",
       "ai_timeout": "Le service d'IA a mis trop de temps à répondre. Réessayez.",
       "ai_unreachable": "Le service d'IA n'a pas pu être joint. Réessayez plus tard.",
+      "pdf_rejected": "Le service d'IA n'a pas pu lire ce PDF. Il est peut-être protégé par un mot de passe, trop long ou endommagé.",
+      "ai_key_rejected": "Le service d'IA a refusé la clé d'API de l'installation. Demandez à un propriétaire de la vérifier dans Réglages › Services.",
+      "ai_busy": "Le service d'IA est occupé. Réessayez dans quelques minutes.",
       "invalid_input": "Certaines valeurs ne sont pas valides. Vérifiez les champs et réessayez."
     },
     "conflict": {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type Anthropic from '@anthropic-ai/sdk';
-import { APIConnectionTimeoutError } from '@anthropic-ai/sdk';
+import { APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import {
   MAX_IMPORT_BYTES,
   MAX_PDF_STATEMENT_ROWS,
@@ -211,9 +211,30 @@ describe('extractPdfStatement', () => {
     await rejects(t.run(), 'The AI service took too long to answer');
   });
 
-  it.each([401, 403, 429, 500])('reports HTTP %i as unreachable', async (status) => {
+  it.each([
+    [400, 'The AI service could not read this PDF'],
+    [413, 'The AI service could not read this PDF'],
+    [401, 'The AI service rejected the API key'],
+    [403, 'The AI service rejected the API key'],
+    [429, 'The AI service is busy'],
+    [529, 'The AI service is busy'],
+    [500, 'The AI service could not be reached'],
+    [404, 'The AI service could not be reached'],
+  ])('reports HTTP %i without provider text', async (status, expected) => {
     const t = setup(() => {
-      throw Object.assign(new Error('sk-ant-secret quota text'), { status });
+      throw APIError.generate(
+        status,
+        { type: 'error', error: { type: 'x', message: 'sk-ant-secret quota text' } },
+        'sk-ant-secret quota text',
+        new Headers(),
+      );
+    });
+    await rejects(t.run(), expected);
+  });
+
+  it('reports an error without an HTTP status as unreachable', async () => {
+    const t = setup(() => {
+      throw new TypeError('fetch failed sk-ant-secret');
     });
     await rejects(t.run(), 'The AI service could not be reached');
   });

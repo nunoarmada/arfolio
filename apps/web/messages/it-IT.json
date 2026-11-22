@@ -835,6 +835,9 @@
       "ai_unusable": "L'IA non è riuscita a leggere questo estratto conto in modo affidabile. Non è stato importato nulla.",
       "ai_timeout": "Il servizio di IA ha impiegato troppo tempo a rispondere. Riprovare.",
       "ai_unreachable": "Impossibile raggiungere il servizio di IA. Riprovare più tardi.",
+      "pdf_rejected": "Il servizio di IA non è riuscito a leggere questo PDF. Potrebbe essere protetto da password, troppo lungo o danneggiato.",
+      "ai_key_rejected": "Il servizio di IA ha rifiutato la chiave API dell'installazione. Chiedere a un proprietario di verificarla in Impostazioni › Servizi.",
+      "ai_busy": "Il servizio di IA è occupato. Riprovare tra qualche minuto.",
       "invalid_input": "Alcuni valori non sono validi. Controllare i campi e riprovare."
     },
     "conflict": {

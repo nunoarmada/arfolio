@@ -38,6 +38,9 @@ export type ValidationReason =
   | 'ai_unusable'
   | 'ai_timeout'
   | 'ai_unreachable'
+  | 'pdf_rejected'
+  | 'ai_key_rejected'
+  | 'ai_busy'
   | 'invalid_input';
 
 const REASONS: Array<[RegExp, ValidationReason]> = [
@@ -50,6 +53,9 @@ const REASONS: Array<[RegExp, ValidationReason]> = [
   [/AI answer could not be used/, 'ai_unusable'],
   [/took too long to answer/, 'ai_timeout'],
   [/could not be reached/, 'ai_unreachable'],
+  [/AI service could not read this PDF/, 'pdf_rejected'],
+  [/AI service rejected the API key/, 'ai_key_rejected'],
+  [/AI service is busy/, 'ai_busy'],
   [/recognise the file layout/i, 'unrecognised_layout'],
   [/file is too large|too large when unpacked/i, 'file_too_large'],
   [/unsupported file type/i, 'unsupported_type'],
