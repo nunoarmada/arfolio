@@ -1218,6 +1218,8 @@
       "date": "Data",
       "description": "Descrizione",
       "twoColumns": "L’importo è suddiviso in due colonne (addebito e accredito)",
+      "invertSign": "Inverti il segno degli importi",
+      "invertSignHint": "Per gli estratti che riportano le spese come importi positivi, come molti estratti delle carte.",
       "debit": "Addebito",
       "credit": "Accredito",
       "amount": "Importo",

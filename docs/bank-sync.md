@@ -89,3 +89,5 @@ Connection secrets (bank session ids and Trading 212 keys) are encrypted with `E
 ## 4. Not covered by a connection
 
 For a bank Enable Banking does not cover, or to load history older than the bank provides, import statements (CSV, XLSX, XLS or OFX) from an account's **Import statement** screen (saved formats live under **Settings > Import formats**), or add transactions by hand.
+
+Imported amounts follow one rule: money leaving the account is negative. Some statements, card statements in particular, list purchases as positive amounts; tick **Reverse the sign of the amounts** in the column step so a card shows what it owes. For a card that already owed money before the first imported row, set the account's opening balance to that amount as a negative number.

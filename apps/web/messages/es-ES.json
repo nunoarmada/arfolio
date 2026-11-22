@@ -1218,6 +1218,8 @@
       "date": "Fecha",
       "description": "Descripción",
       "twoColumns": "El importe viene en dos columnas (cargo y abono)",
+      "invertSign": "Invertir el signo de los importes",
+      "invertSignHint": "Para extractos que muestran los gastos como importes positivos, como muchos extractos de tarjeta.",
       "debit": "Cargo",
       "credit": "Abono",
       "amount": "Importe",

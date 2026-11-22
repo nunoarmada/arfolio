@@ -288,6 +288,32 @@ describe('file import', () => {
       expect(next.stats.valid).toBe(1);
     });
 
+    it('keeps the reversed sign in a saved preset and applies it to later files', async () => {
+      const acc = await account();
+      const mapping: ColumnMapping = {
+        dateColumn: 'Dia',
+        descriptionColumn: 'Movimento',
+        amountColumn: 'Montante cartao',
+        dateFormat: 'DMY',
+        decimal: ',',
+        headerRow: 0,
+        invertSign: true,
+      };
+      await commitImport(a, {
+        accountId: acc,
+        file: csvFile('Dia;Movimento;Montante cartao\n01/04/2026;Padaria Exemplo;2,10\n'),
+        mapping,
+        saveAsPreset: { name: 'Card statement' },
+      });
+      const next = await previewImport(a, {
+        accountId: acc,
+        file: csvFile('Dia;Movimento;Montante cartao\n02/04/2026;Talho Exemplo;9,99\n'),
+      });
+      expect(next.presetKey).toBe('household:Card statement');
+      expect(next.mapping).toMatchObject({ invertSign: true });
+      expect(next.rows[0]).toMatchObject({ row: { amount: -999 } });
+    });
+
     it('refuses files with nothing to import, archived/foreign accounts and viewers', async () => {
       const acc = await account();
       await expect(

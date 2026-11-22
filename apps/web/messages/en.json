@@ -1218,6 +1218,8 @@
       "date": "Date",
       "description": "Description",
       "twoColumns": "The amount comes in two columns (debit and credit)",
+      "invertSign": "Reverse the sign of the amounts",
+      "invertSignHint": "For statements that list spending as positive amounts, as many card statements do.",
       "debit": "Debit",
       "credit": "Credit",
       "amount": "Amount",
