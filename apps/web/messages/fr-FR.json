@@ -448,7 +448,7 @@
       "importModel": "Modèle pour l’import de relevés",
       "valuationModelHint": "Estime la valeur de biens tels que l’immobilier et les véhicules.",
       "importModelHint": "Lit les relevés PDF dans l’assistant d’import.",
-      "removeWarning": "Les catégories, rapports et estimations par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
+      "removeWarning": "Les catégories, rapports, estimations et l’import de relevés PDF par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
       "test": "Tester la clé d’API"
     },
     "portals": {
@@ -1887,11 +1887,11 @@
   },
   "aiSettings": {
     "title": "IA : catégories et rapports",
-    "help": "Suggère des catégories pour les opérations que les règles et la mémoire ont laissées sans catégorie et, au début de chaque mois, rédige un rapport sur le mois précédent dans Analyses › Rapports. Une catégorie est toujours appliquée ; avec une confiance plus faible, l’opération reste dans À vérifier pour que vous la confirmiez, et après trois échecs elle passe dans Autres et est signalée à vérifier.",
+    "help": "Suggère des catégories pour les opérations que les règles et la mémoire ont laissées sans catégorie et, au début de chaque mois, rédige un rapport sur le mois précédent dans Analyses › Rapports. Une catégorie est toujours appliquée ; avec une confiance plus faible, l’opération reste dans À vérifier pour que vous la confirmiez, et après trois échecs elle passe dans Autres et est signalée à vérifier. Elle lit aussi les relevés PDF dans l’assistant d’importation. Les relevés PDF sont envoyés en entier, uniquement quand quelqu’un le confirme pour ce fichier.",
     "sentTitle": "Ce qui est envoyé",
     "sentLabel": "Pour les catégories",
     "sentBody": "libellé et contrepartie de l’opération, sans IBAN, numéros de carte, e-mails, numéros de téléphone ni longues suites de chiffres ; montant et devise ; mois (pas le jour) ; noms des catégories du foyer.",
-    "neverLabel": "Jamais envoyé",
+    "neverLabel": "Jamais envoyé pour les catégories et les rapports",
     "neverBody": "noms des comptes, IBAN, soldes des comptes individuels, notes, noms des membres du foyer.",
     "caveat": "Pour les catégories, un libellé peut contenir le nom d’un commerçant ou d’une personne tel qu’il figure sur le relevé. Les rapports n’incluent jamais les libellés.",
     "provider": "Fournisseur : Anthropic · catégories : modèle {model} · rapports : modèle {reportModel}",

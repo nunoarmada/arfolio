@@ -313,6 +313,16 @@ test.describe('PDF statement import with AI', () => {
     expect(await requests()).toBe(before);
   });
 
+  test('the household AI switch says PDF statements are sent whole, on confirmation', async () => {
+    await page.goto('/settings/household');
+    const section = page.getByRole('region', { name: 'IA: categorias e relatórios' });
+    await expect(section).toContainText('Também lê extratos em PDF no assistente de importação.');
+    await expect(section).toContainText(
+      'Os extratos em PDF são enviados por inteiro, apenas quando alguém o confirma para esse ficheiro.',
+    );
+    await expect(section).toContainText('Nunca enviado nas categorias e nos relatórios:');
+  });
+
   test('no CSP violations or console errors were logged', () => {
     expect(problems).toEqual([]);
   });

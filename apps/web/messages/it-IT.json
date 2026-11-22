@@ -448,7 +448,7 @@
       "importModel": "Modello per l’importazione degli estratti conto",
       "valuationModelHint": "Stima il valore di beni come immobili e veicoli.",
       "importModelHint": "Legge gli estratti conto PDF nella procedura guidata di importazione.",
-      "removeWarning": "Categorie, report e valutazioni con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
+      "removeWarning": "Categorie, report, valutazioni e importazione di estratti conto PDF con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
       "test": "Verifica la chiave API"
     },
     "portals": {
@@ -1887,11 +1887,11 @@
   },
   "aiSettings": {
     "title": "IA: categorie e report",
-    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione.",
+    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione. Legge anche gli estratti conto PDF nella procedura di importazione. Gli estratti conto PDF vengono inviati per intero, solo quando qualcuno lo conferma per quel file.",
     "sentTitle": "Cosa viene inviato",
     "sentLabel": "Per le categorie",
     "sentBody": "descrizione e controparte del movimento, senza IBAN, numeri di carta, email, numeri di telefono o lunghe sequenze di cifre; importo e valuta; mese (non il giorno); nomi delle categorie del nucleo familiare.",
-    "neverLabel": "Mai inviato",
+    "neverLabel": "Mai inviato per categorie e report",
     "neverBody": "nomi dei conti, IBAN, saldi dei singoli conti, note, nomi dei membri del nucleo familiare.",
     "caveat": "Per le categorie, una descrizione può includere il nome di un esercente o di una persona così come compare nell’estratto conto. I report non includono mai le descrizioni.",
     "provider": "Fornitore: Anthropic · categorie: modello {model} · report: modello {reportModel}",

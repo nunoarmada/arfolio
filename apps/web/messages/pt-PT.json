@@ -448,7 +448,7 @@
       "importModel": "Modelo para importar extratos",
       "valuationModelHint": "Estima o valor de bens como imóveis e veículos.",
       "importModelHint": "Lê extratos em PDF no assistente de importação.",
-      "removeWarning": "As categorias, os relatórios e as avaliações de IA deixam de funcionar até voltar a adicionar uma chave.",
+      "removeWarning": "As categorias, os relatórios, as avaliações e a importação de extratos em PDF com IA deixam de funcionar até voltar a adicionar uma chave.",
       "test": "Testar a chave de API"
     },
     "portals": {
@@ -1887,11 +1887,11 @@
   },
   "aiSettings": {
     "title": "IA: categorias e relatórios",
-    "help": "Sugere categorias para os movimentos que as regras e a memória não classificaram e, no início de cada mês, escreve um relatório do mês anterior em Análises › Relatórios. Aplica sempre uma categoria; com confiança mais baixa o movimento fica em Por rever para o confirmar, e ao fim de três tentativas falhadas vai para Outros e fica marcado para rever.",
+    "help": "Sugere categorias para os movimentos que as regras e a memória não classificaram e, no início de cada mês, escreve um relatório do mês anterior em Análises › Relatórios. Aplica sempre uma categoria; com confiança mais baixa o movimento fica em Por rever para o confirmar, e ao fim de três tentativas falhadas vai para Outros e fica marcado para rever. Também lê extratos em PDF no assistente de importação. Os extratos em PDF são enviados por inteiro, apenas quando alguém o confirma para esse ficheiro.",
     "sentTitle": "O que é enviado",
     "sentLabel": "Para as categorias",
     "sentBody": "descrição do movimento e contraparte, sem IBAN, números de cartão, emails, telefones nem sequências longas de dígitos; valor e moeda; mês (não o dia); nomes das categorias do agregado.",
-    "neverLabel": "Nunca enviado",
+    "neverLabel": "Nunca enviado nas categorias e nos relatórios",
     "neverBody": "nomes de contas, IBAN, saldos de contas individuais, notas, nomes dos membros do agregado.",
     "caveat": "Nas categorias, a descrição pode incluir o nome de um comerciante ou de uma pessoa tal como aparece no extrato. Os relatórios nunca incluem descrições.",
     "provider": "Fornecedor: Anthropic · categorias: modelo {model} · relatórios: modelo {reportModel}",
