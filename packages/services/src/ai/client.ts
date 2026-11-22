@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AnthropicLike } from './categorise.js';
+import type { AnthropicCreateLike } from './asset-valuation.js';
 
 /**
  * Builds the SDK client for a request that runs inside the web app (the worker has its own
@@ -9,7 +9,7 @@ import type { AnthropicLike } from './categorise.js';
 export function createAnthropicClient(
   apiKey: string,
   opts: { timeoutMs?: number; maxRetries?: number; baseURL?: string } = {},
-): AnthropicLike {
+): AnthropicCreateLike {
   return new Anthropic({
     apiKey,
     timeout: opts.timeoutMs ?? 120_000,

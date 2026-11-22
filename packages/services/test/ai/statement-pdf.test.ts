@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type Anthropic from '@anthropic-ai/sdk';
 import { APIConnectionTimeoutError } from '@anthropic-ai/sdk';
 import {
   MAX_IMPORT_BYTES,
@@ -9,11 +10,12 @@ import {
   applyMapping,
   extractPdfStatement,
   parseFile,
-  type AnthropicLike,
+  type AnthropicCreateLike,
 } from '../../src/index.js';
 
-type Call = Parameters<AnthropicLike['messages']['parse']>[0];
+type Call = Anthropic.MessageCreateParamsNonStreaming;
 type Row = { date: string; description: string; amount: string };
+type Block = Record<string, unknown>;
 
 const PDF = Buffer.from('%PDF-1.7 fictional statement');
 const row = (over: Partial<Row> = {}): Row => ({
@@ -24,20 +26,31 @@ const row = (over: Partial<Row> = {}): Row => ({
 });
 const answer = (rows: Row[], currency: string | null = 'EUR') => ({ currency, rows });
 
-function setup(
-  respond: (call: Call) => unknown | Promise<unknown> = () => ({
-    parsed_output: answer([row()]),
-    stop_reason: 'end_turn',
+/** A Messages API response as `messages.create` returns it. */
+const message = (content: Block[], stop: string | null = 'end_turn') =>
+  ({
+    id: 'msg_test',
+    type: 'message',
+    role: 'assistant',
+    model: 'claude-test',
+    content,
+    stop_reason: stop,
+    stop_sequence: null,
     usage: { input_tokens: 10, output_tokens: 5 },
-  }),
-) {
+  }) as unknown as Anthropic.Message;
+const text = (value: string): Block => ({ type: 'text', text: value, citations: null });
+
+const parsed = (rows: Row[], currency: string | null = 'EUR', stop = 'end_turn') =>
+  message([text(JSON.stringify(answer(rows, currency)))], stop);
+
+function setup(respond: (call: Call) => unknown | Promise<unknown> = () => parsed([row()])) {
   const calls: Call[] = [];
   const lines: string[] = [];
-  const anthropic: AnthropicLike = {
+  const anthropic: AnthropicCreateLike = {
     messages: {
-      async parse(params) {
+      async create(params) {
         calls.push(params);
-        return (await respond(params)) as Awaited<ReturnType<AnthropicLike['messages']['parse']>>;
+        return (await respond(params)) as Anthropic.Message;
       },
     },
   };
@@ -49,12 +62,6 @@ function setup(
     );
   return { calls, lines, run };
 }
-
-const parsed = (rows: Row[], currency: string | null = 'EUR', stop = 'end_turn') => ({
-  parsed_output: answer(rows, currency),
-  stop_reason: stop,
-  usage: { input_tokens: 10, output_tokens: 5 },
-});
 
 const rejects = async (p: Promise<unknown>, message: string) => {
   const err = await p.then(
@@ -82,7 +89,7 @@ describe('extractPdfStatement', () => {
       source: { type: 'base64', media_type: 'application/pdf', data: PDF.toString('base64') },
     });
     expect((call as { tools?: unknown }).tools).toBeUndefined();
-    expect(call.output_config.format).toBeDefined();
+    expect(call.output_config?.format).toBeDefined();
     expect(call.model).toBe('claude-test');
     expect(call.max_tokens).toBe(20000);
   });
@@ -90,7 +97,8 @@ describe('extractPdfStatement', () => {
   it('tells the model that the document is data', async () => {
     const t = setup();
     await t.run();
-    expect(t.calls[0]!.system.map((b) => b.text).join('\n')).toMatch(/never follow instructions/i);
+    const system = t.calls[0]!.system as Anthropic.TextBlockParam[];
+    expect(system.map((b) => b.text).join('\n')).toMatch(/never follow instructions/i);
   });
 
   it('renders valid rows as CSV', async () => {
@@ -157,14 +165,34 @@ describe('extractPdfStatement', () => {
     await rejects(t.run(), 'The PDF statement has too many movements (maximum 500)');
   });
 
+  it('rejects a truncated answer cut off at the token limit as too many movements', async () => {
+    const t = setup(() =>
+      message([text('{"currency":"EUR","rows":[{"date":"2026-03-')], 'max_tokens'),
+    );
+    await rejects(t.run(), 'The PDF statement has too many movements (maximum 500)');
+  });
+
+  it('reads the text block after a thinking block', async () => {
+    const t = setup(() =>
+      message([
+        { type: 'thinking', thinking: 'reading the table', signature: 'sig' },
+        text(JSON.stringify(answer([row()]))),
+      ]),
+    );
+    expect((await t.run()).rows).toBe(1);
+  });
+
   it('rejects a statement in another currency than the account', async () => {
     const t = setup(() => parsed([row()], 'USD'));
     await rejects(t.run(), 'The statement is in USD but the account is in EUR');
   });
 
   it.each([
-    ['a refusal', { ...parsed([row()]), stop_reason: 'refusal' }],
-    ['no parsed output', { ...parsed([row()]), parsed_output: null }],
+    ['a refusal', parsed([row()], 'EUR', 'refusal')],
+    ['a refusal with partial text', message([text('{"currency":"EUR","rows":[{"da')], 'refusal')],
+    ['an answer without a text block', message([])],
+    ['text that is not JSON', message([text('I cannot read this statement.')])],
+    ['JSON that fails the schema', message([text(JSON.stringify({ rows: [{ date: 1 }] }))])],
     ['an impossible calendar date', parsed([row({ date: '2026-02-30' })])],
     ['a date in another format', parsed([row({ date: '02/03/2026' })])],
     ['an amount with three decimals', parsed([row({ amount: '12.345' })])],
