@@ -32,7 +32,7 @@ type PromptRow = {
 };
 
 const rowsOf = (call: Call): PromptRow[] =>
-  (JSON.parse(call.messages[0]!.content) as { transactions: PromptRow[] }).transactions;
+  (JSON.parse(call.messages[0]!.content as string) as { transactions: PromptRow[] }).transactions;
 const categoriesOf = (call: Call): Array<{ id: string; name: string; kind: string }> =>
   JSON.parse(
     call.system

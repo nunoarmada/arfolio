@@ -43,11 +43,17 @@ const MAX_OUTPUT_TOKENS = 8_192;
 
 const outputFormat = () => zodOutputFormat(aiOutputSchema);
 
+export type AiTextBlock = { type: 'text'; text: string };
+/** A base64 PDF sent to the model as a document block (statement import). */
+export type AiPdfDocumentBlock = {
+  type: 'document';
+  source: { type: 'base64'; media_type: 'application/pdf'; data: string };
+};
 export type AiParseParams = {
   model: string;
   max_tokens: number;
   system: SystemBlock[];
-  messages: Array<{ role: 'user'; content: string }>;
+  messages: Array<{ role: 'user'; content: string | Array<AiPdfDocumentBlock | AiTextBlock> }>;
   /** The structured-output format of whichever feature calls (categorisation, reports). */
   output_config: { format: ReturnType<typeof zodOutputFormat> };
 };

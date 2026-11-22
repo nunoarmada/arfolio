@@ -31,7 +31,7 @@ type PromptRow = {
 };
 
 const rowsOf = (call: Call): PromptRow[] =>
-  (JSON.parse(call.messages[0]!.content) as { transactions: PromptRow[] }).transactions;
+  (JSON.parse(call.messages[0]!.content as string) as { transactions: PromptRow[] }).transactions;
 const item = (id: string, over: Partial<Item> = {}): Item => ({
   id,
   merchant: null,
