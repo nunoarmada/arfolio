@@ -142,6 +142,18 @@ export function ColumnMapper({
           </Select>
         )}
       </Field>
+      <Checkbox
+        data-testid="invert-sign"
+        label={t('invertSign')}
+        hint={t('invertSignHint')}
+        checked={mapping.invertSign === true}
+        onChange={(e) => {
+          const next = { ...mapping };
+          if (e.target.checked) next.invertSign = true;
+          else delete next.invertSign;
+          onChange(next);
+        }}
+      />
     </div>
   );
 }

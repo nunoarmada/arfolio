@@ -1256,7 +1256,9 @@
       "decimal": "Decimal separator",
       "decimalAuto": "Detect automatically",
       "decimalComma": "Comma (1234,56)",
-      "decimalDot": "Dot (1234.56)"
+      "decimalDot": "Dot (1234.56)",
+      "invertSign": "Invert the sign of every amount",
+      "invertSignHint": "Use this when money spent shows as money received, or the other way round."
     },
     "preview": {
       "title": "Preview",

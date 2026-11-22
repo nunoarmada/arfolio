@@ -1256,7 +1256,9 @@
       "decimal": "Separador decimal",
       "decimalAuto": "Detectar automáticamente",
       "decimalComma": "Coma (1234,56)",
-      "decimalDot": "Punto (1234.56)"
+      "decimalDot": "Punto (1234.56)",
+      "invertSign": "Invertir el signo de todos los importes",
+      "invertSignHint": "Úselo cuando el dinero gastado aparece como recibido, o al revés."
     },
     "preview": {
       "title": "Vista previa",

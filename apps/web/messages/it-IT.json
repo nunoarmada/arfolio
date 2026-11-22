@@ -1256,7 +1256,9 @@
       "decimal": "Separatore decimale",
       "decimalAuto": "Rileva automaticamente",
       "decimalComma": "Virgola (1234,56)",
-      "decimalDot": "Punto (1234.56)"
+      "decimalDot": "Punto (1234.56)",
+      "invertSign": "Invertire il segno di tutti gli importi",
+      "invertSignHint": "Da usare quando il denaro speso risulta come ricevuto, o viceversa."
     },
     "preview": {
       "title": "Anteprima",
