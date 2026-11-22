@@ -21,6 +21,7 @@ import {
   type IngestRow,
 } from '../pipeline.js';
 import { lockTransfers, unlinkGroupInTx } from '../transactions.js';
+import { MAX_PDF_STATEMENT_ROWS } from '../ai/statement-pdf.js';
 import { applyMapping, columnMappingSchema, type ColumnMapping } from './mapping.js';
 import { parseFile } from './parse-file.js';
 import {
@@ -45,6 +46,8 @@ const previewSchema = z.strictObject({
   accountId: z.string(),
   file: fileSchema,
   mapping: columnMappingSchema.optional(),
+  /** Rows to return; a PDF statement read by AI is previewed whole. */
+  rowLimit: z.number().int().min(1).max(MAX_PDF_STATEMENT_ROWS).optional(),
 });
 const commitSchema = z.strictObject({
   accountId: z.string(),
@@ -226,8 +229,8 @@ async function findDuplicates(
 
 /**
  * Reads the file and shows what importing it would do: the detected (or given) mapping, the
- * first 50 lines parsed or with their error, and counts including rows already in the account.
- * Writes nothing.
+ * first 50 lines (or `rowLimit`) parsed or with their error, and counts including rows already in
+ * the account. Writes nothing.
  */
 export async function previewImport(
   ctx: ServiceCtx,
@@ -253,7 +256,7 @@ export async function previewImport(
     return {
       presetKey,
       mapping,
-      rows: flagged.slice(0, PREVIEW_ROWS),
+      rows: flagged.slice(0, input.rowLimit ?? PREVIEW_ROWS),
       stats: { ...countOutcomes(parsed), duplicates: duplicates.size },
     };
   });

@@ -7,6 +7,7 @@ import {
   deleteImportPreset,
   getImportBatchSummary,
   MAX_IMPORT_BYTES,
+  MAX_PDF_STATEMENT_ROWS,
   parseFile,
   previewImport,
   reviewCount,
@@ -99,6 +100,11 @@ function mappingOf(form: FormData): ColumnMapping | undefined {
   }
 }
 
+/** A PDF statement read by AI is previewed whole (`allRows`): every row is seen before import. */
+function rowLimitOf(form: FormData): { rowLimit?: number } {
+  return form.get('allRows') === 'true' ? { rowLimit: MAX_PDF_STATEMENT_ROWS } : {};
+}
+
 function accountOf(form: FormData): string {
   const id = form.get('accountId');
   return typeof id === 'string' ? id : '';
@@ -122,6 +128,7 @@ export async function analyseImportAction(form: FormData): Promise<ActionResult<
         accountId: accountOf(form),
         file,
         ...(mapping ? { mapping } : {}),
+        ...rowLimitOf(form),
       });
       return { file: info, preview: toPreviewDto(preview) };
     } catch (error) {
@@ -159,6 +166,7 @@ export async function previewImportAction(form: FormData): Promise<ActionResult<
         accountId: accountOf(form),
         file,
         ...(mapping ? { mapping } : {}),
+        ...rowLimitOf(form),
       }),
     );
   });
