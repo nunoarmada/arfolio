@@ -107,7 +107,8 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
     });
   }
 
-  if (Number(today.slice(8, 10)) <= CHECKIN_LAST_DAY) {
+  // Nothing to report before one complete month of data.
+  if (Number(today.slice(8, 10)) <= CHECKIN_LAST_DAY && profile.learning.completeMonths >= 1) {
     const reported = previousMonth(today);
     out.push({
       key: `checkin:${reported}`,
@@ -118,7 +119,9 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
   }
 
   for (const g of input.goals) {
-    if (g.target === null || g.target <= 0 || g.targetDate === null) continue;
+    // A date already past is not nagged about every month; the person can revisit it in chat.
+    if (g.target === null || g.target <= 0 || g.targetDate === null || g.targetDate < today)
+      continue;
     const left = monthsLeft(today, g.targetDate);
     const projected = g.saved + g.contribution * left;
     if (projected * 100 >= g.target * GOAL_BEHIND_PERCENT) continue;

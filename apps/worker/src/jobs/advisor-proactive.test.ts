@@ -4,7 +4,7 @@ import type { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { createDb, schema, type Db } from '@arfolio/db';
-import { saveMemberSettings, type ServiceCtx } from '@arfolio/services';
+import { createBudget, saveMemberSettings, type ServiceCtx } from '@arfolio/services';
 import type { AdvisorModelClient } from '@arfolio/mcp/advisor';
 import { APP_PASSWORD, startTestDb, type TestDb } from '../../../../packages/db/test/pg.js';
 import { log } from '../log.js';
@@ -325,6 +325,22 @@ describe('advisor-proactive job', () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain(f.householdId);
     expect(lines[0]).not.toMatch(/secret|123456|Shop/);
+  });
+
+  it('stops the household run once when the shared figures cannot be loaded', async () => {
+    const f = await household({ roles: ['owner', 'member'], detected: 1 });
+    // An active budget makes the loader place today in its months, which refuses an unknown zone.
+    await createBudget(f.users.owner!, { startMonth: '2026-01-01' });
+    await owner
+      .update(schema.householdSettings)
+      .set({ timezone: 'Not/AZone' })
+      .where(eq(schema.householdSettings.householdId, f.householdId));
+    const { client, calls } = fakeClient();
+    await runAdvisorProactive(depsFor(client), f.householdId);
+    expect(calls).toHaveLength(0);
+    const lines = vi.mocked(log.error).mock.calls.map(([m]) => m);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(f.householdId);
   });
 
   it('schedules the daily run at 09:00 and fans out one singleton job per AI household', async () => {

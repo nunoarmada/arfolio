@@ -121,6 +121,12 @@ describe('detectEvents', () => {
       expect(e!.facts).toMatchObject({ month: key.slice(8) });
     });
 
+    it('is absent when there is no complete month of data yet', () => {
+      const none = profile();
+      none.learning.completeMonths = 0;
+      expect(keys(base({ today: '2026-11-03', profile: none }))).toEqual([]);
+    });
+
     it('is absent on day 8', () => {
       expect(keys(base({ today: '2026-11-08' }))).toEqual([]);
     });
@@ -154,8 +160,9 @@ describe('detectEvents', () => {
       expect(at({ saved: 10_000, contribution: 0 })).toHaveLength(0);
     });
 
-    it('counts no further contributions once the date has passed', () => {
-      expect(at({ targetDate: '2026-11-01', saved: 4_000, contribution: 5_000 })).toHaveLength(1);
+    it('is silent once the target date has passed, but not on the day itself', () => {
+      expect(at({ targetDate: '2026-11-23', saved: 4_000, contribution: 0 })).toHaveLength(0);
+      expect(at({ targetDate: '2026-11-24', saved: 4_000, contribution: 0 })).toHaveLength(1);
     });
   });
 

@@ -99,10 +99,22 @@ export async function runAdvisorProactive(
     try {
       const settings = await getMemberSettings(ctx);
       if (!settings.proactiveEnabled) continue;
-      signals ??= await loadHouseholdSignals(
-        { ...ctx, userId: SYSTEM_USER_ID, role: 'owner' },
-        { learningMonths: deps.limits.learningMonths, now },
-      );
+      if (signals === undefined) {
+        try {
+          signals = await loadHouseholdSignals(
+            { ...ctx, userId: SYSTEM_USER_ID, role: 'owner' },
+            { learningMonths: deps.limits.learningMonths, now },
+          );
+        } catch (err) {
+          // Household-wide: every member would hit the same failure, so stop the run here.
+          log.error(
+            `advisor proactive could not load household ${householdId}: ${
+              err instanceof Error ? err.name : 'unknown error'
+            }`,
+          );
+          return;
+        }
+      }
       const events = detectEvents({ ...signals, ...(await loadSentState(ctx)) });
       const cap = settings.weeklyCap ?? deps.limits.weeklyCap;
       const since = new Date(now.getTime() - WEEK_MS);
