@@ -14,12 +14,20 @@ export interface CreateDbOptions {
 }
 
 const CONNECTION_TIMEOUT_MS = 5_000;
+/**
+ * TCP keepalive probes start after this much idle time, so a half-open connection (a dropped
+ * network path, a Postgres host gone without a FIN) errors out instead of hanging. The settings
+ * LISTEN connection relies on it to notice it is dead and reconnect.
+ */
+const KEEPALIVE_INITIAL_DELAY_MS = 10_000;
 
 export function createDb(url: string, opts: CreateDbOptions = {}): { db: Db; pool: pg.Pool } {
   const pool = new pg.Pool({
     connectionString: url,
     max: opts.max,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: KEEPALIVE_INITIAL_DELAY_MS,
     statement_timeout: opts.statementTimeoutMs,
     query_timeout: opts.statementTimeoutMs ? opts.statementTimeoutMs + 500 : undefined,
   });
