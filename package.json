@@ -3,9 +3,9 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "version": "0.7.0",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@12.23.0",
   "engines": {
-    "node": ">=22.2.0"
+    "node": ">=26"
   },
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/node": "22.19.0",
+    "@types/node": "26.6.6",
     "eslint": "10.15.0",
     "prettier": "3.10.1",
     "typescript": "6.0.3",

@@ -4,8 +4,8 @@ Thanks for helping out. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) fi
 
 ## Prerequisites
 
-- Node.js 22 (see `.nvmrc`)
-- pnpm 10 via corepack: `corepack enable`
+- Node.js 26 (see `.nvmrc`)
+- pnpm 12 via corepack: `corepack enable`
 - PostgreSQL 17 for the tests, reachable through `DATABASE_URL_TEST`
   (for example `postgres://postgres:postgres@localhost:5432/postgres`)
 
@@ -29,7 +29,8 @@ Before opening a pull request, run `pnpm format:check && pnpm lint && pnpm typec
 
 The Playwright suite lives in `apps/web/e2e`. Run it with `pnpm --filter @arfolio/web e2e`. It builds the app
 and uses `DATABASE_URL_TEST`, or a throwaway local cluster if unset. Set `E2E_SKIP_BUILD=1` to reuse an
-up-to-date `.next` build.
+up-to-date `.next` build. Set `E2E_CHROMIUM_PATH` to a local Chromium executable when the bundled browser
+cannot be installed; leave it unset otherwise (CI does).
 
 ## Demo data
 

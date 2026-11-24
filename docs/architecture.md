@@ -16,7 +16,7 @@ Arfolio is a self-hosted web app for household finances. One container image run
 
 ## Stack
 
-- **TypeScript monorepo** (pnpm workspaces), Node 22.
+- **TypeScript monorepo** (pnpm workspaces), Node 26.
 - **`apps/web`**: Next.js App Router. UI, server actions, the REST-ish route handlers, the PWA (service worker), the MCP endpoint and the OAuth endpoints.
 - **`apps/worker`**: a Node process that runs the job queue. Same image as the web app, different command.
 - **`packages/db`**: Drizzle ORM schema, SQL migrations, the migration runner and the database roles.
