@@ -9,7 +9,14 @@ describe('rowErrorKey', () => {
     });
     expect(rowErrorKey('Invalid date').key).toBe('date');
     expect(rowErrorKey('Cannot parse amount: "x"').key).toBe('amount');
-    expect(rowErrorKey('Amount has more than 2 decimals: 1.234').key).toBe('decimals');
+    expect(rowErrorKey('Amount has more than 2 decimals: 1.234')).toEqual({
+      key: 'decimals',
+      values: { digits: '2' },
+    });
+    expect(rowErrorKey('Amount has more than 0 decimals: 12.5')).toEqual({
+      key: 'decimals',
+      values: { digits: '0' },
+    });
     expect(rowErrorKey('Missing description').key).toBe('description');
     expect(rowErrorKey('Something else').key).toBe('other');
   });

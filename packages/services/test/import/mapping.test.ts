@@ -183,6 +183,48 @@ describe('applyMapping', () => {
     expect(rows[1]).toMatchObject({ status: 'ok' });
   });
 
+  it.each([
+    ['JPY', '1.234', -1234, '1.000', 1000],
+    ['EUR', '12,34', -1234, '1.000,00', 100000],
+    ['KWD', '1,234', -1234, '1.000,500', 1000500],
+  ])(
+    'reads %s debit/credit/fee columns in the currency minor units',
+    async (currency, debit, debitMinor, credit, creditMinor) => {
+      const table = await csv(
+        `Date;Description;Debit;Credit;Fee\n2026-03-01;Out;${debit};;\n2026-03-02;In;;${credit};\n`,
+      );
+      const mapping: ColumnMapping = {
+        dateColumn: 'Date',
+        descriptionColumn: 'Description',
+        debitColumn: 'Debit',
+        creditColumn: 'Credit',
+        feeColumn: 'Fee',
+        dateFormat: 'YMD',
+        decimal: ',',
+        headerRow: 0,
+      };
+      const rows = okRows(applyMapping(table, mapping, { currency }));
+      expect(rows.map((r) => r.amount)).toEqual([debitMinor, creditMinor]);
+    },
+  );
+
+  it.each([
+    ['JPY', '1500', 1500, '12.5'],
+    ['EUR', '-23.45', -2345, '1.234'],
+    ['KWD', '-1.234', -1234, '1.2345'],
+  ])(
+    'reads %s sheet numbers up to the currency decimals and reports more',
+    async (currency, good, minor, tooPrecise) => {
+      const table = await parseFile(fixture('statement.xlsx'), 's.xlsx');
+      const grid = table.grid.map((r) => [...r]);
+      grid[table.headerRow + 1]![2] = good;
+      grid[table.headerRow + 2]![2] = tooPrecise;
+      const rows = applyMapping({ ...table, grid }, presetMapping('generic', table), { currency });
+      expect(rows[0]).toMatchObject({ status: 'ok', row: { amount: minor, currency } });
+      expect(rows[1]).toMatchObject({ status: 'error' });
+    },
+  );
+
   it('keeps header folding linear on pathological cells', () => {
     const started = Date.now();
     expect(foldHeader('x' + '.'.repeat(5_000_000))).toBe('x');

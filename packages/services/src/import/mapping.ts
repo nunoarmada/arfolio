@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { parseAmount, parseDate, type DateFormat } from '@arfolio/core';
+import { minorDigits, parseAmount, parseDate, type DateFormat } from '@arfolio/core';
 import { ValidationError } from '../context.js';
 import type { IngestRow } from '../pipeline.js';
 import { foldHeader } from './headers.js';
@@ -76,20 +76,26 @@ function dateOf(text: string, format: DateFormat): string {
  * Plain numbers written by the XLSX reader ("-23.45") use a dot whatever the sheet's locale, so
  * a comma setting must not reinterpret them.
  *
- * Rule for XLSX amounts that look like "1.234" (digits, a dot, three or more digits): the reader
- * cannot tell a sheet number (1.234) from a text cell written with a thousands dot ("1.234" meaning
- * 1234), and guessing would scale the amount by 1000, so such cells are row errors whatever the
- * decimal setting. Text such as "1.234,56" is unaffected.
+ * Rule for XLSX amounts with more decimals than the account currency has (`digits`), such as
+ * "1.234" in EUR: the reader cannot tell a sheet number (1.234) from a text cell written with a
+ * thousands dot ("1.234" meaning 1234), and guessing would scale the amount by 1000, so such cells
+ * are row errors whatever the decimal setting. Text such as "1.234,56" is unaffected.
  */
-function amountOf(text: string, decimal: ',' | '.' | undefined, kind: ParsedTable['kind']): number {
+function amountOf(
+  text: string,
+  decimal: ',' | '.' | undefined,
+  kind: ParsedTable['kind'],
+  digits: number,
+): number {
   if (text.length > MAX_NUMERIC_CELL) throw new ValidationError('Invalid amount');
-  // A sheet number with 3+ decimals cannot be a 2-decimal amount; reading it as a thousands
-  // grouping ("1.234" -> 1234.00) would silently multiply it, so report it instead.
-  if (kind === 'xlsx' && /^-?\d+\.\d{3,}$/.test(text.trim())) {
-    throw new ValidationError(`Amount has more than 2 decimals: ${text.trim()}`);
+  const sheetNumber = kind === 'xlsx' ? /^-?\d+(?:\.(\d+))?$/.exec(text.trim()) : null;
+  if (sheetNumber && (sheetNumber[1]?.length ?? 0) > digits) {
+    throw new ValidationError(`Amount has more than ${digits} decimals: ${text.trim()}`);
   }
-  const plain = kind === 'xlsx' && /^-?\d+(\.\d{1,2})?$/.test(text.trim());
-  return parseAmount(text, plain ? { decimal: '.' } : decimal ? { decimal } : {});
+  return parseAmount(text, {
+    minorDigits: digits,
+    ...(sheetNumber ? { decimal: '.' } : decimal ? { decimal } : {}),
+  });
 }
 
 /**
@@ -122,6 +128,7 @@ export function applyMapping(
     externalId: col(mapping.externalIdColumn),
     filter: col(mapping.filterColumn?.column),
   };
+  const digits = minorDigits(opts.currency);
   const skipPrefixes = (mapping.skipRowsMatching ?? []).map(foldHeader);
   const filterValues = new Set((mapping.filterColumn?.equals ?? []).map(foldHeader));
 
@@ -162,17 +169,18 @@ export function applyMapping(
       if (idx.amount >= 0) {
         const text = cell(idx.amount);
         if (text === '') throw new ValidationError('Missing amount');
-        amount = amountOf(text, mapping.decimal, table.kind);
+        amount = amountOf(text, mapping.decimal, table.kind, digits);
       } else {
         const debit = cell(idx.debit);
         const credit = cell(idx.credit);
         if (debit === '' && credit === '') throw new ValidationError('Missing amount');
-        const d = debit === '' ? 0 : Math.abs(amountOf(debit, mapping.decimal, table.kind));
-        const c = credit === '' ? 0 : Math.abs(amountOf(credit, mapping.decimal, table.kind));
+        const d = debit === '' ? 0 : Math.abs(amountOf(debit, mapping.decimal, table.kind, digits));
+        const c =
+          credit === '' ? 0 : Math.abs(amountOf(credit, mapping.decimal, table.kind, digits));
         amount = c - d;
       }
       const fee = cell(idx.fee);
-      if (fee !== '') amount -= amountOf(fee, mapping.decimal, table.kind);
+      if (fee !== '') amount -= amountOf(fee, mapping.decimal, table.kind, digits);
       if (mapping.invertSign) amount = -amount;
 
       const rowCurrency = cell(idx.currency).toUpperCase();
