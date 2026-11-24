@@ -231,4 +231,36 @@ describe('detectEvents', () => {
       expect(over(0, 500)).toHaveLength(0);
     });
   });
+
+  describe('facts', () => {
+    it('carry decimal strings with their currency, never raw minor units', () => {
+      const out = detectEvents(
+        base({
+          goals: [goal({ targetDate: '2027-04-24', saved: 4_000, contribution: 980 })],
+          recentInflows: [{ id: 't1', amount: 123_456, bookedOn: '2026-11-23', recurring: false }],
+          recurringNew: [recurring()],
+          lineMonth: [{ lineId: 'l1', name: 'Food', planned: 10_000, actual: 11_150 }],
+        }),
+      );
+      const facts = (type: string) => out.find((e) => e.type === type)!.facts;
+      expect(facts('goal_behind')).toMatchObject({
+        currency: 'EUR',
+        target: '100.00',
+        saved: '40.00',
+        monthlyContribution: '9.80',
+        projectedAtTargetDate: '89.00',
+      });
+      expect(facts('unusual_income')).toMatchObject({
+        currency: 'EUR',
+        amount: '1234.56',
+        typicalMonthlyIncome: '2000.00',
+      });
+      expect(facts('new_recurring')).toMatchObject({ currency: 'EUR', amount: '-9.99' });
+      expect(facts('budget_over')).toMatchObject({
+        currency: 'EUR',
+        planned: '100.00',
+        actual: '111.50',
+      });
+    });
+  });
 });

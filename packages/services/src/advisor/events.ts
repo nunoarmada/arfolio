@@ -1,7 +1,13 @@
 // What the advisor may write to a member unprompted. `detectEvents` is pure (it decides from the
 // numbers it is given); the loaders read them. Every figure that reaches the model comes from here.
 import { and, eq, gte, sql } from 'drizzle-orm';
-import { addDays, budgetMonths, merchantKey as textKey, type BudgetMonth } from '@arfolio/core';
+import {
+  addDays,
+  budgetMonths,
+  merchantKey as textKey,
+  minorDecimal,
+  type BudgetMonth,
+} from '@arfolio/core';
 import { schema, withHousehold } from '@arfolio/db';
 import { budgetMonthView, listBudgets } from '../budgets.js';
 import type { ServiceCtx } from '../context.js';
@@ -83,6 +89,9 @@ function monthsLeft(today: string, date: string): number {
 /** Welcome, learned, then the capped events in a fixed order (see the design spec). */
 export function detectEvents(input: EventInput): AdvisorEvent[] {
   const { today, profile } = input;
+  const currency = profile.currency;
+  // Amounts reach the model as exact decimals next to their currency, never as raw minor units.
+  const money = (minor: number, code: string = currency): string => minorDecimal(minor, code);
   const month = today.slice(0, 7);
   const out: AdvisorEvent[] = [];
 
@@ -131,12 +140,13 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
       facts: {
         event: 'goal_behind',
         goal: g.name,
-        target: g.target,
-        saved: g.saved,
-        monthlyContribution: g.contribution,
+        currency,
+        target: money(g.target),
+        saved: money(g.saved),
+        monthlyContribution: money(g.contribution),
         targetDate: g.targetDate,
         monthsLeft: left,
-        projectedAtTargetDate: projected,
+        projectedAtTargetDate: money(projected),
       },
       countsTowardCap: true,
     });
@@ -153,9 +163,10 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
         type: 'unusual_income',
         facts: {
           event: 'unusual_income',
-          amount: f.amount,
+          currency,
+          amount: money(f.amount),
           bookedOn: f.bookedOn,
-          typicalMonthlyIncome: typicalIncome,
+          typicalMonthlyIncome: money(typicalIncome),
         },
         countsTowardCap: true,
       });
@@ -169,7 +180,7 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
       facts: {
         event: 'new_recurring',
         name: r.name,
-        amount: r.amount,
+        amount: money(r.amount, r.currency),
         currency: r.currency,
         cadence: r.cadence,
       },
@@ -186,8 +197,9 @@ export function detectEvents(input: EventInput): AdvisorEvent[] {
         event: 'budget_over',
         line: l.name,
         month,
-        planned: l.planned,
-        actual: l.actual,
+        currency,
+        planned: money(l.planned),
+        actual: money(l.actual),
       },
       countsTowardCap: true,
     });
