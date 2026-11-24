@@ -308,9 +308,16 @@ async function testAnthropic(
   const unavailableModels = fields.flatMap(({ field, id }) =>
     id !== undefined && result.unavailableModels.includes(id) ? [field] : [],
   );
-  return unavailableModels.length > 0
-    ? { ok: false, message: 'model_unavailable', unavailableModels, incomplete: result.incomplete }
-    : { ok: true, message: 'ok' };
+  if (unavailableModels.length > 0) {
+    return {
+      ok: false,
+      message: 'model_unavailable',
+      unavailableModels,
+      incomplete: result.incomplete,
+    };
+  }
+  // Some model checks could not be completed and none found a missing model: not a success.
+  return result.incomplete ? fail('unavailable') : { ok: true, message: 'ok' };
 }
 
 /** The country of the household's latest bank consent, else Finland (a country Enable Banking lists). */

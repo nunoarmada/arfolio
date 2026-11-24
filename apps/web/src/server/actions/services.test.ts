@@ -395,6 +395,20 @@ describe('services settings actions', () => {
       ).toEqual({ ok: true, data: { ok: true, message: 'ok' } });
     });
 
+    it('anthropic: an incomplete check with no unavailable model is a failure, never success', async () => {
+      await writeInstanceSetting(db, encKey, 'anthropic.apiKey', SECRET, 'owner');
+      const incomplete = vi.fn(async () => ({
+        ok: true as const,
+        unavailableModels: [],
+        incomplete: true,
+      }));
+      expect(
+        await run(() =>
+          runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping: incomplete })),
+        ),
+      ).toEqual({ ok: true, data: { ok: false, message: 'unavailable' } });
+    });
+
     it('bank: lists banks with a client built from the resolved config', async () => {
       await writeInstanceSetting(db, encKey, 'enableBanking.appId', 'app-1', 'owner');
       await writeInstanceSetting(db, encKey, 'enableBanking.privateKey', PEM, 'owner');
