@@ -4,6 +4,25 @@ import { ForbiddenError as SessionForbiddenError, StaleSessionError } from '../s
 import { run, validationReason } from './result';
 
 describe('run', () => {
+  it('carries the code and parameters of a ValidationError into the failure', async () => {
+    expect(
+      await run(async () => {
+        throw new ValidationError(
+          'The PDF statement has too many movements (maximum 200)',
+          [],
+          'pdf_too_long',
+          { max: 200 },
+        );
+      }),
+    ).toEqual({
+      ok: false,
+      code: 'validation',
+      reason: 'pdf_too_long',
+      fields: [],
+      detail: { code: 'pdf_too_long', params: { max: 200 } },
+    });
+  });
+
   it('wraps a value', async () => {
     expect(await run(async () => 42)).toEqual({ ok: true, data: 42 });
   });

@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni.",
+      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni, e legge gli estratti conto in PDF che importi. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
       "apiKey": "Chiave API di Anthropic",
       "apiKeyHint": "Creare una chiave nella console di Anthropic e incollarla qui.",
       "enableHint": "La chiave è configurata. Ogni nucleo familiare sceglie comunque se usare l’IA.",
@@ -833,7 +833,7 @@
       "rate_limited": "Troppi estratti conto PDF nell'ultima ora. Riprovare più tardi.",
       "not_a_pdf": "Il file non è un PDF.",
       "pdf_no_rows": "Nessun movimento trovato in questo PDF.",
-      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta (circa 200). Dividere il PDF e importare ogni parte.",
+      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta (il limite è {max}). Dividere il PDF e importare ogni parte.",
       "ai_unusable": "L'IA non è riuscita a leggere questo estratto conto in modo affidabile. Non è stato importato nulla.",
       "ai_timeout": "Il servizio di IA ha impiegato troppo tempo a rispondere. Riprovare.",
       "ai_unreachable": "Impossibile raggiungere il servizio di IA. Riprovare più tardi.",

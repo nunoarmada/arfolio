@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels et les estimations des biens.",
+      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels et les estimations des biens, et lit les relevés PDF que vous importez. Les relevés sont le seul usage qui envoie des fichiers entiers, et seulement après confirmation de chaque fichier.",
       "apiKey": "Clé d’API Anthropic",
       "apiKeyHint": "Créez une clé dans la console Anthropic et collez-la ici.",
       "enableHint": "La clé est en place. Chaque foyer choisit encore s’il utilise l’IA.",
@@ -833,7 +833,7 @@
       "rate_limited": "Trop de relevés PDF au cours de la dernière heure. Réessayez plus tard.",
       "not_a_pdf": "Le fichier n'est pas un PDF.",
       "pdf_no_rows": "Aucun mouvement n'a été trouvé dans ce PDF.",
-      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois (environ 200). Divisez le PDF et importez chaque partie.",
+      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois (la limite est de {max}). Divisez le PDF et importez chaque partie.",
       "ai_unusable": "L'IA n'a pas pu lire ce relevé de façon fiable. Rien n'a été importé.",
       "ai_timeout": "Le service d'IA a mis trop de temps à répondre. Réessayez.",
       "ai_unreachable": "Le service d'IA n'a pas pu être joint. Réessayez plus tard.",

@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "AI",
-      "description": "Anthropic writes category suggestions, monthly reports and asset valuations.",
+      "description": "Anthropic writes category suggestions, monthly reports and asset valuations, and reads PDF statements you import. Statements are the one use that sends whole files, and only after you confirm each file.",
       "apiKey": "Anthropic API key",
       "apiKeyHint": "Create a key in the Anthropic console and paste it here.",
       "enableHint": "The key is in place. Each household still chooses whether to use AI.",
@@ -833,7 +833,7 @@
       "rate_limited": "Too many PDF statements in the last hour. Try again later.",
       "not_a_pdf": "The file is not a PDF.",
       "pdf_no_rows": "No movements were found in this PDF.",
-      "pdf_too_long": "The statement has too many movements to read at once (about 200). Split the PDF and import each part.",
+      "pdf_too_long": "The statement has too many movements to read at once (the limit is {max}). Split the PDF and import each part.",
       "ai_unusable": "The AI could not read this statement reliably. Nothing was imported.",
       "ai_timeout": "The AI service took too long to answer. Try again.",
       "ai_unreachable": "The AI service could not be reached. Try again later.",

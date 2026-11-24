@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "A Anthropic sugere categorias, escreve os relatórios mensais e estima o valor de bens.",
+      "description": "A Anthropic sugere categorias, escreve os relatórios mensais, estima o valor de bens e lê os extratos em PDF que importa. Os extratos são a única utilização que envia ficheiros inteiros, e só depois de confirmar cada ficheiro.",
       "apiKey": "Chave de API da Anthropic",
       "apiKeyHint": "Crie uma chave na consola da Anthropic e cole-a aqui.",
       "enableHint": "A chave está configurada. Cada agregado continua a escolher se usa IA.",
@@ -833,7 +833,7 @@
       "rate_limited": "Demasiados extratos em PDF na última hora. Tente novamente mais tarde.",
       "not_a_pdf": "O ficheiro não é um PDF.",
       "pdf_no_rows": "Não foram encontrados movimentos neste PDF.",
-      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez (cerca de 200). Divida o PDF e importe cada parte.",
+      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez (o limite é {max}). Divida o PDF e importe cada parte.",
       "ai_unusable": "A IA não conseguiu ler este extrato de forma fiável. Nada foi importado.",
       "ai_timeout": "O serviço de IA demorou demasiado a responder. Tente novamente.",
       "ai_unreachable": "Não foi possível contactar o serviço de IA. Tente novamente mais tarde.",

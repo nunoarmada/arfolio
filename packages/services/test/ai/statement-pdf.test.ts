@@ -76,6 +76,19 @@ const rejects = async (p: Promise<unknown>, message: string) => {
   expect((err as ValidationError).message).toBe(message);
 };
 
+const rejectsTooMany = async (p: Promise<unknown>) => {
+  const err = await p.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(err).toBeInstanceOf(ValidationError);
+  expect((err as ValidationError).message).toBe(
+    `The PDF statement has too many movements (maximum ${MAX_PDF_STATEMENT_ROWS})`,
+  );
+  expect((err as ValidationError).code).toBe('pdf_too_long');
+  expect((err as ValidationError).params).toEqual({ max: MAX_PDF_STATEMENT_ROWS });
+};
+
 const roundTrip = async (csv: string) =>
   applyMapping(await parseFile(Buffer.from(csv), 'x.csv'), PDF_STATEMENT_MAPPING, {
     currency: 'EUR',
@@ -203,19 +216,19 @@ describe('extractPdfStatement', () => {
 
   it('rejects more than the row limit', async () => {
     const t = setup(() => parsed(Array.from({ length: MAX_PDF_STATEMENT_ROWS + 1 }, () => row())));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('rejects an answer cut off at the token limit as too many movements', async () => {
     const t = setup(() => parsed([row()], 'EUR', 'max_tokens'));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('rejects a truncated answer cut off at the token limit as too many movements', async () => {
     const t = setup(() =>
       message([text('{"currency":"EUR","rows":[{"date":"2026-03-')], 'max_tokens'),
     );
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('reads the text block after a thinking block', async () => {
