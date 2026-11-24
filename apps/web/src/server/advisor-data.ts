@@ -67,6 +67,18 @@ export async function loadAdvisorState(ctx: ServiceCtx): Promise<AdvisorState> {
   const cfg = await getIntegrationConfig();
   const keyed = isAiAvailable(cfg);
   const enabled = await loadAiEnabled(ctx);
+  if (!keyed || !enabled) {
+    // Gate closed: the conversation stays stored but is not read, and the profile is not computed.
+    return {
+      available: false,
+      reason: !keyed ? 'no_key' : 'household_off',
+      learning: { ready: false, completeMonths: 0, required: getAdvisorLimits().learningMonths },
+      messages: [],
+      suggestions: [],
+      unreadProactive: false,
+      canApply: ctx.role !== 'viewer',
+    };
+  }
   const [profile, goals, newest, unreadProactive] = await Promise.all([
     loadSpendingProfile(ctx, { learningMonths: getAdvisorLimits().learningMonths }),
     listGoals(ctx),
@@ -74,12 +86,7 @@ export async function loadAdvisorState(ctx: ServiceCtx): Promise<AdvisorState> {
     hasUnreadNotificationOfKind(ctx, ADVISOR_NOTIFICATION_KIND),
   ]);
   return {
-    available: keyed && enabled,
-    ...(!keyed
-      ? { reason: 'no_key' as const }
-      : !enabled
-        ? { reason: 'household_off' as const }
-        : {}),
+    available: true,
     learning: profile.learning,
     messages: newest.reverse(),
     suggestions: pickSuggestions({

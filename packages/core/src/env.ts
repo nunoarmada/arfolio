@@ -156,7 +156,7 @@ export const integrationEnvShape = {
     emptyAsUnset,
     z.coerce.number().int().min(1).max(24).default(3),
   ),
-  /** Proactive advisor proposals per household and week; 0 turns them off. */
+  /** Proactive advisor messages per member and week; 0 turns them off. */
   ADVISOR_WEEKLY_CAP: z.preprocess(emptyAsUnset, z.coerce.number().int().min(0).max(14).default(2)),
   /** Chat messages one member may send to the advisor per day. */
   ADVISOR_DAILY_MESSAGES: z.preprocess(

@@ -78,6 +78,16 @@ describe('loadAdvisorState', () => {
     expect(s).toMatchObject({ available: false, reason: 'household_off' });
   });
 
+  it('reads nothing of the conversation while the gate is closed', async () => {
+    const ctx = await t.member(await t.household({ aiEnabled: false }));
+    await appendMessage(ctx, { role: 'user', origin: 'chat', text: 'kept but hidden' });
+    const s = await loadAdvisorState(ctx);
+    expect(s.available).toBe(false);
+    expect(s.messages).toEqual([]);
+    expect(s.unreadProactive).toBe(false);
+    expect(s.learning).toEqual({ ready: false, completeMonths: 0, required: 3 });
+  });
+
   it("offers the learning suggestions and the member's own messages, oldest first", async () => {
     const hh = await t.household();
     const a = await t.member(hh);

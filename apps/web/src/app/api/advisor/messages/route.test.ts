@@ -92,7 +92,7 @@ describe('POST /api/advisor/messages', () => {
   describe('request origin', () => {
     const ok = async (headers: Record<string, string>, remove: string[] = []) => {
       signIn(await t.member(hh));
-      const all = { 'content-type': 'application/json', ...headers };
+      const all: Record<string, string> = { 'content-type': 'application/json', ...headers };
       for (const name of remove) delete all[name];
       const res = await POST(
         new Request('http://localhost/api/advisor/messages', {
