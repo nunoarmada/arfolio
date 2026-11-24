@@ -26,6 +26,7 @@ beforeEach(() => {
   resolve.mockReset();
   listen.mockReset();
   listen.mockReturnValue({ close: async () => {} });
+  delete (globalThis as Record<symbol, unknown>)[Symbol.for('arfolio.settingsListener')];
   resolve.mockImplementation(async () => integrationConfigFixture());
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -60,5 +61,28 @@ describe('getIntegrationConfig', () => {
     onChange();
     await m.getIntegrationConfig();
     expect(resolve).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps one listener when the module is re-evaluated (dev reload) and closes the old one', async () => {
+    const closes = [vi.fn(async () => {}), vi.fn(async () => {})];
+    listen.mockReturnValueOnce({ close: closes[0] }).mockReturnValueOnce({ close: closes[1] });
+
+    const first = await fresh();
+    await first.getIntegrationConfig();
+    const second = await fresh();
+    await second.getIntegrationConfig();
+    await second.getIntegrationConfig();
+
+    expect(listen).toHaveBeenCalledTimes(2);
+    expect(closes[0]).toHaveBeenCalledTimes(1);
+    expect(closes[1]).not.toHaveBeenCalled();
+
+    // The surviving listener drops the cache of the current module instance.
+    const onChange = listen.mock.calls[1]?.[1] as () => void;
+    await second.getIntegrationConfig();
+    const before = resolve.mock.calls.length;
+    onChange();
+    await second.getIntegrationConfig();
+    expect(resolve.mock.calls.length).toBe(before + 1);
   });
 });

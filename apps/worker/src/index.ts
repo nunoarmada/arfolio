@@ -126,7 +126,7 @@ async function main(): Promise<void> {
     // Jobs that create notifications ask for a prompt delivery when they finish.
     const afterNotify = () => queuePushDelivery(enqueuePush);
     // Integration settings (key, models, portals, bank credentials) are read at each run through
-    // this short cache, so a change saved in the app applies within a minute without a restart.
+    // this short cache, dropped as soon as any process saves a change (listener below).
     // The raw environment is passed: a set env variable still wins over a stored value.
     const configCache = createIntegrationConfigCache(
       () => resolveIntegrationConfig(db, encryptionKey, process.env),

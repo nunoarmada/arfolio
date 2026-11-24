@@ -22,15 +22,24 @@ const cache = createIntegrationConfigCache(
 
 let listening = false;
 
+/** Survives module re-evaluation (`next dev` reloads server modules), unlike a module variable. */
+const LISTENER_KEY = Symbol.for('arfolio.settingsListener');
+type ListenerHolder = { [LISTENER_KEY]?: { close(): Promise<void> } };
+
 /**
  * Other processes (the worker, other web replicas) save settings too: the database announces every
  * change and this process drops its cache, so a removed key stops being used at once. Started on the
- * first read, next to the cache it feeds, so it exists once per process; the TTL stays as a backstop.
+ * first read, next to the cache it feeds; the handle lives on `globalThis` so a re-evaluated module
+ * closes the previous listener instead of leaking it. The TTL stays as a backstop.
  */
 function listenForChanges(): void {
   if (listening) return;
   listening = true;
-  listenForSettingsChanges(getDb().$client, invalidateIntegrationConfig, {
+  const holder = globalThis as ListenerHolder;
+  void holder[LISTENER_KEY]?.close().catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : 'closing the settings listener failed');
+  });
+  holder[LISTENER_KEY] = listenForSettingsChanges(getDb().$client, invalidateIntegrationConfig, {
     onError: (message) => console.error(message),
   });
 }

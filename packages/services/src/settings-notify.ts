@@ -28,6 +28,7 @@ export function listenForSettingsChanges(
   let closed = false;
   let attempt = 0;
   let timer: NodeJS.Timeout | undefined;
+  let stableTimer: NodeJS.Timeout | undefined;
   let drop: (() => void) | undefined; // drops the live connection, if any
   let connecting: Promise<void> = Promise.resolve();
 
@@ -64,6 +65,7 @@ export function listenForSettingsChanges(
     const lose = (message?: string): void => {
       if (lost) return;
       lost = true;
+      clearTimeout(stableTimer);
       if (message) report(message);
       if (drop === lose) drop = undefined;
       c.release(true); // destroy: a dead or half-open connection must not return to the pool
@@ -82,7 +84,10 @@ export function listenForSettingsChanges(
     }
     if (closed) return lose();
     drop = lose;
-    attempt = 0;
+    // Only a connection that stays up resets the backoff; one that dies right after LISTEN keeps it growing.
+    stableTimer = setTimeout(() => {
+      attempt = 0;
+    }, RETRY_MAX_MS);
     notify();
   };
 
@@ -91,7 +96,7 @@ export function listenForSettingsChanges(
   return {
     async close() {
       closed = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
       timer = undefined;
       await connecting;
       drop?.();
