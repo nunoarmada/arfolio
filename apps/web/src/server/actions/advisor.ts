@@ -10,6 +10,7 @@ import {
   deleteNote,
   dismissProposal,
   loadSpendingProfile,
+  markAdvisorOpened,
   markNotificationsReadByKind,
   saveMemberSettings,
   type AdvisorMemberSettings,
@@ -97,10 +98,15 @@ export async function saveAdvisorSettingsAction(
   });
 }
 
-/** The member opened the advisor: their proactive-message notifications count as read. */
+/**
+ * The member opened the advisor: their proactive-message notifications count as read, and
+ * check-ins may start (they never begin before the member has opened the advisor once).
+ */
 export async function markAdvisorSeenAction(): Promise<ActionResult> {
   return run(async () => {
-    await markNotificationsReadByKind(await ctx(), ADVISOR_NOTIFICATION_KIND);
+    const c = await ctx();
+    await markAdvisorOpened(c);
+    await markNotificationsReadByKind(c, ADVISOR_NOTIFICATION_KIND);
     refresh();
     return null;
   });

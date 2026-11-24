@@ -5,6 +5,7 @@ import {
   addNote,
   appendMessage,
   getMemberSettings,
+  hasOpenedAdvisor,
   getProposal,
   listGoals,
   listMessages,
@@ -149,6 +150,13 @@ describe('advisor actions', () => {
         and(eq(notificationRead.notificationId, n!.id), eq(notificationRead.userId, ctx.userId)),
       );
     expect(read).toHaveLength(1);
+  });
+
+  it('records that the member opened the advisor', async () => {
+    const ctx = await as();
+    expect(await hasOpenedAdvisor(ctx)).toBe(false);
+    expect(await markAdvisorSeenAction()).toEqual({ ok: true, data: null });
+    expect(await hasOpenedAdvisor(ctx)).toBe(true);
   });
 
   it('loads older messages, oldest first', async () => {

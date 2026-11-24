@@ -7369,6 +7369,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "opened_at": {
+          "name": "opened_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},

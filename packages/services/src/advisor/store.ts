@@ -314,6 +314,44 @@ export async function saveMemberSettings(
   );
 }
 
+/** Records the first time the member opened the advisor (later calls keep it). */
+export async function markAdvisorOpened(ctx: ServiceCtx): Promise<void> {
+  await withHousehold(ctx.db, ctx.householdId, (tx) =>
+    tx
+      .insert(advisorMemberSettings)
+      .values({ householdId: ctx.householdId, userId: ctx.userId, openedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [advisorMemberSettings.householdId, advisorMemberSettings.userId],
+        set: { openedAt: sql`coalesce(${advisorMemberSettings.openedAt}, now())` },
+      }),
+  );
+}
+
+/**
+ * Whether the member has opened the advisor: they marked it opened, or wrote a message of their
+ * own. Proactive messages never start before this, so the first one is not a surprise.
+ */
+export async function hasOpenedAdvisor(ctx: ServiceCtx): Promise<boolean> {
+  return withHousehold(ctx.db, ctx.householdId, async (tx) => {
+    const [row] = await tx
+      .select({ openedAt: advisorMemberSettings.openedAt })
+      .from(advisorMemberSettings)
+      .where(
+        and(
+          eq(advisorMemberSettings.householdId, ctx.householdId),
+          eq(advisorMemberSettings.userId, ctx.userId),
+        ),
+      );
+    if (row?.openedAt) return true;
+    const [chat] = await tx
+      .select({ id: advisorMessage.id })
+      .from(advisorMessage)
+      .where(and(mine(advisorMessage, ctx), eq(advisorMessage.role, 'user')))
+      .limit(1);
+    return chat !== undefined;
+  });
+}
+
 /** Everything one user has in one household; used when the membership ends. */
 export async function deleteAdvisorDataForUser(
   tx: Tx,

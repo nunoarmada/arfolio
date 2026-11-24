@@ -3,6 +3,7 @@ CREATE TABLE "advisor_member_settings" (
 	"user_id" text NOT NULL,
 	"proactive_enabled" boolean DEFAULT true NOT NULL,
 	"weekly_cap" integer,
+	"opened_at" timestamp with time zone,
 	CONSTRAINT "advisor_member_settings_pk" PRIMARY KEY("household_id","user_id"),
 	CONSTRAINT "advisor_member_settings_weekly_cap_check" CHECK ("advisor_member_settings"."weekly_cap" between 0 and 14)
 );

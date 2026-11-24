@@ -87,6 +87,8 @@ describe('advisor-proactive job', () => {
       aiEnabled?: boolean;
       roles?: Array<'owner' | 'member' | 'viewer'>;
       fresh?: boolean;
+      /** With `fresh`: the members opened the advisor (no message yet), so check-ins may start. */
+      opened?: boolean;
       /** Detected recurring items created `now`. */
       detected?: number;
     } = {},
@@ -119,6 +121,14 @@ describe('advisor-proactive job', () => {
         createdAt: new Date(),
       });
       users[role] = { db, householdId, userId, role };
+      if (over.fresh && over.opened) {
+        await owner.insert(schema.advisorMemberSettings).values({
+          householdId,
+          userId,
+          proactiveEnabled: true,
+          openedAt: new Date(),
+        });
+      }
       if (!over.fresh) {
         await owner.insert(schema.advisorMessage).values({
           householdId,
@@ -224,7 +234,7 @@ describe('advisor-proactive job', () => {
   });
 
   it('sends welcome and learned outside the cap', async () => {
-    const f = await household({ fresh: true, detected: 3 });
+    const f = await household({ fresh: true, opened: true, detected: 3 });
     // Two complete months of data and a one-month learning period: the profile is ready.
     const [account] = await owner
       .insert(schema.financialAccount)
@@ -257,6 +267,20 @@ describe('advisor-proactive job', () => {
     // The household locale and the configured brand reach the model; the key is not a literal brand.
     expect(calls[0]!.system).toContain('pt-PT');
     expect(calls[0]!.system).toContain('Acme Ledger');
+  });
+
+  it('sends nothing to a member who has never opened the advisor', async () => {
+    const f = await household({ roles: ['owner', 'member'], fresh: true, detected: 2 });
+    await owner.insert(schema.advisorMemberSettings).values({
+      householdId: f.householdId,
+      userId: f.users.member!.userId,
+      proactiveEnabled: true,
+      openedAt: new Date(),
+    });
+    const { client } = fakeClient();
+    await runAdvisorProactive(depsFor(client), f.householdId);
+    expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(0);
+    expect((await proactive(f.householdId, f.users.member!.userId)).length).toBeGreaterThan(0);
   });
 
   it('sends no capped message when the member cap is 0', async () => {

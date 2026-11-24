@@ -125,6 +125,8 @@ export const advisorMemberSettings = pgTable(
     proactiveEnabled: boolean('proactive_enabled').notNull().default(true),
     /** Proactive messages per week; null means the instance default. */
     weeklyCap: integer('weekly_cap'),
+    /** First time the member opened the advisor; proactive messages never start before it. */
+    openedAt: timestamp('opened_at', { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.householdId, t.userId], name: 'advisor_member_settings_pk' }),

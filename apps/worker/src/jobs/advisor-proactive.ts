@@ -8,6 +8,7 @@ import {
   detectEvents,
   findAiHouseholds,
   getMemberSettings,
+  hasOpenedAdvisor,
   isAiAvailable,
   loadHouseholdSignals,
   loadSentState,
@@ -21,7 +22,7 @@ import { log } from '../log.js';
 import { QUEUES } from '../queues.js';
 import type { SendWithOptions } from './recurring-detect.js';
 
-/** Daily at 09:00 (household time zone), after the morning sync, detection and budget alerts. */
+/** Once a day at 09:00 in the instance time zone (`TZ`): the event rules run then, not after each sync. */
 export const ADVISOR_PROACTIVE_CRON = '0 9 * * *';
 
 const WEEK_MS = 7 * 86_400_000;
@@ -99,6 +100,8 @@ export async function runAdvisorProactive(
     try {
       const settings = await getMemberSettings(ctx);
       if (!settings.proactiveEnabled) continue;
+      // The first check-in is not a surprise: it waits until the member has opened the advisor.
+      if (!(await hasOpenedAdvisor(ctx))) continue;
       if (signals === undefined) {
         try {
           signals = await loadHouseholdSignals(

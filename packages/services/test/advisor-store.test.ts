@@ -15,8 +15,10 @@ import {
   finishMessage,
   getMemberSettings,
   getProposal,
+  hasOpenedAdvisor,
   listMessages,
   listNotes,
+  markAdvisorOpened,
   messagesToday,
   NotFoundError,
   saveMemberSettings,
@@ -259,6 +261,48 @@ describe('advisor store', () => {
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: false, weeklyCap: 3 });
     await saveMemberSettings(a, { proactiveEnabled: true, weeklyCap: null }, { maxWeeklyCap: 3 });
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
+  });
+
+  describe('opened', () => {
+    it('is false until the member opens the advisor, and stays true after', async () => {
+      const { a, b } = await pair();
+      expect(await hasOpenedAdvisor(a)).toBe(false);
+      await markAdvisorOpened(a);
+      expect(await hasOpenedAdvisor(a)).toBe(true);
+      expect(await hasOpenedAdvisor(b)).toBe(false);
+      // Idempotent: the first time is kept, and the settings are untouched.
+      const first = await t.owner
+        .select({ at: schema.advisorMemberSettings.openedAt })
+        .from(schema.advisorMemberSettings)
+        .where(eq(schema.advisorMemberSettings.userId, a.userId));
+      await markAdvisorOpened(a);
+      const second = await t.owner
+        .select({ at: schema.advisorMemberSettings.openedAt })
+        .from(schema.advisorMemberSettings)
+        .where(eq(schema.advisorMemberSettings.userId, a.userId));
+      expect(second[0]!.at).toEqual(first[0]!.at);
+      expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
+    });
+
+    it('keeps the opened time when the settings are saved', async () => {
+      const { a } = await pair();
+      await markAdvisorOpened(a);
+      await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 }, { maxWeeklyCap: 2 });
+      expect(await hasOpenedAdvisor(a)).toBe(true);
+    });
+
+    it("counts a message the member wrote, but not the advisor's own proactive ones", async () => {
+      const { a, b } = await pair();
+      await appendMessage(a, {
+        role: 'assistant',
+        origin: 'proactive',
+        text: 'hi',
+        eventKey: 'welcome',
+      });
+      expect(await hasOpenedAdvisor(a)).toBe(false);
+      await say(b, 'hello');
+      expect(await hasOpenedAdvisor(b)).toBe(true);
+    });
   });
 
   it("refuses a weekly cap above the installation's", async () => {
