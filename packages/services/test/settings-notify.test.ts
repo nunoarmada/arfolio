@@ -77,6 +77,14 @@ describe('settings change notifications', () => {
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
   });
 
+  it('keeps the trigger function off-limits to PUBLIC (the app role only fires it)', async () => {
+    const { rows } = await t.owner.execute<{ pub: boolean; app: boolean }>(
+      sql`select has_function_privilege('public', 'notify_settings_changed()', 'execute') as pub,
+                 has_function_privilege('pfm_app', 'notify_settings_changed()', 'execute') as app`,
+    );
+    expect(rows).toEqual([{ pub: false, app: false }]);
+  });
+
   it('does not notify for a change that is rolled back', async () => {
     const onChange = vi.fn();
     listen(onChange);
