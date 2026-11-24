@@ -2,6 +2,7 @@ import {
   ChartColumn,
   ChevronRight,
   Landmark,
+  MessageCircle,
   Palette,
   Settings,
   Target,
@@ -13,6 +14,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/page-header';
 import { SignOutButton } from '@/components/sign-out-button';
+import { getBrand } from '@/lib/brand';
+import { loadAdvisorLauncherState } from '@/server/advisor-data';
+import { toServiceCtx } from '@/server/service-ctx';
 import { requireMember } from '@/server/session';
 import { PageContainer } from '@/components/page-container';
 import { Card, IconTile } from '@/components/ui/card';
@@ -23,12 +27,27 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Phones only have five tabs: the rest of the app is one tap away from here. */
 export default async function MorePage() {
-  const [session, t] = await Promise.all([requireMember(await headers()), getTranslations('more')]);
+  const [session, t, advisor] = await Promise.all([
+    requireMember(await headers()),
+    getTranslations('more'),
+    getTranslations('advisor'),
+  ]);
+  const { available } = await loadAdvisorLauncherState(toServiceCtx(session));
   type Row = { href: string; label: string; description: string; Icon: LucideIcon };
   const explore: Row[] = [
     { href: '/accounts', label: t('accounts'), description: t('accountsHelp'), Icon: Landmark },
     { href: '/insights', label: t('insights'), description: t('insightsHelp'), Icon: ChartColumn },
     { href: '/net-worth/goals', label: t('goals'), description: t('goalsHelp'), Icon: Target },
+    ...(available
+      ? [
+          {
+            href: '/advisor',
+            label: advisor('title', { brand: getBrand().name }),
+            description: advisor('moreHelp'),
+            Icon: MessageCircle,
+          },
+        ]
+      : []),
   ];
   const settings: Row[] = [
     { href: '/settings', label: t('settings'), description: t('settingsHelp'), Icon: Settings },

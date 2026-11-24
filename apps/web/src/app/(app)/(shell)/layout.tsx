@@ -2,6 +2,9 @@ import { reviewCount, unreadNotificationCount } from '@arfolio/services';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { Suspense, type ReactNode } from 'react';
+import { AdvisorProvider } from '@/components/advisor/advisor-context';
+import { AdvisorLauncher } from '@/components/advisor/advisor-launcher';
+import { AdvisorWindow } from '@/components/advisor/advisor-window';
 import { BrandMark } from '@/components/brand-mark';
 import { HouseholdFormatProvider } from '@/components/household-format';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -14,7 +17,9 @@ import { SidebarNav, TabBar, type NavItem } from '@/components/shell/nav';
 import { TopBar } from '@/components/shell/top-bar';
 import { UserMenu } from '@/components/shell/user-menu';
 import { getBrand } from '@/lib/brand';
+import { cn } from '@/lib/cn';
 import { readPrivacy } from '@/lib/privacy-cookie';
+import { loadAdvisorLauncherState } from '@/server/advisor-data';
 import { loadHouseholdFormat } from '@/server/household-format';
 import { toServiceCtx } from '@/server/service-ctx';
 import { requireMember } from '@/server/session';
@@ -27,7 +32,7 @@ import { requireMember } from '@/server/session';
 export default async function ShellLayout({ children }: { children: ReactNode }) {
   const ctx = await requireMember(await headers());
   const service = toServiceCtx(ctx);
-  const [t, nav, review, brand, format, waiting, unread, hidden] = await Promise.all([
+  const [t, nav, review, brand, format, waiting, unread, hidden, advisor] = await Promise.all([
     getTranslations('shell'),
     getTranslations('nav'),
     getTranslations('review'),
@@ -36,6 +41,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
     reviewCount(service),
     unreadNotificationCount(service),
     readPrivacy(),
+    loadAdvisorLauncherState(service),
   ]);
   // Later phases add more sections (never shown disabled).
   const home: NavItem = { href: '/', label: nav('home'), icon: 'home' };
@@ -67,7 +73,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
       href: '/more',
       label: nav('more'),
       icon: 'more',
-      also: ['/accounts', '/connections', '/insights', '/settings'],
+      also: ['/accounts', '/connections', '/insights', '/settings', '/advisor'],
     },
   ];
 
@@ -83,38 +89,53 @@ export default async function ShellLayout({ children }: { children: ReactNode })
     <HouseholdFormatProvider value={format}>
       <PrivacyProvider initialHidden={hidden}>
         <ShellProvider value={{ unread }}>
-          <div className="min-h-dvh md:flex">
-            <aside className="sticky top-0 z-20 hidden h-dvh w-[var(--sidebar-width-collapsed)] shrink-0 flex-col gap-4 border-r bg-sidebar p-3 md:flex xl:w-[var(--sidebar-width)] xl:p-4">
-              <BrandMark
-                brand={brand}
-                className="min-h-11 justify-center xl:justify-start xl:px-1 max-xl:[&>span:last-child]:sr-only"
-              />
-              <SidebarNav items={main} label={t('navMain')} />
-              <div className="mt-auto grid grid-cols-1 gap-3">
-                <div className="grid grid-cols-1 gap-1">
-                  {syncAll('sidebar')}
-                  <PrivacyToggle variant="sidebar" />
-                  <NotificationBell unread={unread} variant="sidebar" />
-                  <SidebarNav items={settings} label={t('navSettings')} />
+          <AdvisorProvider
+            available={advisor.available}
+            unreadProactive={advisor.unreadProactive}
+            canApply={ctx.role !== 'viewer'}
+            isOwner={ctx.role === 'owner'}
+            brandName={brand.name}
+          >
+            <div className="min-h-dvh md:flex">
+              <aside className="sticky top-0 z-20 hidden h-dvh w-[var(--sidebar-width-collapsed)] shrink-0 flex-col gap-4 border-r bg-sidebar p-3 md:flex xl:w-[var(--sidebar-width)] xl:p-4">
+                <BrandMark
+                  brand={brand}
+                  className="min-h-11 justify-center xl:justify-start xl:px-1 max-xl:[&>span:last-child]:sr-only"
+                />
+                <SidebarNav items={main} label={t('navMain')} />
+                <div className="mt-auto grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-1">
+                    {syncAll('sidebar')}
+                    <PrivacyToggle variant="sidebar" />
+                    <NotificationBell unread={unread} variant="sidebar" />
+                    <SidebarNav items={settings} label={t('navSettings')} />
+                  </div>
+                  <UserMenu name={ctx.user.name} email={ctx.user.email} />
                 </div>
-                <UserMenu name={ctx.user.name} email={ctx.user.email} />
+              </aside>
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopBar brand={brand} sync={syncAll('topbar')} />
+                <OfflineBanner />
+                <main
+                  id="main"
+                  tabIndex={-1}
+                  className={cn(
+                    'min-w-0 flex-1 px-4 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+1.5rem)] pt-4 outline-none md:px-6 md:py-6 xl:px-8 xl:py-8 2xl:px-10',
+                    // Room under the last row for the launcher that floats above the tab bar.
+                    advisor.available &&
+                      'max-md:pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+5.5rem)]',
+                  )}
+                >
+                  {children}
+                </main>
               </div>
-            </aside>
 
-            <div className="flex min-w-0 flex-1 flex-col">
-              <TopBar brand={brand} sync={syncAll('topbar')} />
-              <OfflineBanner />
-              <main
-                id="main"
-                tabIndex={-1}
-                className="min-w-0 flex-1 px-4 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+1.5rem)] pt-4 outline-none md:px-6 md:py-6 xl:px-8 xl:py-8 2xl:px-10"
-              >
-                {children}
-              </main>
+              <TabBar items={tabs} label={t('navMain')} />
+              <AdvisorLauncher />
+              <AdvisorWindow />
             </div>
-
-            <TabBar items={tabs} label={t('navMain')} />
-          </div>
+          </AdvisorProvider>
         </ShellProvider>
       </PrivacyProvider>
     </HouseholdFormatProvider>

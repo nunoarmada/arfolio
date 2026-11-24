@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic redacta las sugerencias de categorías, los informes mensuales y las valoraciones de bienes.",
+      "description": "Anthropic redacta las sugerencias de categorías, los informes mensuales, las valoraciones de bienes y las respuestas del asesor.",
       "apiKey": "Clave de API de Anthropic",
       "apiKeyHint": "Cree una clave en la consola de Anthropic y péguela aquí.",
       "enableHint": "La clave está configurada. Cada hogar decide aún si usa la IA.",
@@ -451,7 +451,7 @@
       "importModel": "Modelo para importar extractos",
       "valuationModelHint": "Estima el valor de bienes como inmuebles y vehículos.",
       "importModelHint": "Lee extractos en PDF en el asistente de importación.",
-      "removeWarning": "Las categorías, los informes, las valoraciones y la importación de extractos en PDF con IA dejarán de funcionar hasta que vuelva a añadir una clave.",
+      "removeWarning": "Las categorías, los informes, las valoraciones, la importación de extractos en PDF y el asesor con IA dejarán de funcionar hasta que vuelva a añadir una clave.",
       "test": "Probar la clave de API"
     },
     "portals": {
@@ -2109,6 +2109,130 @@
     "goalsHelp": "Ahorro con una meta y una fecha prevista",
     "insights": "Análisis",
     "insightsHelp": "Adónde va el dinero y cómo cambia"
+  },
+  "advisor": {
+    "title": "Asesor de {brand}",
+    "open": "Abrir asesor",
+    "unread": "Abrir asesor, mensaje nuevo",
+    "status": "Disponible",
+    "thinking": "Pensando…",
+    "menu": "Menú del asesor",
+    "minimise": "Minimizar asesor",
+    "openFullPage": "Abrir el asesor a pantalla completa",
+    "conversation": "Conversación con el asesor",
+    "loadEarlier": "Cargar mensajes anteriores",
+    "loadingEarlier": "Cargando…",
+    "newMessages": "Mensajes nuevos",
+    "speakerYou": "Tú",
+    "speakerAdvisor": "Asesor",
+    "proactive": "Aviso",
+    "loading": "Cargando la conversación…",
+    "loadError": "No se pudo cargar la conversación.",
+    "privacyReveal": "Los importes están ocultos, así que esta respuesta también. Selecciónala para mostrarla.",
+    "moreHelp": "Pregunta por tus gastos, presupuesto y objetivos",
+    "tools": {
+      "default": "Consultando tus datos…",
+      "budget": "Mirando tu presupuesto…",
+      "netWorth": "Consultando tu patrimonio…",
+      "accounts": "Consultando tus cuentas…",
+      "transactions": "Revisando tus movimientos…",
+      "spending": "Revisando tus gastos habituales…",
+      "goals": "Mirando tus objetivos…",
+      "propose": "Preparando una sugerencia…",
+      "note": "Tomando nota…"
+    },
+    "error": {
+      "busy": "Sigo respondiendo a tu último mensaje.",
+      "dailyLimit": "Has alcanzado el límite de mensajes de hoy. Se restablece mañana.",
+      "unavailable": "No he podido responder ahora mismo.",
+      "retry": "Reintentar"
+    },
+    "proposal": {
+      "label": "Sugerencia",
+      "summary": {
+        "goalCreate": "Crear el objetivo «{name}»",
+        "goalCreateTarget": "Crear el objetivo «{name}» con una meta de {amount}",
+        "goalUpdate": "Actualizar un objetivo",
+        "goalUpdateTarget": "Fijar la meta de un objetivo en {amount}",
+        "goalUpdateMonthly": "Fijar el ahorro mensual de un objetivo en {amount}",
+        "budgetLine": "Fijar una partida del presupuesto en {amount} al mes desde {month}",
+        "ruleCreate": "Crear la regla «{name}»",
+        "categorise": "Cambiar la categoría de un movimiento"
+      },
+      "basis": "{months, plural, one {Último mes} other {Últimos # meses}}: {min}–{max}, mediana {median}",
+      "applied": "Aplicada",
+      "appliedToast": "Aplicada",
+      "dismissed": "Descartada",
+      "stale": "Desactualizada",
+      "staleHelp": "Tus datos han cambiado desde esta sugerencia. Vuelve a preguntar.",
+      "viewerNote": "Solo los propietarios y los miembros pueden aplicar esto.",
+      "notAcceptable": "Esto ya no encaja con tus datos. Vuelve a preguntar al asesor.",
+      "alreadyResolved": "Esta sugerencia ya se ha tratado."
+    },
+    "suggestions": {
+      "label": "Preguntas sugeridas",
+      "howThisMonth": "¿Cómo va este mes?",
+      "whereSave": "¿Dónde puedo ahorrar?",
+      "emergencyFund": "¿Qué tamaño debería tener mi fondo de emergencia?",
+      "setGoal": "Ayúdame a fijar un objetivo de ahorro",
+      "whatLearned": "¿Qué has aprendido de mis gastos hasta ahora?",
+      "reviewGoals": "¿Cómo van mis objetivos?"
+    },
+    "learning": {
+      "title": "Aún estoy conociendo tus hábitos",
+      "body": "{completeMonths} de {required} meses de datos. Hasta entonces no sugeriré importes.",
+      "meter": "Meses de datos recogidos"
+    },
+    "empty": {
+      "title": "Pregunta por tu dinero",
+      "body": "Puedo revisar tus gastos, tu presupuesto y tus objetivos. No cambio nada sin tu visto bueno."
+    },
+    "off": {
+      "title": "La IA está desactivada en este hogar",
+      "owner": "Activa la IA en los ajustes del hogar para usar el asesor.",
+      "member": "Pide al propietario del hogar que la active.",
+      "action": "Abrir ajustes de IA"
+    },
+    "notConfigured": {
+      "title": "El asesor aún no está configurado",
+      "owner": "Elige un modelo para el asesor en los ajustes de servicios.",
+      "member": "Pide al propietario del hogar que termine la configuración.",
+      "action": "Abrir ajustes de servicios"
+    },
+    "composer": {
+      "label": "Mensaje para el asesor",
+      "placeholder": "Haz una pregunta",
+      "hint": "El asesor puede equivocarse. Compruébalo antes de aplicar."
+    },
+    "send": "Enviar mensaje",
+    "menuSettings": "Ajustes del asesor",
+    "menuNotes": "Notas",
+    "menuClear": "Borrar historial",
+    "settings": {
+      "title": "Ajustes del asesor",
+      "proactive": "Mensajes proactivos",
+      "proactiveHelp": "Deja que el asesor escriba primero cuando vea algo que merezca atención.",
+      "weeklyCap": "Máximo por semana",
+      "weeklyCapOption": "{count, plural, one {# mensaje} other {# mensajes}}",
+      "saved": "Ajustes guardados"
+    },
+    "notes": {
+      "title": "Notas",
+      "empty": "Aún no hay notas. Lo que me pidas recordar aparecerá aquí.",
+      "delete": "Eliminar nota: {text}",
+      "deleted": "Nota eliminada"
+    },
+    "clear": {
+      "title": "¿Borrar el historial de la conversación?",
+      "body": "Se eliminarán tus mensajes con el asesor y sus notas. Los cambios que ya aplicaste y tus objetivos se mantienen.",
+      "confirm": "Borrar historial",
+      "done": "Historial borrado"
+    },
+    "home": {
+      "empty": "Pregunta al asesor por tus gastos, tu presupuesto o tus objetivos.",
+      "open": "Abrir",
+      "error": "No se pudo cargar el asesor."
+    }
   },
   "budgetYear": {
     "title": "Año presupuestario",

@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "AI",
-      "description": "Anthropic writes category suggestions, monthly reports and asset valuations.",
+      "description": "Anthropic writes category suggestions, monthly reports, asset valuations and advisor answers.",
       "apiKey": "Anthropic API key",
       "apiKeyHint": "Create a key in the Anthropic console and paste it here.",
       "enableHint": "The key is in place. Each household still chooses whether to use AI.",
@@ -451,7 +451,7 @@
       "importModel": "Statement import model",
       "valuationModelHint": "Estimates the value of assets such as property and vehicles.",
       "importModelHint": "Reads PDF statements in the import wizard.",
-      "removeWarning": "AI categories, reports, valuations and PDF statement import stop working until you add a key again.",
+      "removeWarning": "AI categories, reports, valuations, PDF statement import and the advisor stop working until you add a key again.",
       "test": "Test API key"
     },
     "portals": {
@@ -2109,6 +2109,130 @@
     "goalsHelp": "Savings with a target and an expected date",
     "insights": "Insights",
     "insightsHelp": "Where the money goes and how it changes"
+  },
+  "advisor": {
+    "title": "{brand} advisor",
+    "open": "Open advisor",
+    "unread": "Open advisor, new message",
+    "status": "Ready",
+    "thinking": "Thinking…",
+    "menu": "Advisor menu",
+    "minimise": "Minimise advisor",
+    "openFullPage": "Open the advisor as a full page",
+    "conversation": "Conversation with the advisor",
+    "loadEarlier": "Load earlier messages",
+    "loadingEarlier": "Loading…",
+    "newMessages": "New messages",
+    "speakerYou": "You",
+    "speakerAdvisor": "Advisor",
+    "proactive": "Check-in",
+    "loading": "Loading the conversation…",
+    "loadError": "The conversation couldn't load.",
+    "privacyReveal": "Amounts are hidden, so this reply is too. Select to show it.",
+    "moreHelp": "Ask about your spending, budget and goals",
+    "tools": {
+      "default": "Checking your data…",
+      "budget": "Looking at your budget…",
+      "netWorth": "Checking your net worth…",
+      "accounts": "Checking your accounts…",
+      "transactions": "Looking through your transactions…",
+      "spending": "Checking your usual spending…",
+      "goals": "Looking at your goals…",
+      "propose": "Preparing a suggestion…",
+      "note": "Making a note…"
+    },
+    "error": {
+      "busy": "Still answering your last message.",
+      "dailyLimit": "You've reached today's message limit. It resets tomorrow.",
+      "unavailable": "The advisor couldn't answer right now.",
+      "retry": "Retry"
+    },
+    "proposal": {
+      "label": "Suggestion",
+      "summary": {
+        "goalCreate": "Create the goal “{name}”",
+        "goalCreateTarget": "Create the goal “{name}” with a target of {amount}",
+        "goalUpdate": "Update a goal",
+        "goalUpdateTarget": "Set a goal's target to {amount}",
+        "goalUpdateMonthly": "Set a goal's monthly saving to {amount}",
+        "budgetLine": "Set a budget line to {amount} a month from {month}",
+        "ruleCreate": "Create the rule “{name}”",
+        "categorise": "Change the category of a transaction"
+      },
+      "basis": "{months, plural, one {Last month} other {Last # months}}: {min}–{max}, median {median}",
+      "applied": "Applied",
+      "appliedToast": "Applied",
+      "dismissed": "Dismissed",
+      "stale": "Out of date",
+      "staleHelp": "Your data changed since this was suggested. Ask again.",
+      "viewerNote": "Only owners and members can apply this.",
+      "notAcceptable": "This no longer fits your data. Ask the advisor again.",
+      "alreadyResolved": "This suggestion was already handled."
+    },
+    "suggestions": {
+      "label": "Suggested questions",
+      "howThisMonth": "How is this month going?",
+      "whereSave": "Where could I save money?",
+      "emergencyFund": "How big should my emergency fund be?",
+      "setGoal": "Help me set a savings goal",
+      "whatLearned": "What have you learned about my spending so far?",
+      "reviewGoals": "How are my goals doing?"
+    },
+    "learning": {
+      "title": "Still learning your patterns",
+      "body": "{completeMonths} of {required} months of data. I won't suggest amounts until then.",
+      "meter": "Months of data collected"
+    },
+    "empty": {
+      "title": "Ask about your money",
+      "body": "I can look at your spending, budget and goals. I never change anything without your OK."
+    },
+    "off": {
+      "title": "AI is off for this household",
+      "owner": "Turn on AI in the household settings to use the advisor.",
+      "member": "Ask the household owner to turn it on.",
+      "action": "Open AI settings"
+    },
+    "notConfigured": {
+      "title": "The advisor isn't set up yet",
+      "owner": "Choose a model for the advisor in the services settings.",
+      "member": "Ask the household owner to finish the setup.",
+      "action": "Open services settings"
+    },
+    "composer": {
+      "label": "Message to the advisor",
+      "placeholder": "Ask a question",
+      "hint": "The advisor can be wrong. Check before applying."
+    },
+    "send": "Send message",
+    "menuSettings": "Advisor settings",
+    "menuNotes": "Notes",
+    "menuClear": "Clear history",
+    "settings": {
+      "title": "Advisor settings",
+      "proactive": "Proactive messages",
+      "proactiveHelp": "Let the advisor write first when it notices something worth a look.",
+      "weeklyCap": "At most per week",
+      "weeklyCapOption": "{count, plural, one {# message} other {# messages}}",
+      "saved": "Settings saved"
+    },
+    "notes": {
+      "title": "Notes",
+      "empty": "No notes yet. Things you ask me to remember appear here.",
+      "delete": "Delete note: {text}",
+      "deleted": "Note deleted"
+    },
+    "clear": {
+      "title": "Clear the conversation history?",
+      "body": "This deletes your messages with the advisor and its notes. Changes you already applied and your goals stay.",
+      "confirm": "Clear history",
+      "done": "History cleared"
+    },
+    "home": {
+      "empty": "Ask the advisor about your spending, budget or goals.",
+      "open": "Open",
+      "error": "Couldn't load the advisor."
+    }
   },
   "budgetYear": {
     "title": "Budget year",

@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels et les estimations des biens.",
+      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels, les estimations des biens et les réponses du conseiller.",
       "apiKey": "Clé d’API Anthropic",
       "apiKeyHint": "Créez une clé dans la console Anthropic et collez-la ici.",
       "enableHint": "La clé est en place. Chaque foyer choisit encore s’il utilise l’IA.",
@@ -451,7 +451,7 @@
       "importModel": "Modèle pour l’import de relevés",
       "valuationModelHint": "Estime la valeur de biens tels que l’immobilier et les véhicules.",
       "importModelHint": "Lit les relevés PDF dans l’assistant d’import.",
-      "removeWarning": "Les catégories, rapports, estimations et l’import de relevés PDF par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
+      "removeWarning": "Les catégories, rapports, estimations, l’import de relevés PDF et le conseiller par IA cesseront de fonctionner tant que vous n’aurez pas ajouté une clé.",
       "test": "Tester la clé d’API"
     },
     "portals": {
@@ -2109,6 +2109,130 @@
     "goalsHelp": "Épargne avec un montant cible et une date prévue",
     "insights": "Analyses",
     "insightsHelp": "Où va l’argent et comment cela évolue"
+  },
+  "advisor": {
+    "title": "Conseiller {brand}",
+    "open": "Ouvrir le conseiller",
+    "unread": "Ouvrir le conseiller, nouveau message",
+    "status": "Disponible",
+    "thinking": "Réflexion…",
+    "menu": "Menu du conseiller",
+    "minimise": "Réduire le conseiller",
+    "openFullPage": "Ouvrir le conseiller en pleine page",
+    "conversation": "Conversation avec le conseiller",
+    "loadEarlier": "Charger les messages précédents",
+    "loadingEarlier": "Chargement…",
+    "newMessages": "Nouveaux messages",
+    "speakerYou": "Vous",
+    "speakerAdvisor": "Conseiller",
+    "proactive": "Point de situation",
+    "loading": "Chargement de la conversation…",
+    "loadError": "La conversation n’a pas pu être chargée.",
+    "privacyReveal": "Les montants sont masqués, cette réponse l’est donc aussi. Sélectionnez-la pour l’afficher.",
+    "moreHelp": "Posez vos questions sur vos dépenses, votre budget et vos objectifs",
+    "tools": {
+      "default": "Consultation de vos données…",
+      "budget": "Examen de votre budget…",
+      "netWorth": "Consultation de votre patrimoine…",
+      "accounts": "Consultation de vos comptes…",
+      "transactions": "Examen de vos opérations…",
+      "spending": "Examen de vos dépenses habituelles…",
+      "goals": "Examen de vos objectifs…",
+      "propose": "Préparation d’une suggestion…",
+      "note": "Prise de note…"
+    },
+    "error": {
+      "busy": "Je réponds encore à votre dernier message.",
+      "dailyLimit": "Vous avez atteint la limite de messages d’aujourd’hui. Elle sera réinitialisée demain.",
+      "unavailable": "Je n’ai pas pu répondre pour le moment.",
+      "retry": "Réessayer"
+    },
+    "proposal": {
+      "label": "Suggestion",
+      "summary": {
+        "goalCreate": "Créer l’objectif « {name} »",
+        "goalCreateTarget": "Créer l’objectif « {name} » avec un montant cible de {amount}",
+        "goalUpdate": "Mettre à jour un objectif",
+        "goalUpdateTarget": "Fixer le montant cible d’un objectif à {amount}",
+        "goalUpdateMonthly": "Fixer l’épargne mensuelle d’un objectif à {amount}",
+        "budgetLine": "Fixer une ligne du budget à {amount} par mois à partir de {month}",
+        "ruleCreate": "Créer la règle « {name} »",
+        "categorise": "Changer la catégorie d’une opération"
+      },
+      "basis": "{months, plural, one {Dernier mois} other {# derniers mois}} : {min}–{max}, médiane {median}",
+      "applied": "Appliquée",
+      "appliedToast": "Appliquée",
+      "dismissed": "Ignorée",
+      "stale": "Périmée",
+      "staleHelp": "Vos données ont changé depuis cette suggestion. Posez de nouveau la question.",
+      "viewerNote": "Seuls les propriétaires et les membres peuvent l’appliquer.",
+      "notAcceptable": "Cela ne correspond plus à vos données. Posez de nouveau la question au conseiller.",
+      "alreadyResolved": "Cette suggestion a déjà été traitée."
+    },
+    "suggestions": {
+      "label": "Questions suggérées",
+      "howThisMonth": "Comment se passe ce mois-ci ?",
+      "whereSave": "Où puis-je économiser ?",
+      "emergencyFund": "Quelle taille doit avoir mon fonds d’urgence ?",
+      "setGoal": "Aidez-moi à fixer un objectif d’épargne",
+      "whatLearned": "Qu’avez-vous appris de mes dépenses jusqu’ici ?",
+      "reviewGoals": "Où en sont mes objectifs ?"
+    },
+    "learning": {
+      "title": "Je découvre encore vos habitudes",
+      "body": "{completeMonths} mois de données sur {required}. D’ici là, je ne proposerai pas de montants.",
+      "meter": "Mois de données recueillis"
+    },
+    "empty": {
+      "title": "Posez vos questions sur votre argent",
+      "body": "Je peux examiner vos dépenses, votre budget et vos objectifs. Je ne change rien sans votre accord."
+    },
+    "off": {
+      "title": "L’IA est désactivée pour ce foyer",
+      "owner": "Activez l’IA dans les réglages du foyer pour utiliser le conseiller.",
+      "member": "Demandez au propriétaire du foyer de l’activer.",
+      "action": "Ouvrir les réglages de l’IA"
+    },
+    "notConfigured": {
+      "title": "Le conseiller n’est pas encore configuré",
+      "owner": "Choisissez un modèle pour le conseiller dans les réglages des services.",
+      "member": "Demandez au propriétaire du foyer de terminer la configuration.",
+      "action": "Ouvrir les réglages des services"
+    },
+    "composer": {
+      "label": "Message au conseiller",
+      "placeholder": "Posez une question",
+      "hint": "Le conseiller peut se tromper. Vérifiez avant d’appliquer."
+    },
+    "send": "Envoyer le message",
+    "menuSettings": "Réglages du conseiller",
+    "menuNotes": "Notes",
+    "menuClear": "Effacer l’historique",
+    "settings": {
+      "title": "Réglages du conseiller",
+      "proactive": "Messages proactifs",
+      "proactiveHelp": "Laissez le conseiller écrire le premier quand il remarque quelque chose qui mérite un coup d’œil.",
+      "weeklyCap": "Maximum par semaine",
+      "weeklyCapOption": "{count, plural, one {# message} other {# messages}}",
+      "saved": "Réglages enregistrés"
+    },
+    "notes": {
+      "title": "Notes",
+      "empty": "Aucune note pour l’instant. Ce que vous me demandez de retenir apparaît ici.",
+      "delete": "Supprimer la note : {text}",
+      "deleted": "Note supprimée"
+    },
+    "clear": {
+      "title": "Effacer l’historique de la conversation ?",
+      "body": "Cela supprime vos messages avec le conseiller et ses notes. Les changements déjà appliqués et vos objectifs sont conservés.",
+      "confirm": "Effacer l’historique",
+      "done": "Historique effacé"
+    },
+    "home": {
+      "empty": "Posez vos questions au conseiller sur vos dépenses, votre budget ou vos objectifs.",
+      "open": "Ouvrir",
+      "error": "Le conseiller n’a pas pu être chargé."
+    }
   },
   "budgetYear": {
     "title": "Année budgétaire",

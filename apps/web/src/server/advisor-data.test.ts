@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { schema } from '@arfolio/db';
-import { appendMessage } from '@arfolio/services';
+import { addNote, appendMessage, saveMemberSettings } from '@arfolio/services';
 import { startAdvisorTestDb, type AdvisorTestDb } from '../advisor-test-utils';
 import { integrationConfigFixture } from '../test-utils';
 
@@ -16,7 +16,13 @@ vi.mock('../lib/env', () => ({
 }));
 vi.mock('./integration-config', () => ({ getIntegrationConfig: async () => state.cfg }));
 
-import { loadAdvisorState, loadOlderAdvisorMessages, pickSuggestions } from './advisor-data';
+import {
+  loadAdvisorLauncherState,
+  loadAdvisorPanel,
+  loadAdvisorState,
+  loadOlderAdvisorMessages,
+  pickSuggestions,
+} from './advisor-data';
 
 const learning = { ready: false, completeMonths: 0, required: 3 };
 const ready = { ready: true, completeMonths: 6, required: 3 };
@@ -113,5 +119,68 @@ describe('loadAdvisorState', () => {
     expect(first.messages.at(-1)!.text).toBe('m34');
     const older = await loadOlderAdvisorMessages(ctx, first.messages[0]!.id);
     expect(older.map((m) => m.text)).toEqual(['m0', 'm1', 'm2', 'm3', 'm4']);
+  });
+});
+
+describe('loadAdvisorLauncherState', () => {
+  let t: AdvisorTestDb;
+  beforeAll(async () => {
+    t = await startAdvisorTestDb();
+    state.db = t.db;
+  });
+  afterAll(() => t.close());
+  beforeEach(() => {
+    state.cfg = integrationConfigFixture({ anthropicApiKey: 'sk-ant-e2e-fake-key-1' });
+  });
+
+  it('is closed without a key or when the household switched AI off', async () => {
+    state.cfg = integrationConfigFixture();
+    const noKey = await t.member(await t.household());
+    expect(await loadAdvisorLauncherState(noKey)).toEqual({
+      available: false,
+      unreadProactive: false,
+    });
+    state.cfg = integrationConfigFixture({ anthropicApiKey: 'sk-ant-e2e-fake-key-1' });
+    const off = await t.member(await t.household({ aiEnabled: false }));
+    expect(await loadAdvisorLauncherState(off)).toEqual({
+      available: false,
+      unreadProactive: false,
+    });
+  });
+
+  it('is open with a key and AI on, and reports an unread check-in for that member only', async () => {
+    const hh = await t.household();
+    const a = await t.member(hh);
+    const b = await t.member(hh);
+    expect(await loadAdvisorLauncherState(a)).toEqual({ available: true, unreadProactive: false });
+    await t.owner
+      .insert(schema.notification)
+      .values({ householdId: hh, userId: a.userId, kind: 'advisor_message', payload: {} });
+    expect(await loadAdvisorLauncherState(a)).toEqual({ available: true, unreadProactive: true });
+    expect(await loadAdvisorLauncherState(b)).toEqual({ available: true, unreadProactive: false });
+  });
+});
+
+describe('loadAdvisorPanel', () => {
+  let t: AdvisorTestDb;
+  beforeAll(async () => {
+    t = await startAdvisorTestDb();
+    state.db = t.db;
+  });
+  afterAll(() => t.close());
+
+  it("returns the member's own notes and settings with the installation's weekly cap", async () => {
+    const hh = await t.household();
+    const a = await t.member(hh);
+    const b = await t.member(hh);
+    const note = await addNote(a, 'Prefers short answers');
+    await addNote(b, 'Not mine');
+    expect(await loadAdvisorPanel(a)).toEqual({
+      notes: [{ id: note.id, text: 'Prefers short answers' }],
+      settings: { proactiveEnabled: true, weeklyCap: null },
+      weeklyCapDefault: 2,
+    });
+    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 });
+    expect((await loadAdvisorPanel(a)).settings).toEqual({ proactiveEnabled: false, weeklyCap: 1 });
   });
 });

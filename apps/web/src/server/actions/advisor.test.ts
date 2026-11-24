@@ -13,13 +13,23 @@ import {
   type ServiceCtx,
 } from '@arfolio/services';
 import { startAdvisorTestDb, type AdvisorTestDb } from '../../advisor-test-utils';
+import { integrationConfigFixture } from '../../test-utils';
 
-const state = vi.hoisted(() => ({ ctx: undefined as unknown, revalidated: [] as unknown[][] }));
+const state = vi.hoisted(() => ({
+  ctx: undefined as unknown,
+  db: undefined as unknown,
+  revalidated: [] as unknown[][],
+}));
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => state.revalidated.push(args),
 }));
+vi.mock('../../lib/db', () => ({ getDb: () => state.db }));
 vi.mock('../service-ctx', () => ({ getServiceCtx: async () => state.ctx }));
+vi.mock('../integration-config', () => ({
+  getIntegrationConfig: async () =>
+    integrationConfigFixture({ anthropicApiKey: 'sk-ant-e2e-fake-key-1' }),
+}));
 vi.mock('../../lib/env', () => ({
   getEnv: () => ({
     ADVISOR_LEARNING_MONTHS: 3,
@@ -34,6 +44,8 @@ import {
   clearAdvisorHistoryAction,
   deleteAdvisorNoteAction,
   dismissAdvisorProposalAction,
+  loadAdvisorPanelAction,
+  loadAdvisorStateAction,
   loadOlderAdvisorMessagesAction,
   markAdvisorSeenAction,
   saveAdvisorSettingsAction,
@@ -44,6 +56,7 @@ describe('advisor actions', () => {
   let hh: string;
   beforeAll(async () => {
     t = await startAdvisorTestDb();
+    state.db = t.db;
     hh = await t.household();
   });
   afterAll(() => t.close());
@@ -143,5 +156,29 @@ describe('advisor actions', () => {
     const newest = await listMessages(ctx, { limit: 1 });
     const result = await loadOlderAdvisorMessagesAction(newest[0]!.id);
     expect(result.ok && result.data.map((m) => m.text)).toEqual(['a', 'b']);
+  });
+
+  it("loads the member's advisor state for the window, with whether they may apply", async () => {
+    const owner = await as();
+    await appendMessage(owner, { role: 'user', origin: 'chat', text: 'hello' });
+    const result = await loadAdvisorStateAction();
+    expect(result.ok && result.data).toMatchObject({ available: true, canApply: true });
+    expect(result.ok && result.data.messages.map((m) => m.text)).toEqual(['hello']);
+    await as('viewer');
+    const viewer = await loadAdvisorStateAction();
+    expect(viewer.ok && viewer.data.canApply).toBe(false);
+  });
+
+  it("loads the member's notes and settings for the panel", async () => {
+    const ctx = await as();
+    const note = await addNote(ctx, 'Prefers short answers');
+    expect(await loadAdvisorPanelAction()).toEqual({
+      ok: true,
+      data: {
+        notes: [{ id: note.id, text: 'Prefers short answers' }],
+        settings: { proactiveEnabled: true, weeklyCap: null },
+        weeklyCapDefault: 2,
+      },
+    });
   });
 });

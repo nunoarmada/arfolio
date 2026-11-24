@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni.",
+      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili, le valutazioni dei beni e le risposte del consulente.",
       "apiKey": "Chiave API di Anthropic",
       "apiKeyHint": "Creare una chiave nella console di Anthropic e incollarla qui.",
       "enableHint": "La chiave è configurata. Ogni nucleo familiare sceglie comunque se usare l’IA.",
@@ -451,7 +451,7 @@
       "importModel": "Modello per l’importazione degli estratti conto",
       "valuationModelHint": "Stima il valore di beni come immobili e veicoli.",
       "importModelHint": "Legge gli estratti conto PDF nella procedura guidata di importazione.",
-      "removeWarning": "Categorie, report, valutazioni e importazione di estratti conto PDF con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
+      "removeWarning": "Categorie, report, valutazioni, importazione di estratti conto PDF e consulente con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
       "test": "Verifica la chiave API"
     },
     "portals": {
@@ -2109,6 +2109,130 @@
     "goalsHelp": "Risparmi con un traguardo e una data prevista",
     "insights": "Analisi",
     "insightsHelp": "Dove va il denaro e come cambia"
+  },
+  "advisor": {
+    "title": "Consulente {brand}",
+    "open": "Apri il consulente",
+    "unread": "Apri il consulente, nuovo messaggio",
+    "status": "Disponibile",
+    "thinking": "Sto pensando…",
+    "menu": "Menu del consulente",
+    "minimise": "Riduci il consulente",
+    "openFullPage": "Apri il consulente a pagina intera",
+    "conversation": "Conversazione con il consulente",
+    "loadEarlier": "Carica i messaggi precedenti",
+    "loadingEarlier": "Caricamento…",
+    "newMessages": "Nuovi messaggi",
+    "speakerYou": "Tu",
+    "speakerAdvisor": "Consulente",
+    "proactive": "Aggiornamento",
+    "loading": "Caricamento della conversazione…",
+    "loadError": "Non è stato possibile caricare la conversazione.",
+    "privacyReveal": "Gli importi sono nascosti, quindi anche questa risposta. Selezionala per mostrarla.",
+    "moreHelp": "Fai domande su spese, budget e obiettivi",
+    "tools": {
+      "default": "Controllo i tuoi dati…",
+      "budget": "Guardo il tuo budget…",
+      "netWorth": "Controllo il tuo patrimonio…",
+      "accounts": "Controllo i tuoi conti…",
+      "transactions": "Guardo i tuoi movimenti…",
+      "spending": "Controllo le tue spese abituali…",
+      "goals": "Guardo i tuoi obiettivi…",
+      "propose": "Preparo un suggerimento…",
+      "note": "Prendo nota…"
+    },
+    "error": {
+      "busy": "Sto ancora rispondendo al tuo ultimo messaggio.",
+      "dailyLimit": "Hai raggiunto il limite di messaggi di oggi. Si azzera domani.",
+      "unavailable": "In questo momento non sono riuscito a rispondere.",
+      "retry": "Riprova"
+    },
+    "proposal": {
+      "label": "Suggerimento",
+      "summary": {
+        "goalCreate": "Crea l’obiettivo «{name}»",
+        "goalCreateTarget": "Crea l’obiettivo «{name}» con un traguardo di {amount}",
+        "goalUpdate": "Aggiorna un obiettivo",
+        "goalUpdateTarget": "Imposta il traguardo di un obiettivo a {amount}",
+        "goalUpdateMonthly": "Imposta il risparmio mensile di un obiettivo a {amount}",
+        "budgetLine": "Imposta una voce di budget a {amount} al mese da {month}",
+        "ruleCreate": "Crea la regola «{name}»",
+        "categorise": "Cambia la categoria di un movimento"
+      },
+      "basis": "{months, plural, one {Ultimo mese} other {Ultimi # mesi}}: {min}–{max}, mediana {median}",
+      "applied": "Applicato",
+      "appliedToast": "Applicato",
+      "dismissed": "Ignorato",
+      "stale": "Non aggiornato",
+      "staleHelp": "I tuoi dati sono cambiati da quando è stato proposto. Chiedi di nuovo.",
+      "viewerNote": "Solo i titolari e i membri possono applicarlo.",
+      "notAcceptable": "Non è più coerente con i tuoi dati. Chiedi di nuovo al consulente.",
+      "alreadyResolved": "Questo suggerimento è già stato gestito."
+    },
+    "suggestions": {
+      "label": "Domande suggerite",
+      "howThisMonth": "Come sta andando questo mese?",
+      "whereSave": "Dove posso risparmiare?",
+      "emergencyFund": "Quanto dovrebbe essere grande il mio fondo di emergenza?",
+      "setGoal": "Aiutami a fissare un obiettivo di risparmio",
+      "whatLearned": "Cosa hai capito finora delle mie spese?",
+      "reviewGoals": "Come stanno andando i miei obiettivi?"
+    },
+    "learning": {
+      "title": "Sto ancora imparando le tue abitudini",
+      "body": "{completeMonths} mesi di dati su {required}. Fino ad allora non suggerirò importi.",
+      "meter": "Mesi di dati raccolti"
+    },
+    "empty": {
+      "title": "Fai domande sui tuoi soldi",
+      "body": "Posso guardare le tue spese, il budget e gli obiettivi. Non cambio nulla senza il tuo consenso."
+    },
+    "off": {
+      "title": "L’IA è disattivata per questo nucleo familiare",
+      "owner": "Attiva l’IA nelle impostazioni del nucleo familiare per usare il consulente.",
+      "member": "Chiedi al titolare del nucleo familiare di attivarla.",
+      "action": "Apri le impostazioni dell’IA"
+    },
+    "notConfigured": {
+      "title": "Il consulente non è ancora configurato",
+      "owner": "Scegli un modello per il consulente nelle impostazioni dei servizi.",
+      "member": "Chiedi al titolare del nucleo familiare di completare la configurazione.",
+      "action": "Apri le impostazioni dei servizi"
+    },
+    "composer": {
+      "label": "Messaggio al consulente",
+      "placeholder": "Fai una domanda",
+      "hint": "Il consulente può sbagliare. Controlla prima di applicare."
+    },
+    "send": "Invia messaggio",
+    "menuSettings": "Impostazioni del consulente",
+    "menuNotes": "Note",
+    "menuClear": "Cancella cronologia",
+    "settings": {
+      "title": "Impostazioni del consulente",
+      "proactive": "Messaggi proattivi",
+      "proactiveHelp": "Lascia che il consulente scriva per primo quando nota qualcosa che merita un’occhiata.",
+      "weeklyCap": "Al massimo a settimana",
+      "weeklyCapOption": "{count, plural, one {# messaggio} other {# messaggi}}",
+      "saved": "Impostazioni salvate"
+    },
+    "notes": {
+      "title": "Note",
+      "empty": "Ancora nessuna nota. Quello che mi chiedi di ricordare compare qui.",
+      "delete": "Elimina nota: {text}",
+      "deleted": "Nota eliminata"
+    },
+    "clear": {
+      "title": "Cancellare la cronologia della conversazione?",
+      "body": "Vengono eliminati i tuoi messaggi con il consulente e le sue note. Le modifiche già applicate e i tuoi obiettivi restano.",
+      "confirm": "Cancella cronologia",
+      "done": "Cronologia cancellata"
+    },
+    "home": {
+      "empty": "Chiedi al consulente delle tue spese, del budget o degli obiettivi.",
+      "open": "Apri",
+      "error": "Non è stato possibile caricare il consulente."
+    }
   },
   "budgetYear": {
     "title": "Anno di budget",

@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "A Anthropic sugere categorias, escreve os relatórios mensais e estima o valor de bens.",
+      "description": "A Anthropic sugere categorias, escreve os relatórios mensais, estima o valor de bens e responde no consultor.",
       "apiKey": "Chave de API da Anthropic",
       "apiKeyHint": "Crie uma chave na consola da Anthropic e cole-a aqui.",
       "enableHint": "A chave está configurada. Cada agregado continua a escolher se usa IA.",
@@ -451,7 +451,7 @@
       "importModel": "Modelo para importar extratos",
       "valuationModelHint": "Estima o valor de bens como imóveis e veículos.",
       "importModelHint": "Lê extratos em PDF no assistente de importação.",
-      "removeWarning": "As categorias, os relatórios, as avaliações e a importação de extratos em PDF com IA deixam de funcionar até voltar a adicionar uma chave.",
+      "removeWarning": "As categorias, os relatórios, as avaliações, a importação de extratos em PDF e o consultor com IA deixam de funcionar até voltar a adicionar uma chave.",
       "test": "Testar a chave de API"
     },
     "portals": {
@@ -2109,6 +2109,130 @@
     "goalsHelp": "Poupanças com meta e data prevista",
     "insights": "Análises",
     "insightsHelp": "Para onde vai o dinheiro e como evolui"
+  },
+  "advisor": {
+    "title": "Consultor {brand}",
+    "open": "Abrir consultor",
+    "unread": "Abrir consultor, nova mensagem",
+    "status": "Disponível",
+    "thinking": "A pensar…",
+    "menu": "Menu do consultor",
+    "minimise": "Minimizar consultor",
+    "openFullPage": "Abrir o consultor em página inteira",
+    "conversation": "Conversa com o consultor",
+    "loadEarlier": "Carregar mensagens anteriores",
+    "loadingEarlier": "A carregar…",
+    "newMessages": "Novas mensagens",
+    "speakerYou": "Eu",
+    "speakerAdvisor": "Consultor",
+    "proactive": "Ponto de situação",
+    "loading": "A carregar a conversa…",
+    "loadError": "Não foi possível carregar a conversa.",
+    "privacyReveal": "Os montantes estão escondidos, por isso esta resposta também. Selecione para mostrar.",
+    "moreHelp": "Pergunte sobre despesas, orçamento e objetivos",
+    "tools": {
+      "default": "A consultar os seus dados…",
+      "budget": "A ver o seu orçamento…",
+      "netWorth": "A consultar o seu património…",
+      "accounts": "A consultar as suas contas…",
+      "transactions": "A analisar os seus movimentos…",
+      "spending": "A ver as suas despesas habituais…",
+      "goals": "A ver os seus objetivos…",
+      "propose": "A preparar uma sugestão…",
+      "note": "A tomar nota…"
+    },
+    "error": {
+      "busy": "Ainda estou a responder à sua última mensagem.",
+      "dailyLimit": "Atingiu o limite de mensagens de hoje. Volta a estar disponível amanhã.",
+      "unavailable": "Não consegui responder neste momento.",
+      "retry": "Repetir"
+    },
+    "proposal": {
+      "label": "Sugestão",
+      "summary": {
+        "goalCreate": "Criar o objetivo «{name}»",
+        "goalCreateTarget": "Criar o objetivo «{name}» com a meta de {amount}",
+        "goalUpdate": "Atualizar um objetivo",
+        "goalUpdateTarget": "Definir a meta de um objetivo em {amount}",
+        "goalUpdateMonthly": "Definir a poupança mensal de um objetivo em {amount}",
+        "budgetLine": "Definir uma rubrica do orçamento em {amount} por mês a partir de {month}",
+        "ruleCreate": "Criar a regra «{name}»",
+        "categorise": "Mudar a categoria de um movimento"
+      },
+      "basis": "{months, plural, one {Último mês} other {Últimos # meses}}: {min}–{max}, mediana {median}",
+      "applied": "Aplicada",
+      "appliedToast": "Aplicada",
+      "dismissed": "Dispensada",
+      "stale": "Desatualizada",
+      "staleHelp": "Os seus dados mudaram desde esta sugestão. Pergunte de novo.",
+      "viewerNote": "Só os titulares e os membros podem aplicar isto.",
+      "notAcceptable": "Isto já não corresponde aos seus dados. Pergunte de novo ao consultor.",
+      "alreadyResolved": "Esta sugestão já foi tratada."
+    },
+    "suggestions": {
+      "label": "Perguntas sugeridas",
+      "howThisMonth": "Como está a correr este mês?",
+      "whereSave": "Onde posso poupar?",
+      "emergencyFund": "Que tamanho deve ter o meu fundo de emergência?",
+      "setGoal": "Ajude-me a definir um objetivo de poupança",
+      "whatLearned": "O que já aprendeu sobre as minhas despesas?",
+      "reviewGoals": "Como estão os meus objetivos?"
+    },
+    "learning": {
+      "title": "Ainda a conhecer os seus hábitos",
+      "body": "{completeMonths} de {required} meses de dados. Até lá, não sugiro valores.",
+      "meter": "Meses de dados recolhidos"
+    },
+    "empty": {
+      "title": "Pergunte sobre o seu dinheiro",
+      "body": "Posso ver as suas despesas, o orçamento e os objetivos. Nunca altero nada sem a sua autorização."
+    },
+    "off": {
+      "title": "A IA está desligada neste agregado",
+      "owner": "Ligue a IA nas definições do agregado para usar o consultor.",
+      "member": "Peça ao titular do agregado que a ligue.",
+      "action": "Abrir definições de IA"
+    },
+    "notConfigured": {
+      "title": "O consultor ainda não está configurado",
+      "owner": "Escolha um modelo para o consultor nas definições dos serviços.",
+      "member": "Peça ao titular do agregado que conclua a configuração.",
+      "action": "Abrir definições dos serviços"
+    },
+    "composer": {
+      "label": "Mensagem para o consultor",
+      "placeholder": "Faça uma pergunta",
+      "hint": "O consultor pode enganar-se. Confirme antes de aplicar."
+    },
+    "send": "Enviar mensagem",
+    "menuSettings": "Definições do consultor",
+    "menuNotes": "Notas",
+    "menuClear": "Limpar histórico",
+    "settings": {
+      "title": "Definições do consultor",
+      "proactive": "Mensagens proativas",
+      "proactiveHelp": "Deixe o consultor escrever primeiro quando notar algo que mereça atenção.",
+      "weeklyCap": "No máximo por semana",
+      "weeklyCapOption": "{count, plural, one {# mensagem} other {# mensagens}}",
+      "saved": "Definições guardadas"
+    },
+    "notes": {
+      "title": "Notas",
+      "empty": "Ainda não há notas. O que me pedir para recordar aparece aqui.",
+      "delete": "Apagar nota: {text}",
+      "deleted": "Nota apagada"
+    },
+    "clear": {
+      "title": "Limpar o histórico da conversa?",
+      "body": "Isto apaga as suas mensagens com o consultor e as notas. As alterações que já aplicou e os seus objetivos mantêm-se.",
+      "confirm": "Limpar histórico",
+      "done": "Histórico limpo"
+    },
+    "home": {
+      "empty": "Pergunte ao consultor sobre despesas, orçamento ou objetivos.",
+      "open": "Abrir",
+      "error": "Não foi possível carregar o consultor."
+    }
   },
   "budgetYear": {
     "title": "Orçamento do ano",

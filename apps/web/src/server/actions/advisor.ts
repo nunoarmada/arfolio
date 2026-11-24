@@ -16,7 +16,11 @@ import {
 import {
   ADVISOR_NOTIFICATION_KIND,
   getAdvisorLimits,
+  loadAdvisorPanel,
+  loadAdvisorState,
   loadOlderAdvisorMessages,
+  type AdvisorPanel,
+  type AdvisorState,
 } from '../advisor-data';
 import { getServiceCtx } from '../service-ctx';
 import { run, type ActionResult } from './result';
@@ -88,4 +92,14 @@ export async function loadOlderAdvisorMessagesAction(
   before: string,
 ): Promise<ActionResult<AdvisorMessageView[]>> {
   return run(async () => loadOlderAdvisorMessages(await ctx(), before));
+}
+
+/** The whole advisor state for the chat window, which loads it when first opened. */
+export async function loadAdvisorStateAction(): Promise<ActionResult<AdvisorState>> {
+  return run(async () => loadAdvisorState(await ctx()));
+}
+
+/** The member's notes and settings for the header-menu panels. */
+export async function loadAdvisorPanelAction(): Promise<ActionResult<AdvisorPanel>> {
+  return run(async () => loadAdvisorPanel(await ctx()));
 }
