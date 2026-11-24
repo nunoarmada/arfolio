@@ -348,13 +348,14 @@ test.describe('PDF statement import with AI', () => {
 
   test('on an instance without an AI key, choosing a PDF says it is unavailable', async () => {
     const before = await requests();
-    // The services spec may have saved and removed a key on this instance moments ago, and each
-    // instance caches its integration settings for 30 seconds: reload until the cache has expired.
+    // The services spec may have saved and removed a key on this instance moments ago. A change
+    // reaches every instance's settings cache by database notification, so it shows within
+    // seconds; reload briefly in case the notification is still on its way.
     await expect(async () => {
       await page.goto(noAi(`/import?account=${ids[ACCOUNT_A]}`));
       await page.locator('#import-file').setInputFiles(PDF);
       await expect(page.getByTestId('pdf-unavailable')).toBeVisible({ timeout: 2_000 });
-    }).toPass({ timeout: 45_000 });
+    }).toPass({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: SEND })).toBeDisabled();
     expect(await requests()).toBe(before);
   });

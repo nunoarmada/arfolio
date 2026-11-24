@@ -221,6 +221,29 @@ test.describe('Settings > Services', () => {
     await expect(ai().getByRole('button', { name: 'Usar os predefinidos' })).toBeVisible();
   });
 
+  test('a setting saved on one instance reaches the other instance within seconds', async () => {
+    // No environment variable sets the categorisation model on either instance. The household
+    // page reads it through each instance's settings cache (30 s lifetime), so only the change
+    // notification can make the other instance show a new value this fast.
+    const MODEL = 'claude-e2e-cross-instance';
+    const provider = page.getByText(/Fornecedor: Anthropic · categorias: modelo /);
+    await page.goto('/settings/household');
+    await expect(provider).toBeVisible();
+    await expect(provider).not.toContainText(MODEL);
+
+    await page.goto(noAi('/settings/services'));
+    const model = ai().getByLabel('Modelo para categorias', { exact: true });
+    if (!(await model.isVisible())) await ai().getByText('Avançado', { exact: true }).click();
+    await model.fill(MODEL);
+    await model.press('Enter');
+    await expect(page.getByText('Guardado', { exact: true })).toBeVisible();
+
+    await expect(async () => {
+      await page.goto('/settings/household');
+      await expect(provider).toContainText(`categorias: modelo ${MODEL}`, { timeout: 1_000 });
+    }).toPass({ timeout: 5_000 });
+  });
+
   test('desktop and phone layouts have no overflow and pass axe', async () => {
     await page.goto(noAi('/settings/services'));
     await expect(ai().getByText(/Valor guardado · atualizado em /)).toBeVisible();
