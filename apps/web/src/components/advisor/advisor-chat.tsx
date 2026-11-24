@@ -161,7 +161,13 @@ export function AdvisorChat({
   const staleConversation = last !== undefined && Date.now() - last.createdAt.getTime() > DAY_MS;
   const showChips = ready && state.suggestions.length > 0 && (empty || staleConversation);
 
-  const pick = (text: string) => controller.send(text);
+  const pick = (text: string) => {
+    controller.send(text);
+    // The chip that was clicked leaves the page with the question; without this, keyboard focus
+    // falls to the document and Escape no longer reaches the window. Not on touch screens, where
+    // focusing the box would raise the keyboard over the answer.
+    if (!window.matchMedia('(pointer: coarse)').matches) composerRef.current?.focus();
+  };
 
   // Escape steps back from a panel first; a menu or dialog has already taken the key (the event
   // is then marked as handled), and only an untouched Escape reaches the window.

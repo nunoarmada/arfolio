@@ -122,9 +122,10 @@ export default async function ShellLayout({ children }: { children: ReactNode })
                   tabIndex={-1}
                   className={cn(
                     'min-w-0 flex-1 px-4 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+1.5rem)] pt-4 outline-none md:px-6 md:py-6 xl:px-8 xl:py-8 2xl:px-10',
-                    // Room under the last row for the launcher that floats above the tab bar.
+                    // Room under the last row for the launcher: above the tab bar on phones, in the
+                    // corner from md up (so a page's last button can scroll clear of it).
                     advisor.available &&
-                      'max-md:pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+5.5rem)]',
+                      'max-md:pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+5.5rem)] md:pb-24 xl:pb-24',
                   )}
                 >
                   {children}

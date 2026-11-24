@@ -40,8 +40,6 @@ interface AdvisorState {
   open: boolean;
   /** The window has been opened at least once: only then does it load the conversation. */
   everOpened: boolean;
-  /** md and up: a floating window; below: a sheet. */
-  desktop: boolean;
   /** On /advisor itself the page is the chat: no launcher, no window. */
   onAdvisorPage: boolean;
   launcherRef: RefObject<HTMLButtonElement | null>;
@@ -54,6 +52,16 @@ interface AdvisorState {
 }
 
 const Context = createContext<AdvisorState | null>(null);
+
+/**
+ * md and up: a floating window; below: a sheet. Read by the leaves that need it (launcher, window,
+ * toast offsets), not kept in the provider: the provider wraps every page, and a provider that
+ * re-renders right after hydration (the first client render differs from the server's) made the
+ * page behind it flicker into a second, hidden copy while it streamed in.
+ */
+export function useIsDesktop(): boolean {
+  return useMediaQuery(ADVISOR_DESKTOP_QUERY);
+}
 
 /**
  * The advisor's state for the signed-in shell: whether it exists, whether its window is open and
@@ -77,7 +85,6 @@ export function AdvisorProvider({
 }) {
   const pathname = usePathname();
   const onAdvisorPage = pathname === '/advisor' || pathname.startsWith('/advisor/');
-  const desktop = useMediaQuery(ADVISOR_DESKTOP_QUERY);
   const [open, setOpen] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
@@ -147,7 +154,51 @@ export function AdvisorProvider({
     target?.focus();
   }, []);
 
-  // Toasts share the bottom-right corner: above the launcher, or beside the open window.
+  const value = useMemo<AdvisorState>(
+    () => ({
+      available,
+      unreadProactive,
+      canApply,
+      isOwner,
+      brandName,
+      open: available && open,
+      everOpened,
+      onAdvisorPage,
+      launcherRef,
+      pendingQuestion,
+      openAdvisor,
+      closeAdvisor,
+      consumeQuestion,
+      restoreFocus,
+    }),
+    [
+      available,
+      unreadProactive,
+      canApply,
+      isOwner,
+      brandName,
+      open,
+      everOpened,
+      onAdvisorPage,
+      pendingQuestion,
+      openAdvisor,
+      closeAdvisor,
+      consumeQuestion,
+      restoreFocus,
+    ],
+  );
+  return (
+    <Context value={value}>
+      {children}
+      <ToastOffsets />
+    </Context>
+  );
+}
+
+/** Toasts share the bottom-right corner: above the launcher, or beside the open window. */
+function ToastOffsets() {
+  const { available, open, onAdvisorPage } = useAdvisor();
+  const desktop = useIsDesktop();
   useEffect(() => {
     const root = document.documentElement;
     const show = available && desktop && !onAdvisorPage;
@@ -165,43 +216,7 @@ export function AdvisorProvider({
       root.style.removeProperty('--toast-bottom-phone');
     };
   }, [available, desktop, onAdvisorPage, open]);
-
-  const value = useMemo<AdvisorState>(
-    () => ({
-      available,
-      unreadProactive,
-      canApply,
-      isOwner,
-      brandName,
-      open: available && open,
-      everOpened,
-      desktop,
-      onAdvisorPage,
-      launcherRef,
-      pendingQuestion,
-      openAdvisor,
-      closeAdvisor,
-      consumeQuestion,
-      restoreFocus,
-    }),
-    [
-      available,
-      unreadProactive,
-      canApply,
-      isOwner,
-      brandName,
-      open,
-      everOpened,
-      desktop,
-      onAdvisorPage,
-      pendingQuestion,
-      openAdvisor,
-      closeAdvisor,
-      consumeQuestion,
-      restoreFocus,
-    ],
-  );
-  return <Context value={value}>{children}</Context>;
+  return null;
 }
 
 export function useAdvisor(): AdvisorState {

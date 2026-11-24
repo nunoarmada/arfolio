@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
-import { useAdvisor } from './advisor-context';
+import { useAdvisor, useIsDesktop } from './advisor-context';
 import { AdvisorChat, markSeen } from './advisor-chat';
 import { ADVISOR_WINDOW_ID } from './advisor-launcher';
 import type { PanelName } from './advisor-panels';
@@ -34,6 +34,7 @@ function useRendered(visible: boolean): boolean {
 export function AdvisorWindow() {
   const t = useTranslations('advisor');
   const advisor = useAdvisor();
+  const desktop = useIsDesktop();
   const titleId = useId();
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const focused = useRef(false);
@@ -77,7 +78,7 @@ export function AdvisorWindow() {
   // The desktop window is not modal, so closing it hands focus back by itself.
   const wasVisible = useRef(false);
   useEffect(() => {
-    if (wasVisible.current && !visible && advisor.desktop) advisor.restoreFocus();
+    if (wasVisible.current && !visible && desktop) advisor.restoreFocus();
     wasVisible.current = visible;
   }, [visible]);
 
@@ -98,7 +99,7 @@ export function AdvisorWindow() {
     />
   );
 
-  if (!advisor.desktop) {
+  if (!desktop) {
     return (
       <Sheet
         open={visible}

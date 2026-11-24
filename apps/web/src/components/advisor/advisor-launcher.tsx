@@ -2,7 +2,7 @@
 
 import { MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useAdvisor } from './advisor-context';
+import { useAdvisor, useIsDesktop } from './advisor-context';
 
 /** Id of the floating window, which the launcher controls. */
 export const ADVISOR_WINDOW_ID = 'advisor-window';
@@ -15,8 +15,9 @@ export const ADVISOR_WINDOW_ID = 'advisor-window';
 export function AdvisorLauncher() {
   const t = useTranslations('advisor');
   const advisor = useAdvisor();
+  const desktop = useIsDesktop();
   if (!advisor.available || advisor.onAdvisorPage) return null;
-  if (advisor.open && advisor.desktop) return null;
+  if (advisor.open && desktop) return null;
   return (
     <button
       ref={advisor.launcherRef}
