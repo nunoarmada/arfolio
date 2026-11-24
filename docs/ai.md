@@ -16,7 +16,7 @@ The AI features:
 | Monthly report              | Writes a summary of the previous month with suggestions, in **Insights > Reports**.                                  | `AI_REPORT_MODEL` (`claude-opus-5-5`)          |
 | Asset valuation             | Estimates the value of property, vehicles and other valuables once a month, from comparable listings found online.   | `AI_VALUATION_MODEL` (`claude-opus-5-5`)       |
 | Statement import from PDF   | Reads the movements of a PDF statement in the import wizard, after a confirmation per file.                         | `AI_IMPORT_MODEL` (`claude-opus-5-5`)          |
-| Financial advisor           | A chat assistant that answers questions about your spending, budget and goals, and proposes changes you apply yourself. | `AI_ADVISOR_MODEL` (`claude-opus-5-5`)         |
+| Financial advisor           | A chat assistant that answers questions about your spending, budget and goals, and proposes changes you apply yourself. | `AI_ADVISOR_MODEL` (the report model)          |
 
 Models are set on **Settings > Services > AI** or with the environment variables shown. Use any model name your Anthropic account can access.
 
@@ -91,7 +91,7 @@ A chat assistant for each member: a floating button on every page opens a window
 **What it sends.** This feature sends more than aggregates: while it answers, the model asks for the data it needs and receives it. Everything goes from your server straight to Anthropic, and only for a member who writes in the chat, or when a proactive message is written (see below). Sent:
 
 - the member's messages, and the recent part of their conversation;
-- the results of the tools the model asks for: movement **descriptions and counterparties after redaction** (emails, IBANs, card numbers, phone numbers and runs of six or more digits replaced by `#`), amounts, dates, account names and balances, categories, budget line and goal names, and the conditions of categorisation rules;
+- the results of the tools the model asks for: movement **descriptions and counterparties after redaction** (emails, IBANs, card numbers, phone numbers and runs of six or more digits replaced by `#`), amounts, dates, account names, institution names and balances, credit limits and amounts owed on credit accounts, categories, budget line and goal names;
 - the spending profile (per category, the median and range of recent complete months, separating one-off from recurring spending) and the learning state;
 - the household's goals and the advisor notes (below).
 
@@ -99,13 +99,13 @@ Names (of accounts, categories, budget lines and goals) are **not** redacted, an
 
 **Notes.** The model can save short notes about what a member tells it ("I want to pay off the car loan first") so it does not have to reread the history. Notes are written by the model, are listed under **Notes** in the advisor menu, can be deleted there, and are sent back to the model in later conversations. Because the model reads movement text, a crafted description could try to influence a note: review the list now and then.
 
-**Learning period.** Until the household has at least **3 complete calendar months** of booked movements on its active accounts (`ADVISOR_LEARNING_MONTHS`, 1 to 24), the advisor is still learning. The period is measured from the data, not from the day AI was switched on: an installation that imported a year of statements is ready at once. While learning, the advisor answers questions and helps set goals, but it does not propose budget amounts or a goal's monthly saving; a goal's own target amount is allowed, because it is the person's own number. Proposed amounts always show their basis (the months used, the range and the median), which the server computes from the data, not the model. After the period, a category with too little history still gets no numeric proposal.
+**Learning period.** Until the household has at least **3 complete calendar months** of booked movements on its active accounts (`ADVISOR_LEARNING_MONTHS`, 1 to 24), the advisor is still learning. The period is measured from the data, not from the day AI was switched on: an installation that imported a year of statements is ready at once. While learning, the advisor answers questions and helps set goals, but it does not propose budget amounts or a goal's monthly saving; a goal's own target amount is allowed, because it is the person's own number. Proposed budget amounts and monthly contributions show their basis (the months used, the range and the median), which the server computes from the data, not the model; a goal's target amount is the person's own number and has none. After the period, a category with too little history still gets no numeric proposal.
 
-**Proactive messages.** The advisor can write first: a welcome message, one "what I have learned" message when the learning period ends, a monthly check-in, and short messages when a fixed rule notices something after a sync (a goal falling behind its pace, an unusual income, a new recurring payment, a budget line clearly going over). The rules run in code; the model is only called to write the message once one fires. A proactive message lands in the member's conversation and creates a notification (and a push, if that member enabled push) that opens `/advisor`. Every member of a household with AI on receives them, viewers included, unless they switch them off in the advisor menu under **Settings**.
+**Proactive messages.** The advisor can write first: a welcome message, one "what I have learned" message when the learning period ends, a monthly check-in, and short messages when a fixed rule notices something (a goal falling behind its pace, an unusual income, a new recurring payment, a budget line clearly going over). The rules run in code once a day, at 09:00 in the installation's time zone (`TZ`), not after each sync; the model is only called to write the message once one fires. A proactive message lands in the member's conversation and creates a notification (and a push, if that member enabled push) that opens `/advisor`. They start for a member only after that member has opened the advisor at least once (or has written to it), so the first message is never a surprise. Every member of a household with AI on receives them after that, viewers included, unless they switch them off in the advisor menu under **Settings**.
 
 **Limits.** To protect your Anthropic bill:
 
-- at most **2 proactive messages per member per week** (`ADVISOR_WEEKLY_CAP`, `0` to `14`); a member can lower it or switch proactive messages off. The welcome and "what I have learned" messages do not count;
+- at most **2 proactive messages per member per week** (`ADVISOR_WEEKLY_CAP`, `0` to `14`); a member can lower it for themselves (never above the installation's value) or switch proactive messages off. The welcome and "what I have learned" messages do not count;
 - at most **50 chat messages per member per day** (`ADVISOR_DAILY_MESSAGES`); proactive messages do not count. A clear message is shown when the limit is reached;
 - at most **8 tool calls** while answering one message (`ADVISOR_MAX_TOOL_CALLS`, 1 to 20) and a cap on the length of each reply.
 
@@ -116,7 +116,7 @@ Names (of accounts, categories, budget lines and goals) are **not** redacted, an
 - Removing a member from the household deletes their advisor conversation, notes and proposals.
 - Switching AI off for the household (or removing the key) hides the advisor and sends nothing. Its data is kept and comes back if AI is switched on again.
 
-The model is set with `AI_ADVISOR_MODEL` or on **Settings > Services > AI**, like the others.
+The model is set with `AI_ADVISOR_MODEL` or on **Settings > Services > AI**, like the others. Left unset in both places, the advisor uses the same model as the reports.
 
 ## Costs
 
@@ -126,7 +126,7 @@ You pay Anthropic for your own usage; Arfolio adds nothing. As a rough guide:
 - **Reports** are one call per household per month (plus a regeneration if you ask), with a short input.
 - **Valuations** are the heaviest: one call per asset per month, plus one for each **Estimate now**, each with a few web searches and page reads. Choose a smaller valuation model if the cost matters more than the quality.
 - **PDF statements** are one call per file, with the whole document as input. Long statements with many pages cost the most.
-- **The advisor** makes one call per chat message, plus one more for every tool the model uses while answering (up to `ADVISOR_MAX_TOOL_CALLS`), and one per proactive message. Its default model is a large one: the daily message limit and the weekly cap bound the cost, and a smaller model lowers it.
+- **The advisor** makes one call per chat message, plus one more for every tool the model uses while answering (up to `ADVISOR_MAX_TOOL_CALLS`), and one per proactive message. Unless you set its own model it uses the report model, a large one by default: the daily message limit and the weekly cap bound the cost, and a smaller model lowers it.
 
 Token usage of the categorisation, merchant and report runs is written to the worker's log, so you can compare it with your Anthropic bill; for valuations use the usage view in the Anthropic console. Check Anthropic's current pricing for the models you choose.
 

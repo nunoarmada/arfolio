@@ -149,8 +149,8 @@ export const integrationEnvShape = {
   /** The model that estimates asset values (web research, so a bigger one). */
   AI_VALUATION_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
   AI_IMPORT_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
-  /** The model behind the AI advisor chat and its proposals. */
-  AI_ADVISOR_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
+  /** The model behind the AI advisor chat and its proposals; unset, it follows the report model. */
+  AI_ADVISOR_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
   /** Months of history the advisor needs before it proposes anything. */
   ADVISOR_LEARNING_MONTHS: z.preprocess(
     emptyAsUnset,

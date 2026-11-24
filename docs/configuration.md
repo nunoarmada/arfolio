@@ -33,7 +33,7 @@ Behaviour worth knowing:
 - **Secrets are write-only.** A saved API key, private key or SMTP address is never shown again, never sent back to the browser, and never written to logs or the audit log (which records only which setting changed). You can only replace or remove it.
 - **Fresh sign-in.** Changing these settings requires that you signed in within the last 10 minutes. If the page says so, sign out and in again, then retry.
 - **When changes take effect.** Saving applies at once for the web app; the worker picks the change up within about a minute. Environment variables are read at start-up, so restart after changing them.
-- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), `claude-opus-5-5` (the advisor), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
+- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), the same as the report model (the advisor, unless you set its own), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
 - **Invalid or unreadable values.** A saved value that no longer validates is ignored and the page asks you to enter it again. A saved value that cannot be decrypted (the `ENCRYPTION_KEY` changed) is treated as not set and shown as unreadable: enter it again to replace it.
 
 ### The encryption key
@@ -97,7 +97,7 @@ These have no field on the Services page.
 | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `MERCHANT_LOGOS`            | `on`           | `on` lets the worker fetch each merchant's favicon through Google's favicon service (it learns the merchant's domain, not your transactions). `off` disables it. |
 | `ADVISOR_LEARNING_MONTHS`   | `3`            | Months of history the AI advisor needs before it proposes anything (1-24). |
-| `ADVISOR_WEEKLY_CAP`        | `2`            | Proactive advisor messages per member and week (0-14); a member can set their own. The welcome and the "what I learned" message do not count. `0` turns the rest off. |
+| `ADVISOR_WEEKLY_CAP`        | `2`            | Proactive advisor messages per member and week (0-14); a member can lower it for themselves, never raise it. The welcome and the "what I learned" message do not count. `0` turns the rest off. |
 | `ADVISOR_DAILY_MESSAGES`    | `50`           | Chat messages one member may send to the advisor per day (1-1000).         |
 | `ADVISOR_MAX_TOOL_CALLS`    | `8`            | Tool calls the advisor may make while answering one message (1-20).        |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | generated | Web Push key pair. When unset the app generates one on first use and stores it (private key encrypted). Set **both** or neither: one alone is a startup error. Generate with `npx web-push generate-vapid-keys`. |
@@ -114,6 +114,8 @@ These have no field on the Services page.
 ### Reverse proxy timeouts
 
 Reading a PDF statement with AI is a single request that can take up to two minutes. If your reverse proxy closes responses sooner (many default to 30 or 60 seconds), long statements fail even though the server is still working. Raise the proxy's response timeout to at least two minutes for the app. Other requests are not affected. See [AI features](ai.md#statement-import-from-pdf).
+
+The advisor's chat (`POST /api/advisor/messages`) answers as a server-sent event stream: the response stays open while the model writes and while it looks things up, which can take a minute or more. The app sends `X-Accel-Buffering: no`, which nginx honours; with other proxies, turn response buffering off for that path (and keep the idle and response timeouts above a couple of minutes), or the reply only appears when it is finished. See [AI features](ai.md#financial-advisor).
 
 ## What leaves your server
 

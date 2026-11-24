@@ -18,7 +18,6 @@ describe('loadEnv', () => {
       AI_REPORT_MODEL: 'claude-opus-5-5',
       AI_VALUATION_MODEL: 'claude-opus-5-5',
       AI_IMPORT_MODEL: 'claude-opus-5-5',
-      AI_ADVISOR_MODEL: 'claude-opus-5-5',
       ADVISOR_LEARNING_MONTHS: 3,
       ADVISOR_WEEKLY_CAP: 2,
       ADVISOR_DAILY_MESSAGES: 50,

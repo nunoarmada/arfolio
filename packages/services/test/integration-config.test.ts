@@ -39,11 +39,24 @@ describe('integration config resolver', () => {
     expect(isAiAvailable(cfg)).toBe(true);
   });
 
-  it('resolves the advisor model env > db > default', async () => {
+  it('resolves the advisor model env > db > the report model', async () => {
     expect((await resolve()).models.advisor).toMatchObject({
       value: 'claude-opus-5-5',
       source: 'default',
     });
+    // Unset everywhere, the advisor follows whatever the report model resolves to.
+    expect((await resolve({ AI_REPORT_MODEL: 'claude-test-report' })).models.advisor).toMatchObject(
+      {
+        value: 'claude-test-report',
+        source: 'default',
+      },
+    );
+    await put('ai.reportModel', 'claude-test-report-db');
+    expect((await resolve()).models.advisor).toMatchObject({
+      value: 'claude-test-report-db',
+      source: 'default',
+    });
+    await t.owner.execute('delete from instance_secret');
     await put('ai.advisorModel', 'claude-test-db');
     expect((await resolve()).models.advisor).toMatchObject({
       value: 'claude-test-db',
