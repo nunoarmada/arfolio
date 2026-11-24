@@ -8,6 +8,7 @@ import {
   listReviewInbox,
   listTransactions,
   NotFoundError,
+  type ServiceCtx,
 } from '@arfolio/services';
 import type { McpCaller } from '../caller.js';
 import { toTransaction, transactionPageSchema, transactionSchema } from '../dto.js';
@@ -31,6 +32,46 @@ const cursorField = z
   .optional()
   .describe('`next_cursor` of the previous page; opaque');
 
+const searchTransactionsInput = z.strictObject({
+  query: z
+    .string()
+    .max(200)
+    .optional()
+    .describe('Case-insensitive text matched in description, counterparty and notes'),
+  account_ids: z.array(z.uuid()).max(100).optional(),
+  category_ids: z.array(z.uuid()).max(100).optional(),
+  from: calendarDate.optional().describe('First purchase date, YYYY-MM-DD'),
+  to: calendarDate.optional().describe('Last purchase date, YYYY-MM-DD'),
+  needs_review: z.boolean().optional(),
+  uncategorised: z.boolean().optional().describe('Only rows without a category'),
+  limit: limitField,
+  cursor: cursorField,
+});
+
+/** `searchNotes: false` keeps the free-text notes out of the match (the advisor never sees them). */
+export async function searchTransactions(
+  ctx: ServiceCtx,
+  a: z.output<typeof searchTransactionsInput>,
+  opts: { searchNotes?: boolean } = {},
+) {
+  const page = await listTransactions(
+    ctx,
+    defined({
+      search: a.query,
+      searchNotes: opts.searchNotes,
+      accountIds: a.account_ids,
+      categoryIds: a.category_ids,
+      from: a.from,
+      to: a.to,
+      needsReview: a.needs_review,
+      uncategorised: a.uncategorised,
+      limit: a.limit,
+      cursor: a.cursor,
+    }),
+  );
+  return { transactions: page.items.map(toTransaction), next_cursor: page.nextCursor };
+}
+
 export const searchTransactionsTool = toolDef({
   name: 'search_transactions',
   title: 'Search transactions',
@@ -39,39 +80,9 @@ export const searchTransactionsTool = toolDef({
     'decimal strings with a currency (negative = money out). All filters are optional and ' +
     `combine with AND. ${UNTRUSTED}`,
   access: 'read',
-  input: z.strictObject({
-    query: z
-      .string()
-      .max(200)
-      .optional()
-      .describe('Case-insensitive text matched in description, counterparty and notes'),
-    account_ids: z.array(z.uuid()).max(100).optional(),
-    category_ids: z.array(z.uuid()).max(100).optional(),
-    from: calendarDate.optional().describe('First purchase date, YYYY-MM-DD'),
-    to: calendarDate.optional().describe('Last purchase date, YYYY-MM-DD'),
-    needs_review: z.boolean().optional(),
-    uncategorised: z.boolean().optional().describe('Only rows without a category'),
-    limit: limitField,
-    cursor: cursorField,
-  }),
+  input: searchTransactionsInput,
   output: transactionPageSchema,
-  handler: async (a, { ctx }) => {
-    const page = await listTransactions(
-      ctx,
-      defined({
-        search: a.query,
-        accountIds: a.account_ids,
-        categoryIds: a.category_ids,
-        from: a.from,
-        to: a.to,
-        needsReview: a.needs_review,
-        uncategorised: a.uncategorised,
-        limit: a.limit,
-        cursor: a.cursor,
-      }),
-    );
-    return { transactions: page.items.map(toTransaction), next_cursor: page.nextCursor };
-  },
+  handler: (a, { ctx }) => searchTransactions(ctx, a),
 });
 
 export const listReviewInboxTool = toolDef({

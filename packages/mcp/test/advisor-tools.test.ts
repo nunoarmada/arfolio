@@ -6,6 +6,7 @@ import {
   appendMessage,
   applyProposal,
   createAccount,
+  createManualTransaction,
   createBudget,
   createGoal,
   getProposal,
@@ -18,6 +19,7 @@ import {
   type TypicalSpend,
 } from '@arfolio/services';
 import { advisorTools, toAnthropicTools, type AdvisorToolContext } from '../src/advisor/tools.js';
+import { searchTransactionsTool } from '../src/tools/transactions.js';
 import { startServicesDb, type ServicesTestDb } from './harness.js';
 
 const typical = (median: number, min = median, max = median): TypicalSpend => ({
@@ -110,6 +112,31 @@ describe('advisor tools', () => {
       accounts: Array<{ name: string }>;
     };
     expect(out.accounts.map((a) => a.name)).toEqual(['Checking']);
+  });
+
+  it('search_transactions does not match the hidden notes, the MCP tool still does', async () => {
+    const { ctx, tc } = await world();
+    const account = await createAccount(ctx, { name: 'Checking', type: 'checking' });
+    await createManualTransaction(ctx, {
+      accountId: account.id,
+      bookingDate: '2026-11-01',
+      amount: -1200,
+      description: 'Corner shop',
+      notes: 'zebrafinch private note',
+    });
+    const advisor = (await tool('search_transactions').run({ query: 'zebrafinch' }, tc)) as {
+      transactions: unknown[];
+    };
+    expect(advisor.transactions).toEqual([]);
+    const byDescription = (await tool('search_transactions').run({ query: 'corner' }, tc)) as {
+      transactions: unknown[];
+    };
+    expect(byDescription.transactions).toHaveLength(1);
+    const mcp = await searchTransactionsTool.handler({ query: 'zebrafinch' } as never, {
+      ctx,
+      audit: async () => {},
+    });
+    expect(mcp.transactions).toHaveLength(1);
   });
 
   it('propose_action stores a pending proposal and writes no household data', async () => {

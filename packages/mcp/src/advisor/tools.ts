@@ -18,6 +18,7 @@ import {
 import { formatMoney } from '../money.js';
 import type { AnyToolDef } from '../tools/define.js';
 import { READ_TOOLS } from '../tools/registry.js';
+import { searchTransactions, searchTransactionsTool } from '../tools/transactions.js';
 
 /** What a tool call needs besides its arguments. */
 export type AdvisorToolContext = {
@@ -49,6 +50,13 @@ const wrapRead = (def: AnyToolDef): AdvisorTool => ({
   inputSchema: def.input,
   run: async (args, { ctx }) => def.handler(def.input.parse(args), { ctx, audit: noAudit }),
 });
+
+/** Notes are hidden from the model, so they must not be searchable either (an oracle). */
+const advisorSearchTransactions: AdvisorTool = {
+  ...wrapRead(searchTransactionsTool),
+  run: async (args, { ctx }) =>
+    searchTransactions(ctx, searchTransactionsTool.input.parse(args), { searchNotes: false }),
+};
 
 const typicalOut = (t: TypicalSpend | null, currency: string) =>
   t && {
@@ -161,7 +169,15 @@ const saveNote: AdvisorTool = {
 
 /** The read tools, a spending profile, the goals, proposals and notes: nothing that writes household data. */
 export function advisorTools(): AdvisorTool[] {
-  return [...READ_TOOLS.map(wrapRead), getSpendingProfile, listGoalsTool, proposeAction, saveNote];
+  return [
+    ...READ_TOOLS.map((def) =>
+      def.name === searchTransactionsTool.name ? advisorSearchTransactions : wrapRead(def),
+    ),
+    getSpendingProfile,
+    listGoalsTool,
+    proposeAction,
+    saveNote,
+  ];
 }
 
 /** The tools in the shape the Anthropic Messages API takes. */
