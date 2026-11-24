@@ -243,6 +243,67 @@ describe('members management', () => {
     ).toHaveLength(1);
   });
 
+  it('removing a member deletes their advisor data', async () => {
+    const email = 'advisor-gone@example.com';
+    const inv = await createInvitation({ headers: owner, email, role: 'member' }, deps());
+    await acceptInvitationAndRegister(
+      { invitationId: inv.invitationId, token: inv.token, name: 'Ada', password: PASSWORD },
+      deps(),
+    );
+    const uid = await userId(email);
+    // A second household keeps the account alive, so only the explicit cleanup can remove rows.
+    const away = 'advisor-away-household';
+    await db
+      .insert(schema.organization)
+      .values({ id: away, name: away, slug: away, createdAt: new Date() });
+    await db.insert(schema.member).values({
+      id: `m-${away}`,
+      organizationId: away,
+      userId: uid,
+      role: 'member',
+      createdAt: new Date(),
+    });
+    const seed = (household: string) =>
+      withHousehold(db, household, async (tx) => {
+        const [msg] = await tx
+          .insert(schema.advisorMessage)
+          .values({ householdId: household, userId: uid, role: 'user', origin: 'chat', text: 'hi' })
+          .returning({ id: schema.advisorMessage.id });
+        await tx.insert(schema.advisorProposal).values({
+          householdId: household,
+          userId: uid,
+          messageId: msg!.id,
+          kind: 'goal_create',
+          payload: {},
+        });
+        await tx
+          .insert(schema.advisorNote)
+          .values({ householdId: household, userId: uid, text: 'n' });
+        await tx
+          .insert(schema.advisorMemberSettings)
+          .values({ householdId: household, userId: uid, proactiveEnabled: false });
+      });
+    const counts = (household: string) =>
+      withHousehold(db, household, async (tx) => {
+        const rows = await Promise.all(
+          [
+            schema.advisorMessage,
+            schema.advisorProposal,
+            schema.advisorNote,
+            schema.advisorMemberSettings,
+          ].map((table) => tx.select().from(table).where(eq(table.userId, uid))),
+        );
+        return rows.map((r) => r.length);
+      });
+    await seed(householdId);
+    await seed(away);
+
+    await removeMember(owner, await memberId(email), deps());
+
+    expect(await counts(householdId)).toEqual([0, 0, 0, 0]);
+    expect(await counts(away)).toEqual([1, 1, 1, 1]);
+  });
+
   describe('push devices when a membership ends through Better Auth directly', () => {
     const device = (path: string) => ({
       endpoint: `https://fcm.googleapis.com/fcm/send/${path}`,

@@ -351,6 +351,13 @@
       "when": 1793997792713,
       "tag": "0049_investment_bucket_holding",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795531061665,
+      "tag": "0050_advisor",
+      "breakpoints": true
     }
   ]
 }

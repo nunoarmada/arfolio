@@ -14,3 +14,4 @@ export * from './net-worth.js';
 export * from './push.js';
 export * from './mcp.js';
 export * from './insights.js';
+export * from './advisor.js';

@@ -95,7 +95,8 @@ export type ValidationCode =
   | 'sale_needs_amount'
   | 'sale_transaction_invalid'
   | 'sale_transaction_taken'
-  | 'liability_not_linked';
+  | 'liability_not_linked'
+  | 'note_limit';
 
 export class ValidationError extends Error {
   readonly issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>;

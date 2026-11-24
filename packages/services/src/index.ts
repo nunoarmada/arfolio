@@ -451,3 +451,28 @@ export type {
   DueAsset,
   EstimateAssetDeps,
 } from './ai/asset-valuation.js';
+export {
+  addNote,
+  appendMessage,
+  clearHistory,
+  countCappedSince,
+  deleteAdvisorDataForUser,
+  deleteMessage,
+  deleteNote,
+  finishMessage,
+  getMemberSettings,
+  getProposal,
+  listMessages,
+  listNotes,
+  MAX_ADVISOR_NOTES,
+  messagesToday,
+  saveMemberSettings,
+  saveProposal,
+} from './advisor/store.js';
+export type {
+  AdvisorMemberSettings,
+  AdvisorMessage,
+  AdvisorMessageView,
+  AdvisorNote,
+  AdvisorProposal,
+} from './advisor/store.js';

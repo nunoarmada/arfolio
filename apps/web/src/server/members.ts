@@ -1,5 +1,6 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
-import { schema } from '@arfolio/db';
+import { schema, withHousehold } from '@arfolio/db';
+import { deleteAdvisorDataForUser } from '@arfolio/services';
 import { isRole, type Role } from '../lib/access';
 import { getAuth } from '../lib/auth';
 import { getDb } from '../lib/db';
@@ -121,6 +122,11 @@ export async function removeMember(
     body: { memberIdOrEmail: memberId, organizationId: ctx.householdId },
   });
   await d.db.delete(schema.session).where(eq(schema.session.userId, target.userId));
+  // Advisor conversations are private to the member: they leave with the membership, even when
+  // the account lives on in another household (the user-row cascade does not cover that case).
+  await withHousehold(d.db, ctx.householdId, (tx) =>
+    deleteAdvisorDataForUser(tx, ctx.householdId, target.userId),
+  );
   // Better Auth keeps the user row, which would block inviting the same email again. Once they
   // belong to no household the account is useless, so drop it (sessions, accounts and 2FA data
   // cascade). A user who still belongs to another household is left untouched.
