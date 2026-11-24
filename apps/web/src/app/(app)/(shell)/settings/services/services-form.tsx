@@ -599,10 +599,14 @@ function TestRow({
         });
         return;
       }
-      const { ok, message, unavailableModels } = result.data;
+      const { ok, message, unavailableModels, incomplete } = result.data;
       if (message === 'model_unavailable' && unavailableModels?.length) {
         const models = format.list(unavailableModels.map((field) => t(`ai.${field}Model`)));
-        setOutcome({ ok, text: t('test.anthropic.model_unavailable', { models }) });
+        const text = t('test.anthropic.model_unavailable', { models });
+        setOutcome({
+          ok,
+          text: incomplete ? `${text} ${t('test.anthropic.checks_incomplete')}` : text,
+        });
         return;
       }
       const key = `test.${service}.${message}` as Parameters<typeof t>[0];

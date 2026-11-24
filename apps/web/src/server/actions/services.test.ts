@@ -368,6 +368,7 @@ describe('services settings actions', () => {
       const ping = vi.fn<NonNullable<ServiceSettingsDeps['ping']>>(async () => ({
         ok: true,
         unavailableModels: ['claude-gone'],
+        incomplete: true,
       }));
       const result = await run(() =>
         runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping })),
@@ -377,9 +378,18 @@ describe('services settings actions', () => {
       expect(asked).toHaveLength(4);
       expect(result).toEqual({
         ok: true,
-        data: { ok: false, message: 'model_unavailable', unavailableModels: ['report', 'import'] },
+        data: {
+          ok: false,
+          message: 'model_unavailable',
+          unavailableModels: ['report', 'import'],
+          incomplete: true,
+        },
       });
-      const fine = vi.fn(async () => ({ ok: true as const, unavailableModels: [] }));
+      const fine = vi.fn(async () => ({
+        ok: true as const,
+        unavailableModels: [],
+        incomplete: false,
+      }));
       expect(
         await run(() => runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping: fine }))),
       ).toEqual({ ok: true, data: { ok: true, message: 'ok' } });

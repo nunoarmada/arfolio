@@ -13,7 +13,11 @@ const reply = (status: number, body: unknown) =>
 describe('pingAnthropic', () => {
   it('lists one model with the key and reports ok', async () => {
     const fetch = reply(200, { data: [], has_more: false, first_id: null, last_id: null });
-    expect(await pingAnthropic('sk-test', { fetch })).toEqual({ ok: true, unavailableModels: [] });
+    expect(await pingAnthropic('sk-test', { fetch })).toEqual({
+      ok: true,
+      unavailableModels: [],
+      incomplete: false,
+    });
     const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(String(url)).toContain('/v1/models');
     expect(String(url)).toContain('limit=1');
@@ -66,7 +70,7 @@ describe('pingAnthropic', () => {
       fetch,
       models: ['claude-here', 'claude-gone', 'claude-here', 'claude-gone'],
     });
-    expect(result).toEqual({ ok: true, unavailableModels: ['claude-gone'] });
+    expect(result).toEqual({ ok: true, unavailableModels: ['claude-gone'], incomplete: false });
     const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
     expect(urls.filter((u) => u.includes('/v1/models/claude-here'))).toHaveLength(1);
     expect(urls.filter((u) => u.includes('/v1/models/claude-gone'))).toHaveLength(1);
@@ -101,6 +105,68 @@ describe('pingAnthropic', () => {
       ok: false,
       reason: 'rate_limited',
     });
+  });
+
+  it('lists every unavailable model even when another check fails, and says it is incomplete', async () => {
+    const json = (status: number, body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'content-type': 'application/json' },
+      });
+    const fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('limit=1')) return json(200, { data: [], has_more: false });
+      if (url.includes('claude-gone'))
+        return json(404, { type: 'error', error: { type: 'not_found_error', message: 'x' } });
+      if (url.includes('claude-5xx'))
+        return json(500, { type: 'error', error: { type: 'api_error', message: 'sk-leak' } });
+      if (url.includes('claude-slow')) throw new TypeError('fetch failed');
+      return json(200, {
+        id: 'claude-ok',
+        type: 'model',
+        display_name: 'X',
+        created_at: '2025-01-01T00:00:00Z',
+      });
+    }) as unknown as typeof globalThis.fetch;
+    expect(
+      await pingAnthropic('sk-leak', {
+        fetch,
+        models: ['claude-5xx', 'claude-gone', 'claude-slow', 'claude-ok'],
+      }),
+    ).toEqual({ ok: true, unavailableModels: ['claude-gone'], incomplete: true });
+    // Nothing is known to be unavailable and a check failed: a fixed failure reason.
+    expect(await pingAnthropic('sk-leak', { fetch, models: ['claude-5xx', 'claude-ok'] })).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+  });
+
+  it('runs the model checks concurrently', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const fetch = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).includes('limit=1')) {
+        return new Response(JSON.stringify({ data: [], has_more: false }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight -= 1;
+      return new Response(
+        JSON.stringify({
+          id: 'm',
+          type: 'model',
+          display_name: 'X',
+          created_at: '2025-01-01T00:00:00Z',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }) as unknown as typeof globalThis.fetch;
+    await pingAnthropic('sk-test', { fetch, models: ['a', 'b', 'c'] });
+    expect(peak).toBe(3);
   });
 
   it('reports an unreachable API', async () => {

@@ -498,7 +498,8 @@
         "rate_limited": "Anthropic is limiting requests right now. Try again in a minute.",
         "unreachable": "Could not reach Anthropic. Check this server's internet access.",
         "unavailable": "Anthropic did not answer as expected. Try again later.",
-        "model_unavailable": "The key works, but the AI service does not offer these models: {models}. Check the model names under Advanced."
+        "model_unavailable": "The key works, but the AI service did not recognise these models: {models}. Check the model names under Advanced, or the environment variables that set them. If the AI service address is set, check it too.",
+        "checks_incomplete": "Some model checks could not be completed. Try again later."
       },
       "enableBanking": {
         "ok": "Enable Banking accepted the credentials.",
@@ -839,7 +840,7 @@
       "pdf_rejected": "The AI service could not read this PDF. It may be protected with a password, too long or damaged.",
       "ai_key_rejected": "The AI service rejected the installation's API key. Ask an owner to check it in Settings › Services.",
       "ai_busy": "The AI service is busy. Try again in a few minutes.",
-      "ai_model_unavailable": "The AI model set for this installation is not available. Ask an owner to check the model names in Settings › Services.",
+      "ai_model_unavailable": "The AI service did not find the configured model or its address. Ask an owner to check the model names and the AI service address in Settings › Services.",
       "pdf_multiple_accounts": "This PDF lists movements of more than one account, so it cannot be imported into a single account.",
       "connection_lost": "The connection was interrupted. Try again.",
       "invalid_input": "Some values are not valid. Check the fields and try again."

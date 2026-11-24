@@ -98,6 +98,8 @@ export interface TestOutcome {
   message: TestMessage;
   /** With `model_unavailable`: the model settings whose model the AI service does not know. */
   unavailableModels?: AiModelField[];
+  /** With `model_unavailable`: some model checks could not be completed. */
+  incomplete?: boolean;
 }
 
 interface SmtpTransport {
@@ -307,7 +309,7 @@ async function testAnthropic(
     id !== undefined && result.unavailableModels.includes(id) ? [field] : [],
   );
   return unavailableModels.length > 0
-    ? { ok: false, message: 'model_unavailable', unavailableModels }
+    ? { ok: false, message: 'model_unavailable', unavailableModels, incomplete: result.incomplete }
     : { ok: true, message: 'ok' };
 }
 

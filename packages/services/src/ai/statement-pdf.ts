@@ -63,8 +63,8 @@ function providerFailure(err: unknown): string {
   if (status === 400 || status === 413) return 'The AI service could not read this PDF';
   if (status === 401 || status === 403) return 'The AI service rejected the API key';
   if (status === 429 || status === 529) return 'The AI service is busy';
-  // An unknown model name is the one 404 this request can produce.
-  if (status === 404) return 'The configured AI model is not available';
+  // A 404 usually means an unknown model; a wrong API address gives the same status.
+  if (status === 404) return 'The AI service did not find the configured model or address';
   return 'The AI service could not be reached';
 }
 
