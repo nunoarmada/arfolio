@@ -181,4 +181,18 @@ describe('advisor actions', () => {
       },
     });
   });
+
+  it('reports a vanished proposal, note or page anchor as a conflict, not a 404', async () => {
+    await as();
+    const missing = '00000000-0000-4000-8000-000000000000';
+    expect(await dismissAdvisorProposalAction(missing)).toMatchObject({
+      ok: false,
+      code: 'conflict',
+    });
+    expect(await deleteAdvisorNoteAction(missing)).toMatchObject({ ok: false, code: 'conflict' });
+    expect(await loadOlderAdvisorMessagesAction(missing)).toMatchObject({
+      ok: false,
+      code: 'conflict',
+    });
+  });
 });

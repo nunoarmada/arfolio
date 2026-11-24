@@ -3,7 +3,7 @@
 import { MoreHorizontal, NotebookText, Settings2, Trash2 } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useReportFailure } from '@/components/use-action-error';
@@ -31,6 +31,12 @@ export function AdvisorMenu({
   const report = useReportFailure();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  // A panel takes focus itself; the menu must not pull it back to its button on close.
+  const openedPanel = useRef(false);
+  const choose = (panel: PanelName) => {
+    openedPanel.current = true;
+    onPanel(panel);
+  };
 
   return (
     <>
@@ -45,13 +51,20 @@ export function AdvisorMenu({
           <DropdownMenu.Content
             align="end"
             sideOffset={4}
+            onCloseAutoFocus={(event) => {
+              if (openedPanel.current) {
+                event.preventDefault();
+                document.querySelector<HTMLElement>('[data-advisor-panel-back]')?.focus();
+              }
+              openedPanel.current = false;
+            }}
             className="z-[55] min-w-52 rounded-lg bg-surface-raised p-1 shadow-raised"
           >
-            <DropdownMenu.Item className={itemClass} onSelect={() => onPanel('settings')}>
+            <DropdownMenu.Item className={itemClass} onSelect={() => choose('settings')}>
               <Settings2 className="size-4" aria-hidden="true" />
               {t('menuSettings')}
             </DropdownMenu.Item>
-            <DropdownMenu.Item className={itemClass} onSelect={() => onPanel('notes')}>
+            <DropdownMenu.Item className={itemClass} onSelect={() => choose('notes')}>
               <NotebookText className="size-4" aria-hidden="true" />
               {t('menuNotes')}
             </DropdownMenu.Item>

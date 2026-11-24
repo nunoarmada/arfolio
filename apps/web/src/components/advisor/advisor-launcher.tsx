@@ -25,7 +25,7 @@ export function AdvisorLauncher() {
       aria-expanded={advisor.open}
       aria-controls={ADVISOR_WINDOW_ID}
       onClick={() => advisor.openAdvisor()}
-      className="fixed bottom-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised transition-colors duration-[120ms] hover:bg-primary-hover md:bottom-6 md:right-6"
+      className="fixed bottom-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+1rem)] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised transition-colors duration-[120ms] hover:bg-primary-hover md:bottom-6 md:right-6"
     >
       <MessageCircle className="size-6" aria-hidden="true" />
       {advisor.unreadProactive ? (

@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { useFailureMessage } from '@/components/use-action-error';
 import { cn } from '@/lib/cn';
 import { applyAdvisorProposalAction, dismissAdvisorProposalAction } from '@/server/actions/advisor';
+import { PrivateText } from './private-text';
 import { proposalReason, type ChatProposal, type ProposalStatus } from './advisor-types';
 
 const ICONS: Record<string, LucideIcon> = {
@@ -107,11 +108,13 @@ export function ProposalCard({
   const errorId = useId();
   const [busy, setBusy] = useState<'apply' | 'dismiss' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The server judged the amount unacceptable: applying it again would only be refused again.
+  const [refused, setRefused] = useState(false);
 
   const reason = proposalReason(proposal);
   const Icon = ICONS[proposal.kind] ?? Target;
   const { basis, status } = proposal;
-  const resolved = status !== 'pending';
+  const dismissed = status === 'dismissed';
 
   async function apply() {
     setBusy('apply');
@@ -126,7 +129,10 @@ export function ProposalCard({
       onRefresh();
     } else if (result.code === 'validation') {
       if (result.detail?.code === 'stale') onStatus(proposal.id, 'stale');
-      else setError(t('notAcceptable'));
+      else {
+        setError(t('notAcceptable'));
+        setRefused(true);
+      }
     } else {
       setError(failureMessage(result));
     }
@@ -153,17 +159,19 @@ export function ProposalCard({
       className="grid grid-cols-1 gap-2 rounded-lg p-3"
     >
       <div className="flex items-start gap-2.5">
-        <IconTile icon={Icon} tone={resolved ? 'neutral' : 'primary'} />
+        <IconTile icon={Icon} tone={dismissed ? 'neutral' : 'primary'} />
         <p
           className={cn(
             'min-w-0 flex-1 break-words text-card-title',
-            resolved && 'text-muted-foreground',
+            dismissed && 'text-muted-foreground',
           )}
         >
           {summary}
         </p>
       </div>
-      {reason ? <p className="break-words text-sm text-muted-foreground">{reason}</p> : null}
+      {reason ? (
+        <PrivateText className="break-words text-sm text-muted-foreground">{reason}</PrivateText>
+      ) : null}
       {basis ? (
         <p className="text-label font-normal tabular-nums text-muted-foreground">
           {t('basis', {
@@ -200,7 +208,6 @@ export function ProposalCard({
         <div className="flex justify-end gap-2">
           <Button
             variant="ghost"
-            size="sm"
             disabled={busy !== null}
             loading={busy === 'dismiss'}
             aria-describedby={error ? errorId : undefined}
@@ -209,8 +216,7 @@ export function ProposalCard({
             {common('dismiss')}
           </Button>
           <Button
-            size="sm"
-            disabled={busy === 'dismiss'}
+            disabled={busy === 'dismiss' || refused}
             loading={busy === 'apply'}
             aria-describedby={error ? errorId : undefined}
             onClick={() => void apply()}

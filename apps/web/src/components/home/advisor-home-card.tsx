@@ -56,6 +56,7 @@ export function AdvisorHomeCard({
       )}
       <Suggestions
         keys={suggestions}
+        wrapOnPhone
         className="mt-auto"
         onPick={(_key, text, trigger) =>
           advisor.openAdvisor({ question: text, returnFocus: trigger })

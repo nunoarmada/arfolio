@@ -3,11 +3,11 @@
 import { AlertCircle, Bell, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { usePrivacy } from '@/components/privacy';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import type { ChatMessage, ChatProposal, ProposalStatus } from './advisor-types';
+import { PrivateText } from './private-text';
 import { ProposalCard } from './proposal-card';
 import type { ChatError, ChatTurn } from './use-advisor-chat';
 
@@ -28,32 +28,20 @@ const TOOL_LABELS: Record<string, string> = {
   save_note: 'note',
 };
 
-/** The advisor's words. With privacy mode on they are blurred (they can hold amounts) until selected. */
+/** The advisor's words, blurred in privacy mode. */
 function AssistantText({ text, proactive = false }: { text: string; proactive?: boolean }) {
   const t = useTranslations('advisor');
-  const { hidden } = usePrivacy();
-  const [revealed, setRevealed] = useState(false);
-  const masked = hidden && !revealed;
   return (
-    <div
+    <PrivateText
       className={cn(
         BUBBLE,
         'rounded-xl rounded-bl-sm bg-surface-2 text-foreground',
         proactive && 'shadow-[inset_2px_0_0_var(--primary-border)]',
-        masked && 'cursor-pointer select-none blur-sm',
       )}
-      {...(masked
-        ? {
-            tabIndex: 0,
-            title: t('privacyReveal'),
-            onClick: () => setRevealed(true),
-            onFocus: () => setRevealed(true),
-          }
-        : {})}
     >
       <span className="sr-only">{t('speakerAdvisor')}: </span>
       {text}
-    </div>
+    </PrivateText>
   );
 }
 
@@ -100,7 +88,7 @@ function ErrorBubble({
       </p>
       {onRetry ? (
         <div>
-          <Button variant="secondary" size="sm" onClick={onRetry}>
+          <Button variant="secondary" onClick={onRetry}>
             {t('retry')}
           </Button>
         </div>
@@ -224,7 +212,7 @@ export function MessageList({
         onScroll={onScroll}
         className="h-full overflow-y-auto overscroll-contain bg-inherit"
       >
-        {banner ? <div className="sticky top-0 z-10 bg-inherit p-3">{banner}</div> : null}
+        {banner ? <div className="bg-inherit p-3 md:sticky md:top-0 md:z-10">{banner}</div> : null}
         {isEmpty && empty ? (
           empty
         ) : (
@@ -234,7 +222,7 @@ export function MessageList({
             <ol className="flex flex-col gap-3 p-4">
               {hasMore ? (
                 <li className="flex flex-col items-center gap-1">
-                  <Button variant="ghost" size="sm" disabled={loadingOlder} onClick={onLoadOlder}>
+                  <Button variant="ghost" disabled={loadingOlder} onClick={onLoadOlder}>
                     {loadingOlder ? t('loadingEarlier') : t('loadEarlier')}
                   </Button>
                   {olderFailed ? (
@@ -350,7 +338,7 @@ export function MessageList({
             toBottom();
             setPill(false);
           }}
-          className="absolute bottom-3 left-1/2 inline-flex h-9 -translate-x-1/2 items-center rounded-full bg-foreground px-4 text-sm font-medium text-background shadow-raised"
+          className="absolute bottom-3 left-1/2 inline-flex h-11 -translate-x-1/2 md:pointer-fine:h-9 items-center rounded-full bg-foreground px-4 text-sm font-medium text-background shadow-raised"
         >
           {t('newMessages')}
         </button>

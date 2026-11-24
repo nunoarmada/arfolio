@@ -2232,7 +2232,8 @@
       "empty": "Pergunte ao consultor sobre despesas, orçamento ou objetivos.",
       "open": "Abrir",
       "error": "Não foi possível carregar o consultor."
-    }
+    },
+    "answerReady": "O consultor respondeu."
   },
   "budgetYear": {
     "title": "Orçamento do ano",

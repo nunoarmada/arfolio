@@ -74,6 +74,21 @@ describe('ProposalCard', () => {
     expect(html).not.toMatch(/€\s?200|300\.00/);
   });
 
+  it('blurs the model-written reason in privacy mode, and not otherwise', () => {
+    const reason = 'Dining is above your usual range.';
+    const masked = render(card(proposal(), true), true);
+    expect(masked).toMatch(new RegExp(`<div[^>]*blur-sm[^>]*>${reason}`));
+    expect(render(card(proposal(), true))).not.toContain('blur-sm');
+  });
+
+  it('only a dismissed card is shown at reduced emphasis', () => {
+    expect(render(card(proposal({ status: 'dismissed' }), true))).toContain(
+      'text-muted-foreground',
+    );
+    const applied = render(card(proposal({ status: 'applied' }), true));
+    expect(applied).not.toMatch(/<p[^>]*text-card-title[^>]*text-muted-foreground/);
+  });
+
   it('omits the basis line when there is none', () => {
     expect(render(card(proposal({ basis: null }), true))).not.toContain('Last 3 months');
   });

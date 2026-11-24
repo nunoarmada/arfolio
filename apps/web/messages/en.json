@@ -2232,7 +2232,8 @@
       "empty": "Ask the advisor about your spending, budget or goals.",
       "open": "Open",
       "error": "Couldn't load the advisor."
-    }
+    },
+    "answerReady": "The advisor replied."
   },
   "budgetYear": {
     "title": "Budget year",

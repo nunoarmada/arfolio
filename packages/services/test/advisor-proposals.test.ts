@@ -489,9 +489,10 @@ describe('advisor proposals', () => {
         reason: 'r',
       });
       await t.owner.delete(schema.category).where(eq(schema.category.id, cat.id));
-      await expect(applyProposal(ctx, p.id, { profile: profileOf() })).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(applyProposal(ctx, p.id, { profile: profileOf() })).rejects.toMatchObject({
+        name: 'ValidationError',
+        code: 'stale',
+      });
       expect((await getProposal(ctx, p.id)).status).toBe('stale');
     });
 
@@ -555,9 +556,10 @@ describe('advisor proposals', () => {
       const acc = await createAccount(ctx, { name: 'Pot', type: 'savings' });
       const p = await propose(ctx, goalDraft({ accountId: acc.id }));
       await t.owner.delete(schema.financialAccount).where(eq(schema.financialAccount.id, acc.id));
-      await expect(applyProposal(ctx, p.id, { profile: profileOf() })).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(applyProposal(ctx, p.id, { profile: profileOf() })).rejects.toMatchObject({
+        name: 'ValidationError',
+        code: 'stale',
+      });
       expect((await getProposal(ctx, p.id)).status).toBe('stale');
     });
 

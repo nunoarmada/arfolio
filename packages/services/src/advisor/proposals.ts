@@ -10,7 +10,6 @@ import {
   calendarDate,
   ConflictError,
   MAX_AMOUNT_MINOR,
-  NotFoundError,
   ValidationError,
   type ServiceCtx,
 } from '../context.js';
@@ -506,10 +505,10 @@ export async function applyProposal(
       recentUserTexts: await recentUserTexts(ctx, { upTo: claimed.createdAt }),
     });
     if (!verdict.ok) {
-      const targeted = draft.kind === 'goal_update' || draft.kind === 'budget_line_amount';
       if (verdict.code === 'not_found') {
+        // Whatever the kind, a vanished target closes the proposal: callers see `stale`, never a 404.
         outcome = 'stale';
-        throw targeted ? stale() : new NotFoundError('Proposal target');
+        throw stale();
       }
       throw new ValidationError(
         `The proposal is not acceptable (${verdict.code})`,

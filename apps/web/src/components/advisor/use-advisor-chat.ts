@@ -28,6 +28,8 @@ export interface ChatError {
   code: Exclude<AdvisorErrorCode, 'ai_off' | 'not_configured'>;
   /** What to send again; refusals (busy, daily limit) have nothing to retry. */
   retryText: string | null;
+  /** A refused send (busy, daily limit) gives the typed text back to the composer. */
+  restore: { text: string } | null;
 }
 
 /** What a screen reader hears when a turn ends: the whole answer, or why there is none. */
@@ -213,7 +215,11 @@ export function useAdvisorChat({
           } else if (code === 'not_configured') {
             setStatus('not_configured');
           } else {
-            setError({ code, retryText: code === 'unavailable' ? text : null });
+            setError({
+              code,
+              retryText: code === 'unavailable' ? text : null,
+              restore: code === 'unavailable' ? null : { text },
+            });
             announce({ error: code });
             if (code === 'busy') {
               busyTimer.current = window.setTimeout(() => setError(null), BUSY_NOTICE_MS);
@@ -236,7 +242,9 @@ export function useAdvisorChat({
     void loadOlderAdvisorMessagesAction(first.id).then((result) => {
       setLoadingOlder(false);
       if (!result.ok) {
-        setOlderFailed(true);
+        // The anchor is gone (history cleared elsewhere): there is nothing earlier to page to.
+        if (result.code === 'conflict') setHasMore(false);
+        else setOlderFailed(true);
         return;
       }
       setMessages((cur) => [...result.data.map(toChatMessage), ...cur]);

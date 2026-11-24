@@ -2232,7 +2232,8 @@
       "empty": "Posez vos questions au conseiller sur vos dépenses, votre budget ou vos objectifs.",
       "open": "Ouvrir",
       "error": "Le conseiller n’a pas pu être chargé."
-    }
+    },
+    "answerReady": "Le conseiller a répondu."
   },
   "budgetYear": {
     "title": "Année budgétaire",

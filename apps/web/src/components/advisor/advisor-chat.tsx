@@ -1,12 +1,13 @@
 'use client';
 
-import { Hourglass, Maximize2, Minus, Sparkles, AlertCircle } from 'lucide-react';
+import { AlertCircle, Hourglass, Maximize2, Minus, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
+import { usePrivacy } from '@/components/privacy';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -70,9 +71,14 @@ function LearningBanner({
     <Card variant="inset" pad="sm" className="grid grid-cols-1 gap-2 md:p-3">
       <div className="flex items-start gap-2.5">
         <Hourglass className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{t('title')}</p>
-          <p className="text-label font-normal text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-baseline justify-between gap-2 text-sm font-medium">
+            <span>{t('title')}</span>
+            <span className="text-label font-normal tabular-nums text-muted-foreground md:hidden">
+              {completeMonths}/{required}
+            </span>
+          </p>
+          <p className="hidden text-label font-normal text-muted-foreground md:block">
             {t('body', { completeMonths, required })}
           </p>
         </div>
@@ -146,6 +152,7 @@ export function AdvisorChat({
 }) {
   const t = useTranslations('advisor');
   const { brandName, isOwner } = useAdvisor();
+  const { hidden: privacyOn } = usePrivacy();
   const { status, state, messages } = controller;
   const ready = status === 'ready' && state !== null;
   const canApply = state?.canApply ?? false;
@@ -196,7 +203,11 @@ export function AdvisorChat({
           ) : null}
           {onMinimise ? (
             <Button variant="ghost" size="icon" aria-label={t('minimise')} onClick={onMinimise}>
-              <Minus className="size-5" aria-hidden="true" />
+              {variant === 'sheet' ? (
+                <X className="size-5" aria-hidden="true" />
+              ) : (
+                <Minus className="size-5" aria-hidden="true" />
+              )}
             </Button>
           ) : null}
         </div>
@@ -270,6 +281,7 @@ export function AdvisorChat({
           ) : null}
           <Composer
             inputRef={composerRef}
+            restore={controller.error?.restore ?? null}
             disabled={controller.streaming}
             onSend={(text) => controller.send(text)}
           />
@@ -277,7 +289,9 @@ export function AdvisorChat({
       ) : null}
 
       <p aria-live="polite" className="sr-only">
-        {controller.announcement?.text ??
+        {(privacyOn && controller.announcement?.text
+          ? t('answerReady')
+          : controller.announcement?.text) ??
           (controller.announcement?.error
             ? t(
                 controller.announcement.error === 'busy'

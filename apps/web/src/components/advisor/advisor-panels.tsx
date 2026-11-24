@@ -2,7 +2,7 @@
 
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,10 +63,15 @@ function PanelFrame({
   children: ReactNode;
 }) {
   const common = useTranslations('common');
+  const back = useRef<HTMLButtonElement>(null);
+  // The panel replaced what had focus: the back button is the way out and the first stop.
+  useEffect(() => back.current?.focus(), []);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-1 border-b px-1.5 py-1">
         <button
+          ref={back}
+          data-advisor-panel-back=""
           type="button"
           aria-label={common('back')}
           onClick={onBack}

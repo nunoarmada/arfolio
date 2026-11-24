@@ -19,6 +19,7 @@ export const ADVISOR_DESKTOP_QUERY = '(min-width: 48rem)';
 const STORAGE_KEY = 'advisor-open';
 /** Launcher (56px) and window (400px) sit this far from the corner; toasts make room for both. */
 const TOAST_ABOVE_LAUNCHER = 'calc(1.5rem + 3.5rem + 0.75rem)';
+const TOAST_ABOVE_COMPOSER = 'calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 7rem)';
 const TOAST_LEFT_OF_WINDOW = 'calc(1.5rem + 400px + 1rem)';
 
 export interface OpenOptions {
@@ -154,9 +155,14 @@ export function AdvisorProvider({
     else root.style.removeProperty('--toast-right');
     if (show && !open) root.style.setProperty('--toast-bottom', TOAST_ABOVE_LAUNCHER);
     else root.style.removeProperty('--toast-bottom');
+    // On the phone page the composer fills the bottom of the card: toasts sit above it.
+    if (onAdvisorPage && !desktop)
+      root.style.setProperty('--toast-bottom-phone', TOAST_ABOVE_COMPOSER);
+    else root.style.removeProperty('--toast-bottom-phone');
     return () => {
       root.style.removeProperty('--toast-right');
       root.style.removeProperty('--toast-bottom');
+      root.style.removeProperty('--toast-bottom-phone');
     };
   }, [available, desktop, onAdvisorPage, open]);
 

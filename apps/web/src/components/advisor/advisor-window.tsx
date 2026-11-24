@@ -91,11 +91,9 @@ export function AdvisorWindow() {
       onPanelChange={setPanel}
       composerRef={composerRef}
       titleId={variant === 'window' ? titleId : undefined}
+      onMinimise={() => advisor.closeAdvisor()}
       {...(variant === 'window'
-        ? {
-            onMinimise: () => advisor.closeAdvisor(),
-            onOpenFullPage: () => advisor.closeAdvisor({ restoreFocus: false }),
-          }
+        ? { onOpenFullPage: () => advisor.closeAdvisor({ restoreFocus: false }) }
         : {})}
     />
   );
@@ -109,7 +107,7 @@ export function AdvisorWindow() {
         }}
         title={t('title', { brand: advisor.brandName })}
         titleHidden
-        tall
+        full
         onOpenAutoFocus={(event) => {
           // Focus the composer when there is one and a keyboard is no surprise.
           if (composerRef.current && !window.matchMedia('(pointer: coarse)').matches) {
@@ -122,9 +120,7 @@ export function AdvisorWindow() {
           advisor.restoreFocus();
         }}
       >
-        <div className="-mx-4 -mb-4 -mt-2 h-[calc(100%+1.5rem)] bg-surface-raised">
-          {chat('sheet')}
-        </div>
+        <div className="h-full bg-surface-raised">{chat('sheet')}</div>
       </Sheet>
     );
   }
@@ -141,7 +137,7 @@ export function AdvisorWindow() {
         if (event.key === 'Escape' && !event.defaultPrevented) advisor.closeAdvisor();
       }}
       className={cn(
-        'fixed bottom-6 right-6 z-50 flex h-[min(640px,calc(100dvh-3rem))] w-[400px] origin-bottom-right flex-col overflow-hidden rounded-xl bg-surface-raised shadow-overlay',
+        'fixed bottom-6 right-6 z-40 flex h-[min(640px,calc(100dvh-3rem))] w-[400px] origin-bottom-right flex-col overflow-hidden rounded-xl bg-surface-raised shadow-overlay',
         visible
           ? 'animate-in fade-in-0 zoom-in-95 duration-[180ms]'
           : 'animate-out fade-out-0 zoom-out-95 duration-[120ms] fill-mode-forwards',

@@ -3,6 +3,7 @@
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useState,
@@ -24,16 +25,23 @@ export function Composer({
   onSend,
   disabled,
   inputRef,
+  restore,
 }: {
   onSend: (text: string) => boolean;
   /** An answer is being written: the member can type, but not send. */
   disabled: boolean;
   inputRef: RefObject<HTMLTextAreaElement | null>;
+  /** Text a refused send gives back (the box takes it unless the member already typed). */
+  restore: { text: string } | null;
 }) {
   const t = useTranslations('advisor');
   const id = useId();
   const [value, setValue] = useState('');
   const empty = value.trim() === '';
+
+  useEffect(() => {
+    if (restore) setValue((current) => (current === '' ? restore.text : current));
+  }, [restore]);
 
   useLayoutEffect(() => {
     const el = inputRef.current;
