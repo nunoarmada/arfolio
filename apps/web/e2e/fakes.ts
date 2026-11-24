@@ -336,7 +336,7 @@ export async function startFakeAnthropic(): Promise<
         Array.isArray(m.content) ? (m.content as Record<string, unknown>[]) : [],
       );
       last = {
-        apiKey: req.headers['x-api-key'] as string | undefined,
+        apiKey: req.headers.authorization?.replace(/^Bearer /, ''),
         documentMediaTypes: (blocks ?? [])
           .filter((b) => b.type === 'document')
           .map((b) => String((b.source as { media_type?: string } | undefined)?.media_type)),

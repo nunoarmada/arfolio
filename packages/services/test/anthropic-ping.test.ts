@@ -17,7 +17,7 @@ describe('pingAnthropic', () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(String(url)).toContain('/v1/models');
     expect(String(url)).toContain('limit=1');
-    expect(new Headers((init as RequestInit).headers).get('x-api-key')).toBe('sk-test');
+    expect(new Headers((init as RequestInit).headers).get('authorization')).toBe('Bearer sk-test');
     expect((init as RequestInit).body).toBeUndefined();
   });
 
