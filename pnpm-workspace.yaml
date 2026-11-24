@@ -11,21 +11,3 @@ allowBuilds:
   '@parcel/watcher': false
   '@swc/core': false
   esbuild: false
-
-# pnpm 12 refuses versions younger than minimumReleaseAge (1 day by default). These were published
-# within a day of the dependency update; remove the list once they are older than that.
-minimumReleaseAgeExclude:
-  - '@typescript-eslint/eslint-plugin@8.74.0'
-  - '@typescript-eslint/parser@8.74.0'
-  - '@typescript-eslint/project-service@8.74.0'
-  - '@typescript-eslint/tsconfig-utils@8.74.0'
-  - '@typescript-eslint/type-utils@8.74.0'
-  - '@typescript-eslint/typescript-estree@8.74.0'
-  - '@typescript-eslint/utils@8.74.0'
-  - '@typescript-eslint/scope-manager@8.74.0'
-  - '@typescript-eslint/types@8.74.0'
-  - '@typescript-eslint/visitor-keys@8.74.0'
-  - icu-minify@4.15.3
-  - lucide-react@1.79.0
-  - next-intl@4.16.1
-  - typescript-eslint@8.74.0
