@@ -2151,13 +2151,35 @@
       "label": "Suggerimento",
       "summary": {
         "goalCreate": "Crea l’obiettivo «{name}»",
-        "goalCreateTarget": "Crea l’obiettivo «{name}» con un traguardo di {amount}",
         "goalUpdate": "Aggiorna un obiettivo",
-        "goalUpdateTarget": "Imposta il traguardo di un obiettivo a {amount}",
-        "goalUpdateMonthly": "Imposta il risparmio mensile di un obiettivo a {amount}",
         "budgetLine": "Imposta una voce di budget a {amount} al mese da {month}",
         "ruleCreate": "Crea la regola «{name}»",
-        "categorise": "Cambia la categoria di un movimento"
+        "categorise": "Cambia la categoria di un movimento",
+        "goalUpdateNamed": "Aggiorna l’obiettivo «{name}»",
+        "budgetLineNamed": "Imposta la voce «{line}» del budget a {amount} al mese, da {from} a {to}",
+        "categoriseTo": "Cambia la categoria di un movimento in «{category}»"
+      },
+      "detail": {
+        "targetAmount": "Traguardo",
+        "targetDate": "Data obiettivo",
+        "monthlyContribution": "Versamento mensile",
+        "account": "Conto",
+        "category": "Categoria",
+        "condition": "Quando",
+        "date": "Data",
+        "amount": "Importo",
+        "description": "Descrizione",
+        "merchantAll": "Si applica anche a tutti i movimenti di questo esercente"
+      },
+      "condition": {
+        "descriptionContains": "la descrizione contiene «{text}»",
+        "descriptionPattern": "la descrizione corrisponde a «{text}»",
+        "counterpartyContains": "la controparte contiene «{text}»",
+        "amountMin": "importo di almeno {amount}",
+        "amountMax": "importo di al massimo {amount}",
+        "directionIn": "denaro in entrata",
+        "directionOut": "denaro in uscita",
+        "accounts": "su {names}"
       },
       "basis": "{months, plural, one {Ultimo mese} other {Ultimi # mesi}}: {min}–{max}, mediana {median}",
       "applied": "Applicato",

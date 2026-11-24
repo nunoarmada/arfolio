@@ -2151,13 +2151,35 @@
       "label": "Sugerencia",
       "summary": {
         "goalCreate": "Crear el objetivo «{name}»",
-        "goalCreateTarget": "Crear el objetivo «{name}» con una meta de {amount}",
         "goalUpdate": "Actualizar un objetivo",
-        "goalUpdateTarget": "Fijar la meta de un objetivo en {amount}",
-        "goalUpdateMonthly": "Fijar el ahorro mensual de un objetivo en {amount}",
         "budgetLine": "Fijar una partida del presupuesto en {amount} al mes desde {month}",
         "ruleCreate": "Crear la regla «{name}»",
-        "categorise": "Cambiar la categoría de un movimiento"
+        "categorise": "Cambiar la categoría de un movimiento",
+        "goalUpdateNamed": "Actualizar el objetivo «{name}»",
+        "budgetLineNamed": "Fijar la partida «{line}» del presupuesto en {amount} al mes, de {from} a {to}",
+        "categoriseTo": "Cambiar la categoría de un movimiento a «{category}»"
+      },
+      "detail": {
+        "targetAmount": "Meta",
+        "targetDate": "Fecha objetivo",
+        "monthlyContribution": "Aportación mensual",
+        "account": "Cuenta",
+        "category": "Categoría",
+        "condition": "Cuando",
+        "date": "Fecha",
+        "amount": "Importe",
+        "description": "Descripción",
+        "merchantAll": "También se aplica a todos los movimientos de este comercio"
+      },
+      "condition": {
+        "descriptionContains": "la descripción contiene «{text}»",
+        "descriptionPattern": "la descripción coincide con «{text}»",
+        "counterpartyContains": "la contraparte contiene «{text}»",
+        "amountMin": "importe de al menos {amount}",
+        "amountMax": "importe de como máximo {amount}",
+        "directionIn": "entrada de dinero",
+        "directionOut": "salida de dinero",
+        "accounts": "en {names}"
       },
       "basis": "{months, plural, one {Último mes} other {Últimos # meses}}: {min}–{max}, mediana {median}",
       "applied": "Aplicada",

@@ -12,7 +12,7 @@ import {
   loadSpendingProfile,
   householdToday,
   recentUserTexts,
-  type AdvisorProposal,
+  type AdvisorProposalView,
   type ServiceCtx,
 } from '@arfolio/services';
 import type { AdvisorModelClient } from './client.js';
@@ -22,9 +22,7 @@ import { advisorTools, toAnthropicTools, type AdvisorToolContext } from './tools
 import { formatMoney } from '../money.js';
 
 export type { AdvisorModelClient } from './client.js';
-
-/** The proposal as the member sees it (store view: the basis carries no internals). */
-export type AdvisorProposalView = AdvisorProposal;
+export type { AdvisorProposalView };
 
 export type TurnInput =
   /** The ids come from `claimChatTurn`: the member's message and the pending answer already exist. */

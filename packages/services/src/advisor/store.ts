@@ -8,6 +8,7 @@ import {
   ValidationError,
   type ServiceCtx,
 } from '../context.js';
+import { resolveProposalDisplay, type ProposalDisplay } from './proposal-display.js';
 
 const { advisorMessage, advisorProposal, advisorNote, advisorMemberSettings, householdSettings } =
   schema;
@@ -15,7 +16,9 @@ const { advisorMessage, advisorProposal, advisorNote, advisorMemberSettings, hou
 export type AdvisorMessage = typeof advisorMessage.$inferSelect;
 export type AdvisorProposal = typeof advisorProposal.$inferSelect;
 export type AdvisorNote = typeof advisorNote.$inferSelect;
-export type AdvisorMessageView = AdvisorMessage & { proposals: AdvisorProposal[] };
+/** A proposal as it leaves the service: the public basis, and the names the card shows. */
+export type AdvisorProposalView = AdvisorProposal & { display: ProposalDisplay | null };
+export type AdvisorMessageView = AdvisorMessage & { proposals: AdvisorProposalView[] };
 export type AdvisorMemberSettings = { proactiveEnabled: boolean; weeklyCap: number | null };
 
 export const MAX_ADVISOR_NOTES = 30;
@@ -41,11 +44,14 @@ export function publicBasis(basis: unknown): unknown {
   return Object.keys(rest).length > 0 ? rest : null;
 }
 
-/** A stored proposal as it leaves the service: the basis is the public one. */
-const toProposalView = (row: AdvisorProposal): AdvisorProposal => ({
-  ...row,
-  basis: publicBasis(row.basis),
-});
+/** A stored proposal as it leaves the service: the public basis, and what its card must show. */
+async function toProposalView(tx: Tx, row: AdvisorProposal): Promise<AdvisorProposalView> {
+  return {
+    ...row,
+    basis: publicBasis(row.basis),
+    display: await resolveProposalDisplay(tx, row.householdId, row.kind, row.payload),
+  };
+}
 
 /** Conversations are private per member: every statement filters household AND user. */
 const mine = <T extends typeof advisorMessage | typeof advisorProposal | typeof advisorNote>(
@@ -161,11 +167,13 @@ export async function listMessages(
         ),
       )
       .orderBy(asc(advisorProposal.createdAt), asc(advisorProposal.id));
+    const views = new Map<string, AdvisorProposalView>();
+    for (const p of proposals) views.set(p.id, await toProposalView(tx, p));
     const expiry = Date.now() - PENDING_TTL_MS;
     return rows.map((r) => ({
       ...r,
       status: r.status === 'pending' && r.createdAt.getTime() < expiry ? 'failed' : r.status,
-      proposals: proposals.filter((p) => p.messageId === r.id).map(toProposalView),
+      proposals: proposals.filter((p) => p.messageId === r.id).map((p) => views.get(p.id)!),
     }));
   });
 }
@@ -179,7 +187,7 @@ export async function saveProposal(
     basis: unknown;
     targetUpdatedAt: Date | null;
   },
-): Promise<AdvisorProposal> {
+): Promise<AdvisorProposalView> {
   assertUuid(p.messageId, 'Message');
   return withHousehold(ctx.db, ctx.householdId, async (tx) => {
     const [owned] = await tx
@@ -199,12 +207,12 @@ export async function saveProposal(
         targetUpdatedAt: p.targetUpdatedAt,
       })
       .returning();
-    return toProposalView(row!);
+    return toProposalView(tx, row!);
   });
 }
 
 /** Another member's proposal is "not found", never forbidden: its existence stays private. */
-export async function getProposal(ctx: ServiceCtx, id: string): Promise<AdvisorProposal> {
+export async function getProposal(ctx: ServiceCtx, id: string): Promise<AdvisorProposalView> {
   assertUuid(id, 'Proposal');
   return withHousehold(ctx.db, ctx.householdId, async (tx) => {
     const [row] = await tx
@@ -212,7 +220,7 @@ export async function getProposal(ctx: ServiceCtx, id: string): Promise<AdvisorP
       .from(advisorProposal)
       .where(and(eq(advisorProposal.id, id), mine(advisorProposal, ctx)));
     if (!row) throw new NotFoundError('Proposal');
-    return toProposalView(row);
+    return toProposalView(tx, row);
   });
 }
 

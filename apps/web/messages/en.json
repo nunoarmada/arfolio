@@ -2151,13 +2151,35 @@
       "label": "Suggestion",
       "summary": {
         "goalCreate": "Create the goal “{name}”",
-        "goalCreateTarget": "Create the goal “{name}” with a target of {amount}",
         "goalUpdate": "Update a goal",
-        "goalUpdateTarget": "Set a goal's target to {amount}",
-        "goalUpdateMonthly": "Set a goal's monthly saving to {amount}",
         "budgetLine": "Set a budget line to {amount} a month from {month}",
         "ruleCreate": "Create the rule “{name}”",
-        "categorise": "Change the category of a transaction"
+        "categorise": "Change the category of a transaction",
+        "goalUpdateNamed": "Update the goal “{name}”",
+        "budgetLineNamed": "Set the budget line “{line}” to {amount} a month, from {from} to {to}",
+        "categoriseTo": "Change the category of a transaction to “{category}”"
+      },
+      "detail": {
+        "targetAmount": "Target amount",
+        "targetDate": "Target date",
+        "monthlyContribution": "Monthly contribution",
+        "account": "Account",
+        "category": "Category",
+        "condition": "When",
+        "date": "Date",
+        "amount": "Amount",
+        "description": "Description",
+        "merchantAll": "Also applies to all movements of this merchant"
+      },
+      "condition": {
+        "descriptionContains": "description contains “{text}”",
+        "descriptionPattern": "description matches “{text}”",
+        "counterpartyContains": "counterparty contains “{text}”",
+        "amountMin": "amount of at least {amount}",
+        "amountMax": "amount of at most {amount}",
+        "directionIn": "money in",
+        "directionOut": "money out",
+        "accounts": "in {names}"
       },
       "basis": "{months, plural, one {Last month} other {Last # months}}: {min}–{max}, median {median}",
       "applied": "Applied",

@@ -3,7 +3,7 @@
 import { parseMoneyInput } from '@arfolio/core';
 import { AlertCircle, Check, ListFilter, Tag, Target, Wallet, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useHouseholdFormat } from '@/components/household-format';
 import { useFormatMoney } from '@/components/privacy';
 import { StatusChip } from '@/components/ui/badge';
@@ -26,6 +26,9 @@ const ICONS: Record<string, LucideIcon> = {
 
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 /** "2026-12" as a long month and year in the household's language. */
 function monthLabel(value: unknown, locale: string): string {
   const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(text(value));
@@ -37,16 +40,29 @@ function monthLabel(value: unknown, locale: string): string {
   }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1)));
 }
 
+type Detail = { key: string; label?: string; value: ReactNode };
+
+/** "2027-03-15" as a long date in the household's language. */
+function dateLabel(value: unknown, locale: string): string {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(text(value));
+  if (!match) return text(value);
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))),
+  );
+}
+
 /**
- * What the proposal does, in one sentence. The draft carries ids, not names, so the sentence only
- * names what the draft itself names (a goal or a rule); amounts go through the money formatter so
- * privacy mode masks them.
+ * What the proposal does, in one sentence, and every change Apply would make as detail rows. The
+ * draft carries ids; the names and the transaction come from the server (`proposal.display`), so
+ * the member sees what they are approving. Amounts go through the money formatter, so privacy
+ * mode masks them; free text read from the member's data is blurred like the model's reason.
  */
-function useSummary(proposal: ChatProposal): string {
-  const t = useTranslations('advisor.proposal.summary');
+function useSummary(proposal: ChatProposal): { summary: string; details: Detail[] } {
+  const t = useTranslations('advisor.proposal');
   const { locale, currency } = useHouseholdFormat();
   const formatMoney = useFormatMoney();
   const p = proposal.payload;
+  const d = proposal.display;
   const amount = (value: unknown): string => {
     const raw = text(value);
     try {
@@ -56,28 +72,94 @@ function useSummary(proposal: ChatProposal): string {
       return raw;
     }
   };
+  const details: Detail[] = [];
+  const add = (key: string, label: string, value: ReactNode) => details.push({ key, label, value });
+  const draftFields = () => {
+    if (p.targetAmount) add('target', t('detail.targetAmount'), amount(p.targetAmount));
+    if (p.targetDate) add('date', t('detail.targetDate'), dateLabel(p.targetDate, locale));
+    if (p.monthlyContribution) {
+      add('monthly', t('detail.monthlyContribution'), amount(p.monthlyContribution));
+    }
+  };
+
   switch (proposal.kind) {
     case 'goal_create':
-      return p.targetAmount
-        ? t('goalCreateTarget', { name: text(p.name), amount: amount(p.targetAmount) })
-        : t('goalCreate', { name: text(p.name) });
+      draftFields();
+      if (d?.accountName) add('account', t('detail.account'), d.accountName);
+      return { summary: t('summary.goalCreate', { name: text(p.name) }), details };
     case 'goal_update':
-      if (p.targetAmount) return t('goalUpdateTarget', { amount: amount(p.targetAmount) });
-      if (p.monthlyContribution) {
-        return t('goalUpdateMonthly', { amount: amount(p.monthlyContribution) });
+      draftFields();
+      return {
+        summary: d?.goalName
+          ? t('summary.goalUpdateNamed', { name: d.goalName })
+          : t('summary.goalUpdate'),
+        details,
+      };
+    case 'budget_line_amount': {
+      const from = monthLabel(p.fromMonth, locale);
+      return {
+        summary:
+          d?.lineName && d.toMonth
+            ? t('summary.budgetLineNamed', {
+                line: d.lineName,
+                amount: amount(p.monthlyAmount),
+                from,
+                to: monthLabel(d.toMonth, locale),
+              })
+            : t('summary.budgetLine', { amount: amount(p.monthlyAmount), month: from }),
+        details,
+      };
+    }
+    case 'rule_create': {
+      const c = isRecord(p.condition) ? p.condition : {};
+      const minor = (value: unknown) =>
+        typeof value === 'number' ? formatMoney(value, currency, locale) : text(value);
+      const parts: string[] = [];
+      if (c.descriptionContains) {
+        parts.push(t('condition.descriptionContains', { text: text(c.descriptionContains) }));
       }
-      return t('goalUpdate');
-    case 'budget_line_amount':
-      return t('budgetLine', {
-        amount: amount(p.monthlyAmount),
-        month: monthLabel(p.fromMonth, locale),
-      });
-    case 'rule_create':
-      return t('ruleCreate', { name: text(p.name) });
-    case 'transaction_categorise':
-      return t('categorise');
+      if (c.descriptionPattern) {
+        parts.push(t('condition.descriptionPattern', { text: text(c.descriptionPattern) }));
+      }
+      if (c.counterpartyContains) {
+        parts.push(t('condition.counterpartyContains', { text: text(c.counterpartyContains) }));
+      }
+      if (c.amountMin !== undefined) {
+        parts.push(t('condition.amountMin', { amount: minor(c.amountMin) }));
+      }
+      if (c.amountMax !== undefined) {
+        parts.push(t('condition.amountMax', { amount: minor(c.amountMax) }));
+      }
+      if (c.direction === 'in') parts.push(t('condition.directionIn'));
+      if (c.direction === 'out') parts.push(t('condition.directionOut'));
+      if (d?.accountNames?.length) {
+        parts.push(t('condition.accounts', { names: d.accountNames.join(', ') }));
+      }
+      if (parts.length > 0) {
+        add('condition', t('detail.condition'), <PrivateText>{parts.join(', ')}</PrivateText>);
+      }
+      if (d?.categoryName) add('category', t('detail.category'), d.categoryName);
+      return { summary: t('summary.ruleCreate', { name: text(p.name) }), details };
+    }
+    case 'transaction_categorise': {
+      const tx = d?.transaction;
+      if (tx) {
+        add('date', t('detail.date'), dateLabel(tx.bookedOn, locale));
+        add('amount', t('detail.amount'), formatMoney(tx.amount, tx.currency, locale));
+        add('description', t('detail.description'), <PrivateText>{tx.description}</PrivateText>);
+      }
+      if (p.applyToMerchant === true) {
+        details.push({ key: 'merchant', value: t('detail.merchantAll') });
+      }
+      return {
+        summary: d?.categoryName
+          ? t('summary.categoriseTo', { category: d.categoryName })
+          : t('summary.categorise'),
+        details,
+      };
+    }
     default:
-      return '';
+      return { summary: '', details };
   }
 }
 
@@ -104,7 +186,7 @@ export function ProposalCard({
   const formatMoney = useFormatMoney();
   const toast = useToast();
   const failureMessage = useFailureMessage();
-  const summary = useSummary(proposal);
+  const { summary, details } = useSummary(proposal);
   const errorId = useId();
   const [busy, setBusy] = useState<'apply' | 'dismiss' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +251,22 @@ export function ProposalCard({
           {summary}
         </p>
       </div>
+      {details.length > 0 ? (
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+          {details.map((row) =>
+            row.label ? (
+              <div key={row.key} className="contents">
+                <dt className="text-muted-foreground">{row.label}</dt>
+                <dd className="min-w-0 break-words tabular-nums">{row.value}</dd>
+              </div>
+            ) : (
+              <dd key={row.key} className="col-span-2 min-w-0 break-words">
+                {row.value}
+              </dd>
+            ),
+          )}
+        </dl>
+      ) : null}
       {reason ? (
         <PrivateText className="break-words text-sm text-muted-foreground">{reason}</PrivateText>
       ) : null}

@@ -2151,13 +2151,35 @@
       "label": "Suggestion",
       "summary": {
         "goalCreate": "Créer l’objectif « {name} »",
-        "goalCreateTarget": "Créer l’objectif « {name} » avec un montant cible de {amount}",
         "goalUpdate": "Mettre à jour un objectif",
-        "goalUpdateTarget": "Fixer le montant cible d’un objectif à {amount}",
-        "goalUpdateMonthly": "Fixer l’épargne mensuelle d’un objectif à {amount}",
         "budgetLine": "Fixer une ligne du budget à {amount} par mois à partir de {month}",
         "ruleCreate": "Créer la règle « {name} »",
-        "categorise": "Changer la catégorie d’une opération"
+        "categorise": "Changer la catégorie d’une opération",
+        "goalUpdateNamed": "Mettre à jour l’objectif « {name} »",
+        "budgetLineNamed": "Fixer la ligne « {line} » du budget à {amount} par mois, de {from} à {to}",
+        "categoriseTo": "Changer la catégorie d’une opération en « {category} »"
+      },
+      "detail": {
+        "targetAmount": "Montant cible",
+        "targetDate": "Date cible",
+        "monthlyContribution": "Versement mensuel",
+        "account": "Compte",
+        "category": "Catégorie",
+        "condition": "Quand",
+        "date": "Date",
+        "amount": "Montant",
+        "description": "Libellé",
+        "merchantAll": "S’applique aussi à toutes les opérations de ce commerçant"
+      },
+      "condition": {
+        "descriptionContains": "le libellé contient « {text} »",
+        "descriptionPattern": "le libellé correspond à « {text} »",
+        "counterpartyContains": "la contrepartie contient « {text} »",
+        "amountMin": "montant d’au moins {amount}",
+        "amountMax": "montant d’au plus {amount}",
+        "directionIn": "entrée d’argent",
+        "directionOut": "sortie d’argent",
+        "accounts": "sur {names}"
       },
       "basis": "{months, plural, one {Dernier mois} other {# derniers mois}} : {min}–{max}, médiane {median}",
       "applied": "Appliquée",

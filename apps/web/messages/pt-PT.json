@@ -2151,13 +2151,35 @@
       "label": "Sugestão",
       "summary": {
         "goalCreate": "Criar o objetivo «{name}»",
-        "goalCreateTarget": "Criar o objetivo «{name}» com a meta de {amount}",
         "goalUpdate": "Atualizar um objetivo",
-        "goalUpdateTarget": "Definir a meta de um objetivo em {amount}",
-        "goalUpdateMonthly": "Definir a poupança mensal de um objetivo em {amount}",
         "budgetLine": "Definir uma rubrica do orçamento em {amount} por mês a partir de {month}",
         "ruleCreate": "Criar a regra «{name}»",
-        "categorise": "Mudar a categoria de um movimento"
+        "categorise": "Mudar a categoria de um movimento",
+        "goalUpdateNamed": "Atualizar o objetivo «{name}»",
+        "budgetLineNamed": "Definir a rubrica «{line}» do orçamento em {amount} por mês, de {from} a {to}",
+        "categoriseTo": "Mudar a categoria de um movimento para «{category}»"
+      },
+      "detail": {
+        "targetAmount": "Meta",
+        "targetDate": "Data-alvo",
+        "monthlyContribution": "Contribuição mensal",
+        "account": "Conta",
+        "category": "Categoria",
+        "condition": "Quando",
+        "date": "Data",
+        "amount": "Montante",
+        "description": "Descrição",
+        "merchantAll": "Aplica-se também a todos os movimentos deste comerciante"
+      },
+      "condition": {
+        "descriptionContains": "a descrição contém «{text}»",
+        "descriptionPattern": "a descrição corresponde a «{text}»",
+        "counterpartyContains": "a contraparte contém «{text}»",
+        "amountMin": "montante de pelo menos {amount}",
+        "amountMax": "montante de, no máximo, {amount}",
+        "directionIn": "entrada de dinheiro",
+        "directionOut": "saída de dinheiro",
+        "accounts": "em {names}"
       },
       "basis": "{months, plural, one {Último mês} other {Últimos # meses}}: {min}–{max}, mediana {median}",
       "applied": "Aplicada",

@@ -81,6 +81,7 @@ function readFrame(frame: Frame): AdvisorStreamEvent | AdvisorStreamOutcome | nu
           kind: p.kind,
           payload: p.payload,
           basis: p.basis,
+          display: p.display,
           status: typeof p.status === 'string' ? p.status : 'pending',
         }),
       };

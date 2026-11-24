@@ -22,6 +22,7 @@ const proposal = {
   kind: 'budget_line_amount',
   payload: { kind: 'budget_line_amount', monthlyAmount: '250.00', reason: 'Above your usual' },
   basis: { months: 3, min: 20000, max: 30000, median: 25000, currency: 'EUR' },
+  display: { lineName: 'Restaurants', toMonth: '2026-12' },
   status: 'pending',
   createdAt: '2026-11-24T10:00:00.000Z',
 };
@@ -55,6 +56,7 @@ describe('streamAdvisorMessage', () => {
           kind: 'budget_line_amount',
           payload: proposal.payload,
           basis: proposal.basis,
+          display: proposal.display,
           status: 'pending',
         },
       },

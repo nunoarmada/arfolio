@@ -1,4 +1,4 @@
-import type { AdvisorMessageView } from '@arfolio/services';
+import type { AdvisorMessageView, ProposalDisplay } from '@arfolio/services';
 
 /** The advisor loads this many messages at once, and per "load earlier" page (see advisor-data). */
 export const ADVISOR_PAGE_SIZE = 30;
@@ -21,6 +21,8 @@ export interface ChatProposal {
   /** The draft the model made: ids, decimal-string amounts, and the `reason` it gave. */
   payload: Record<string, unknown>;
   basis: ProposalBasis | null;
+  /** Names and figures the server resolved for the card (the draft only holds ids). */
+  display: ProposalDisplay | null;
   status: ProposalStatus;
 }
 
@@ -54,12 +56,44 @@ function toBasis(value: unknown): ProposalBasis | null {
   return null;
 }
 
+const optionalText = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
+function toDisplay(value: unknown): ProposalDisplay | null {
+  if (!isRecord(value)) return null;
+  const out: ProposalDisplay = {};
+  for (const key of ['goalName', 'accountName', 'lineName', 'toMonth', 'categoryName'] as const) {
+    const text = optionalText(value[key]);
+    if (text !== undefined) out[key] = text;
+  }
+  if (Array.isArray(value.accountNames)) {
+    out.accountNames = value.accountNames.filter((n): n is string => typeof n === 'string');
+  }
+  const tx = value.transaction;
+  if (
+    isRecord(tx) &&
+    typeof tx.bookedOn === 'string' &&
+    typeof tx.amount === 'number' &&
+    typeof tx.currency === 'string' &&
+    typeof tx.description === 'string'
+  ) {
+    out.transaction = {
+      bookedOn: tx.bookedOn,
+      amount: tx.amount,
+      currency: tx.currency,
+      description: tx.description,
+    };
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 /** Reads a stored proposal row or the JSON of an SSE `proposal` event; nothing in it is trusted. */
 export function toChatProposal(row: {
   id: string;
   kind: string;
   payload: unknown;
   basis: unknown;
+  display?: unknown;
   status: string;
 }): ChatProposal {
   return {
@@ -67,6 +101,7 @@ export function toChatProposal(row: {
     kind: row.kind,
     payload: isRecord(row.payload) ? row.payload : {},
     basis: toBasis(row.basis),
+    display: toDisplay(row.display),
     status: STATUSES.has(row.status) ? (row.status as ProposalStatus) : 'pending',
   };
 }

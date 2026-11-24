@@ -479,7 +479,9 @@ export type {
   AdvisorMessageView,
   AdvisorNote,
   AdvisorProposal,
+  AdvisorProposalView,
 } from './advisor/store.js';
+export type { ProposalDisplay } from './advisor/proposal-display.js';
 export {
   applyProposal,
   dismissProposal,
