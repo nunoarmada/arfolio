@@ -49,6 +49,7 @@ export function NotificationBell({
           <span aria-hidden="true" className="sr-only xl:not-sr-only xl:truncate">
             {t('bell')}
           </span>
+          {/* A space between the text and the count keeps the visible text inside the accessible name (WCAG 2.5.3). */}{' '}
           {unread > 0 ? (
             <span
               aria-hidden="true"

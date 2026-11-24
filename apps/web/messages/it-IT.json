@@ -686,7 +686,7 @@
       },
       "granted": "Connessa il {date}",
       "revoke": "Revoca accesso",
-      "revokeNamed": "Revoca l’accesso a {name}",
+      "revokeNamed": "Revoca accesso a {name}",
       "revokeTitle": "Revocare l’accesso a {name}?",
       "revokeBody": "{name} perde subito la possibilità di leggere o modificare i dati del nucleo familiare. Per ricollegarla sarà necessario consentire di nuovo l’accesso.",
       "revokeError": "Impossibile revocare l’accesso. Riprovare.",

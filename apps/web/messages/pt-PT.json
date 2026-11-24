@@ -686,7 +686,7 @@
       },
       "granted": "Ligada a {date}",
       "revoke": "Revogar acesso",
-      "revokeNamed": "Revogar o acesso de {name}",
+      "revokeNamed": "Revogar acesso de {name}",
       "revokeTitle": "Revogar o acesso de {name}?",
       "revokeBody": "{name} deixa de conseguir ler ou alterar os dados do agregado, de imediato. Para voltar a ligar, terá de autorizar o acesso de novo.",
       "revokeError": "Não foi possível revogar o acesso. Tente novamente.",

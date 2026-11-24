@@ -241,7 +241,7 @@ export function SpendingByGroup({
                                           height="h-1"
                                         />
                                       </span>
-                                    </span>
+                                    </span>{' '}
                                     <MoneyAmount
                                       minor={c.amount}
                                       currency={currency}
@@ -296,10 +296,6 @@ export function SpendingByGroup({
                     <li data-testid="spending-group" data-group-id="uncategorised">
                       <Link
                         href={txHref({ from, to, uncategorised: true, direction: 'out' })}
-                        aria-label={t('spending.categoryLink', {
-                          category: t('spending.uncategorised'),
-                          amount: money(data.uncategorised),
-                        })}
                         className="flex min-h-14 w-full flex-col justify-center gap-1.5 rounded-md py-2 pr-1 hover:bg-surface-2"
                       >
                         <span className="flex items-center gap-2">
@@ -323,6 +319,7 @@ export function SpendingByGroup({
                             {formatBps(uncategorisedBps, locale)}
                           </span>
                         </span>
+                        <span className="sr-only">{t('spending.viewAll')}</span>
                       </Link>
                     </li>
                   ) : null}

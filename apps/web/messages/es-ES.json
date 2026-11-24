@@ -686,7 +686,7 @@
       },
       "granted": "Conectada el {date}",
       "revoke": "Revocar acceso",
-      "revokeNamed": "Revocar el acceso de {name}",
+      "revokeNamed": "Revocar acceso de {name}",
       "revokeTitle": "¿Revocar el acceso de {name}?",
       "revokeBody": "{name} pierde de inmediato el acceso para leer o modificar los datos del hogar. Para volver a conectar, deberá permitir el acceso de nuevo.",
       "revokeError": "No se pudo revocar el acceso. Inténtelo de nuevo.",
