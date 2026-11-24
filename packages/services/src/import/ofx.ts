@@ -1,8 +1,14 @@
 import type { IngestRow } from '../pipeline.js';
 import { ValidationError } from '../context.js';
-import { AmountParseError, DateParseError, parseAmount, parseDate } from '@arfolio/core';
+import {
+  AmountParseError,
+  DateParseError,
+  minorDigits,
+  parseAmount,
+  parseDate,
+} from '@arfolio/core';
 import { decodeText } from './csv.js';
-import type { OfxParse, ParsedRow } from './types.js';
+import type { OfxParse, OfxTransaction, ParsedRow } from './types.js';
 
 const ENTITIES: Record<string, string> = {
   amp: '&',
@@ -26,28 +32,29 @@ function decodeEntities(text: string): string {
 }
 
 /** First value of each leaf tag; works for XML (closed tags) and SGML (tags closed by newline). */
-function leafTags(block: string): Map<string, string> {
+function leafTags(block: string): Record<string, string> {
   const tags = new Map<string, string>();
   for (const m of block.matchAll(/<([A-Za-z0-9.]+)>([^<\r\n]*)/g)) {
     const name = m[1]!.toUpperCase();
     const value = decodeEntities(m[2]!.trim());
     if (value !== '' && !tags.has(name)) tags.set(name, value);
   }
-  return tags;
+  return Object.fromEntries(tags);
 }
 
-function toRow(tags: Map<string, string>, line: number, currency: string): ParsedRow {
+function toRow({ line, tags }: OfxTransaction, currency: string, digits: number): ParsedRow {
   try {
-    const posted = /^(\d{4})(\d{2})(\d{2})/.exec(tags.get('DTPOSTED') ?? '');
-    if (!posted) throw new DateParseError(tags.get('DTPOSTED'));
+    const posted = /^(\d{4})(\d{2})(\d{2})/.exec(tags.DTPOSTED ?? '');
+    if (!posted) throw new DateParseError(tags.DTPOSTED);
     const bookingDate = parseDate(`${posted[1]}-${posted[2]}-${posted[3]}`, 'YMD');
-    const rawAmount = tags.get('TRNAMT');
+    const rawAmount = tags.TRNAMT;
     if (rawAmount === undefined) throw new AmountParseError('');
     const amount = parseAmount(rawAmount, {
       decimal: rawAmount.includes(',') && !rawAmount.includes('.') ? ',' : '.',
+      minorDigits: digits,
     });
-    const name = tags.get('NAME');
-    const memo = tags.get('MEMO');
+    const name = tags.NAME;
+    const memo = tags.MEMO;
     const description = [name, memo && memo !== name ? memo : undefined].filter(Boolean).join(' ');
     if (!description) return { line, status: 'error', error: 'Missing description' };
     const row: IngestRow = {
@@ -56,7 +63,7 @@ function toRow(tags: Map<string, string>, line: number, currency: string): Parse
       currency,
       description: description.slice(0, 1_000),
     };
-    const fitId = tags.get('FITID');
+    const fitId = tags.FITID;
     if (fitId) {
       if (fitId.length > 200) return { line, status: 'error', error: 'FITID is too long' };
       row.externalId = fitId;
@@ -71,7 +78,16 @@ function toRow(tags: Map<string, string>, line: number, currency: string): Parse
   }
 }
 
-/** Parses OFX 1.x (SGML) and 2.x (XML) statements into normalised rows (FITID is the external id). */
+/**
+ * The statement's transactions as import rows for an account in `currency`: amounts in its minor
+ * units, FITID as the external id. Unreadable transactions are error rows, never thrown.
+ */
+export function ofxRows(ofx: OfxParse, currency: string): ParsedRow[] {
+  const digits = minorDigits(currency);
+  return ofx.transactions.map((t) => toRow(t, currency, digits));
+}
+
+/** Reads the transactions of an OFX 1.x (SGML) or 2.x (XML) statement; see `ofxRows`. */
 export function parseOfx(buf: Buffer): OfxParse {
   const text = decodeText(buf);
   const blocks = [
@@ -88,7 +104,6 @@ export function parseOfx(buf: Buffer): OfxParse {
   const currency = /<CURDEF>\s*([A-Za-z]{3})/i.exec(text)?.[1]?.toUpperCase();
   return {
     ...(currency ? { currency } : {}),
-    // Without CURDEF the rows carry a placeholder: the import service substitutes the account's.
-    rows: blocks.map((block, i) => toRow(leafTags(block[1]!), i + 1, currency ?? 'XXX')),
+    transactions: blocks.map((block, i) => ({ line: i + 1, tags: leafTags(block[1]!) })),
   };
 }

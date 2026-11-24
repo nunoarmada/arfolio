@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from 'react';
-import { addMonths as addCalendarMonths, annuityPayment } from '@arfolio/core';
+import { addMonths as addCalendarMonths, annuityPayment, minorDigits } from '@arfolio/core';
 import { parsePlanned, toPlannedInput } from '@/lib/amount-input';
 import { formatMonth, isIsoDate } from '@/lib/dates';
 import { ASSET_GROUP_ORDER } from '@/lib/net-worth-items';
@@ -77,7 +77,10 @@ export function LiabilityForm({
       currency: editing?.currency ?? data.currency,
       accountId: editing?.accountId ?? '',
       assetId: editing?.assetId ?? '',
-      principal: editing?.principal != null ? toPlannedInput(editing.principal, locale) : '',
+      principal:
+        editing?.principal != null
+          ? toPlannedInput(editing.principal, locale, minorDigits(editing.currency))
+          : '',
       rate: editing?.annualRateBps != null ? bpsToInput(editing.annualRateBps, locale) : '',
       years: term && term.years > 0 ? String(term.years) : '',
       months: term && term.months > 0 ? String(term.months) : '',
@@ -131,7 +134,8 @@ export function LiabilityForm({
 
   // The plan fields as parsed (for validation and the live preview).
   const plan = useMemo(() => {
-    const principal = parsePlanned(values.principal);
+    // Amounts are in the liability's currency, typed in its minor units.
+    const principal = parsePlanned(values.principal, minorDigits(values.currency));
     const rate = parsePercent(values.rate);
     const term = parseTermInput(values.years, values.months);
     return {
@@ -140,7 +144,14 @@ export function LiabilityForm({
       term: term.ok ? term : term.reason === 'empty' ? null : term,
       start: values.startDate === '' ? null : values.startDate,
     };
-  }, [values.principal, values.rate, values.years, values.months, values.startDate]);
+  }, [
+    values.principal,
+    values.currency,
+    values.rate,
+    values.years,
+    values.months,
+    values.startDate,
+  ]);
   const filled = [plan.principal, plan.rate, plan.term, plan.start].filter(
     (f) => f !== null,
   ).length;
@@ -219,7 +230,7 @@ export function LiabilityForm({
 
     let initialBalance: { asOf: string; amount: number } | null = null;
     if (!editing && !linked && values.balance.trim() !== '') {
-      const parsed = parsePlanned(values.balance);
+      const parsed = parsePlanned(values.balance, minorDigits(values.currency));
       if (!parsed.ok) found.balance = t('valueInvalid');
       if (!values.balanceDate) found.balanceDate = t('dateRequired');
       else if (!isIsoDate(values.balanceDate)) found.balanceDate = t('dateInvalid');

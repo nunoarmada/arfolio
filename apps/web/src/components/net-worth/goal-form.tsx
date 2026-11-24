@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition, type FormEvent } from 'react';
+import { minorDigits } from '@arfolio/core';
 import { toPlannedInput } from '@/lib/amount-input';
 import { cn } from '@/lib/cn';
 import { parseGoalForm, type GoalFormError, type GoalFormValues } from '@/lib/goals';
@@ -21,9 +22,9 @@ import { ErrorSummary, FormCard, RadioCard, SaveBar } from './form-parts';
 import { useFormatMoney } from '@/components/privacy';
 
 /** A minor-unit amount as typed text: not set is empty, a real zero stays "0". */
-function amountText(minor: number | null, locale: string): string {
+function amountText(minor: number | null, locale: string, digits: number): string {
   if (minor === null) return '';
-  return minor === 0 ? '0' : toPlannedInput(minor, locale);
+  return minor === 0 ? '0' : toPlannedInput(minor, locale, digits);
 }
 
 /** Add or change a goal: what it is, its target, where the money is and what goes in each month. */
@@ -46,6 +47,8 @@ export function GoalForm({
   const { locale, currency } = useHouseholdFormat();
   const formatMoney = useFormatMoney();
   const money = (minor: number) => formatMoney(minor, currency, locale);
+  // Goals are in the household currency, typed in its minor units.
+  const digits = minorDigits(currency);
   const editing = data.goal;
 
   const initial: GoalFormValues = useMemo(
@@ -56,16 +59,16 @@ export function GoalForm({
           ? 'emergency_fund'
           : 'generic'),
       name: editing?.name ?? '',
-      target: amountText(editing?.targetAmount ?? null, locale),
+      target: amountText(editing?.targetAmount ?? null, locale, digits),
       targetDate: editing?.targetDate ?? '',
       where: editing?.accountId ? 'account' : editing?.budgetLineId ? 'line' : 'none',
       accountId: editing?.accountId ?? '',
       lineId: editing?.budgetLineId ?? '',
-      contribution: amountText(editing?.monthlyContribution ?? null, locale),
-      alreadySaved: amountText(editing?.savedBaseline ?? null, locale),
+      contribution: amountText(editing?.monthlyContribution ?? null, locale, digits),
+      alreadySaved: amountText(editing?.savedBaseline ?? null, locale, digits),
       alreadySavedDate: editing?.savedBaselineDate ?? '',
     }),
-    [editing, defaultKind, data.otherEmergencyFund, locale],
+    [editing, defaultKind, data.otherEmergencyFund, locale, digits],
   );
   const [values, setValues] = useState<GoalFormValues>(initial);
   const [saved, setSaved] = useState(false);
@@ -103,7 +106,7 @@ export function GoalForm({
     e.preventDefault();
     setSubmitted(true);
     setFormError(null);
-    const parsed = parseGoalForm(values, initial);
+    const parsed = parseGoalForm(values, initial, digits);
     if (!parsed.ok) {
       setErrors(parsed.errors);
       return;

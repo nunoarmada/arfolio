@@ -217,10 +217,11 @@ const startMonthOf = ({ year, month }: YearMonth) =>
   `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-01`;
 
 /**
- * A JS number as minor units (2 decimals), without float arithmetic: its shortest decimal string
- * (exponent form included) is rounded half to even with BigInt. 12.125 is 1212, 0.1 + 0.2 is 30.
+ * A JS number as minor units with `minorDigits` decimals (the currency's; 2 by default), without
+ * float arithmetic: its shortest decimal string (exponent form included) is rounded half to even
+ * with BigInt. 12.125 is 1212, 0.1 + 0.2 is 30; with 0 digits 12.5 is 12, with 3 digits 1.234 is 1234.
  */
-export function numberToMinor(n: number): number {
+export function numberToMinor(n: number, minorDigits = 2): number {
   const match = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(n));
   if (!Number.isFinite(n) || !match) throw new ValidationError('The number is not a valid amount');
   if (Math.abs(n) >= 1e13)
@@ -228,10 +229,10 @@ export function numberToMinor(n: number): number {
   const digits = BigInt(`${match[2]}${match[3] ?? ''}`);
   const scale = (match[3]?.length ?? 0) - Number(match[4] ?? 0);
   let minor: bigint;
-  if (scale <= 2) {
-    minor = digits * 10n ** BigInt(2 - scale);
+  if (scale <= minorDigits) {
+    minor = digits * 10n ** BigInt(minorDigits - scale);
   } else {
-    const divisor = 10n ** BigInt(scale - 2);
+    const divisor = 10n ** BigInt(scale - minorDigits);
     minor = digits / divisor;
     const rest = digits % divisor;
     const twice = rest * 2n;
@@ -248,7 +249,7 @@ export function numberToMinor(n: number): number {
  * Money as the sheets hold it: a number cell (or a formula's stored number) is converted exactly,
  * text is read as a pt-PT amount; "-", a dash and an empty cell are zero. Throws on anything else.
  */
-function parseMoney(value: TypedCell, ref: CellRef): number {
+function parseMoney(value: TypedCell, ref: CellRef, minorDigits: number): number {
   const invalid = (shown: string) =>
     new ValidationError(`${where(ref)}: "${shown}" is not an amount`, [], 'invalid_amount', {
       ...ref,
@@ -256,7 +257,7 @@ function parseMoney(value: TypedCell, ref: CellRef): number {
     });
   if (typeof value === 'number') {
     try {
-      return numberToMinor(value);
+      return numberToMinor(value, minorDigits);
     } catch {
       throw invalid(String(value).slice(0, MAX_SHOWN_VALUE));
     }
@@ -264,7 +265,7 @@ function parseMoney(value: TypedCell, ref: CellRef): number {
   const text = value.trim();
   if (text === '' || /^[-\u2013\u2014]$/.test(text)) return 0;
   try {
-    const minor = parseAmount(text);
+    const minor = parseAmount(text, { minorDigits });
     if (Math.abs(minor) > MAX_AMOUNT_MINOR) throw invalid(text.slice(0, MAX_SHOWN_VALUE));
     return minor;
   } catch (error) {
@@ -329,7 +330,12 @@ function sectionOf(grid: Grid, row: number) {
   return looksLikeHeader ? section : null;
 }
 
-function readBudget(grid: Grid, start: YearMonth, warnings: BudgetImportWarning[]) {
+function readBudget(
+  grid: Grid,
+  start: YearMonth,
+  warnings: BudgetImportWarning[],
+  minorDigits: number,
+) {
   const sheet = 'Orçamento';
   const lines: ParsedBudgetLine[] = [];
   const usedNames = new Set<string>();
@@ -359,7 +365,7 @@ function readBudget(grid: Grid, start: YearMonth, warnings: BudgetImportWarning[
       }
       const name = cell(grid, row, 0);
       if (isTotal(name)) {
-        const found = tryMoney(raw(grid, row, COL_TOTAL));
+        const found = tryMoney(raw(grid, row, COL_TOTAL), minorDigits);
         if (found !== null && found !== linesTotal) {
           warnings.push({
             code: 'total_mismatch',
@@ -375,7 +381,7 @@ function readBudget(grid: Grid, start: YearMonth, warnings: BudgetImportWarning[
       const amounts = Array.from({ length: 12 }, (_, i) => {
         const col = COL_FIRST_MONTH + i;
         const ref = cellRef(sheet, row, col);
-        const amount = parseMoney(raw(grid, row, col), ref);
+        const amount = parseMoney(raw(grid, row, col), ref, minorDigits);
         if (amount < 0) {
           throw new ValidationError(
             `${where(ref)}: planned amounts cannot be negative`,
@@ -387,7 +393,7 @@ function readBudget(grid: Grid, start: YearMonth, warnings: BudgetImportWarning[
         return amount;
       });
       const total = amounts.reduce((a, b) => a + b, 0);
-      const found = tryMoney(raw(grid, row, COL_TOTAL));
+      const found = tryMoney(raw(grid, row, COL_TOTAL), minorDigits);
       if (found !== null && found !== total) {
         warnings.push({
           code: 'total_mismatch',
@@ -443,10 +449,10 @@ function readBudget(grid: Grid, start: YearMonth, warnings: BudgetImportWarning[
 }
 
 /** The value of a cross-check cell, or null when it is not money (the check is then skipped). */
-function tryMoney(value: TypedCell): number | null {
+function tryMoney(value: TypedCell, minorDigits: number): number | null {
   if (value === '') return null;
   try {
-    return parseMoney(value, { sheet: 'total', cell: '' });
+    return parseMoney(value, { sheet: 'total', cell: '' }, minorDigits);
   } catch (error) {
     if (error instanceof ValidationError) return null;
     throw error;
@@ -456,6 +462,7 @@ function tryMoney(value: TypedCell): number | null {
 function readSubscriptions(
   grid: Grid,
   warnings: BudgetImportWarning[],
+  minorDigits: number,
 ): { subscriptions: ParsedSubscription[]; skipped: number } {
   const sheet = 'Subscrições';
   const headerRow = 2;
@@ -491,7 +498,9 @@ function readSubscriptions(
       skipped += 1;
       continue;
     }
-    const price = Math.abs(parseMoney(raw(grid, row, value), cellRef(sheet, row, value)));
+    const price = Math.abs(
+      parseMoney(raw(grid, row, value), cellRef(sheet, row, value), minorDigits),
+    );
     if (price === 0) {
       zeroValue += 1; // an unused template row, or a free service: nothing to import
       continue;
@@ -587,8 +596,8 @@ const isBlank = (value: TypedCell) => {
 };
 
 /** Money that may not be negative. */
-function parseNonNegative(value: TypedCell, ref: CellRef): number {
-  const amount = parseMoney(value, ref);
+function parseNonNegative(value: TypedCell, ref: CellRef, minorDigits: number): number {
+  const amount = parseMoney(value, ref, minorDigits);
   if (amount < 0) {
     throw new ValidationError(`${where(ref)}: values cannot be negative`, [], 'negative_amount', {
       ...ref,
@@ -602,6 +611,7 @@ function readPatrimonio(
   start: YearMonth,
   today: string,
   warnings: BudgetImportWarning[],
+  minorDigits: number,
 ) {
   const sheet = 'Património';
   const assets: ParsedPatrimonio['assets'] = [];
@@ -674,7 +684,7 @@ function readPatrimonio(
         if (isBlank(value) || monthDays[i]! > today) continue;
         values.push({
           asOf: monthDays[i]!,
-          amount: parseNonNegative(value, cellRef(sheet, row, col)),
+          amount: parseNonNegative(value, cellRef(sheet, row, col), minorDigits),
         });
       }
       const unique = uniqueName(name, used[side], MAX_NET_WORTH_NAME);
@@ -697,7 +707,7 @@ function readPatrimonio(
   return { assets, liabilities };
 }
 
-function readGoals(grid: Grid, warnings: BudgetImportWarning[]): ParsedGoal[] {
+function readGoals(grid: Grid, warnings: BudgetImportWarning[], minorDigits: number): ParsedGoal[] {
   const sheet = 'Objetivos';
   const headerRow = grid.findIndex(
     (r) =>
@@ -731,12 +741,12 @@ function readGoals(grid: Grid, warnings: BudgetImportWarning[]): ParsedGoal[] {
     const optional = (col: number): number | null => {
       const value = raw(grid, row, col);
       if (isBlank(value)) return null;
-      return parseNonNegative(value, cellRef(sheet, row, col)) || null;
+      return parseNonNegative(value, cellRef(sheet, row, col), minorDigits) || null;
     };
     const emergency = EMERGENCY_FUND_NAMES.has(normalizeName(goalName));
     const savedValue =
       saved >= 0 && !isBlank(raw(grid, row, saved))
-        ? parseMoney(raw(grid, row, saved), cellRef(sheet, row, saved))
+        ? parseMoney(raw(grid, row, saved), cellRef(sheet, row, saved), minorDigits)
         : 0;
     const unique = uniqueName(goalName, used, MAX_NET_WORTH_NAME);
     if (unique !== goalName) {
@@ -763,26 +773,29 @@ function readGoals(grid: Grid, warnings: BudgetImportWarning[]): ParsedGoal[] {
  * unreadable is a ValidationError naming the cell; anything merely odd is a warning code.
  * `options.today` (YYYY-MM-DD, the household's day) is the import date: Património months that
  * end after it are projections and are not read; it defaults to today in UTC.
+ * `options.minorDigits` is the household currency's (`minorDigits` in core; 2 by default): every
+ * amount is returned in its minor units.
  */
 export function parseBudgetWorkbook(
   workbook: BudgetWorkbook,
-  options: { today?: string } = {},
+  options: { today?: string; minorDigits?: number } = {},
 ): ParsedBudgetSheet {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
+  const digits = options.minorDigits ?? 2;
   const config = readConfig(workbook.config);
   const warnings: BudgetImportWarning[] = [];
-  const { lines, headerMismatch } = readBudget(workbook.budget, config.start, warnings);
+  const { lines, headerMismatch } = readBudget(workbook.budget, config.start, warnings, digits);
   if (headerMismatch !== null) {
     // Config B3 is the truth: the amounts are read by position.
     warnings.unshift({ code: 'month_header_mismatch', params: { section: headerMismatch } });
   }
   const subs = workbook.subscriptions
-    ? readSubscriptions(workbook.subscriptions, warnings)
+    ? readSubscriptions(workbook.subscriptions, warnings, digits)
     : { subscriptions: [], skipped: 0 };
   const patrimonio = workbook.patrimonio
-    ? readPatrimonio(workbook.patrimonio, config.start, today, warnings)
+    ? readPatrimonio(workbook.patrimonio, config.start, today, warnings, digits)
     : null;
-  const goals = workbook.objetivos ? readGoals(workbook.objetivos, warnings) : null;
+  const goals = workbook.objetivos ? readGoals(workbook.objetivos, warnings, digits) : null;
   const distinct = (names: string[]) => new Set(names.map(normalizeName)).size;
   const used = [...lines, ...subs.subscriptions].flatMap((r) => (r.account ? [r.account] : []));
   if (distinct([...config.accounts, ...used]) > MAX_ACCOUNTS)

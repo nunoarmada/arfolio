@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from 'react';
 import type { SaleCandidate } from '@arfolio/services';
+import { minorDigits } from '@arfolio/core';
 import { parsePlanned } from '@/lib/amount-input';
 import { isIsoDate } from '@/lib/dates';
 import { formatDayYear } from '@/lib/net-worth-format';
@@ -142,7 +143,7 @@ export function DisposeAssetSheet({
     } else {
       found.date = dateProblem(date);
       if (selling) {
-        const parsed = parsePlanned(amount);
+        const parsed = parsePlanned(amount, minorDigits(asset.currency));
         if (amount.trim() === '') found.amount = t('amountRequired');
         else if (!parsed.ok) found.amount = t('amountInvalid');
         else minor = parsed.minor;
@@ -194,8 +195,9 @@ export function DisposeAssetSheet({
     });
   }
 
-  const amountOk = selling && entry === 'hand' && amount.trim() !== '' && parsePlanned(amount).ok;
-  const parsedAmount = parsePlanned(amount);
+  // The sale amount is in the asset's currency, typed in its minor units.
+  const parsedAmount = parsePlanned(amount, minorDigits(asset.currency));
+  const amountOk = selling && entry === 'hand' && amount.trim() !== '' && parsedAmount.ok;
   let summary = '';
   if (selling) {
     if (entry === 'link') {

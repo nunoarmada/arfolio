@@ -23,6 +23,7 @@ import {
 import { lockTransfers, unlinkGroupInTx } from '../transactions.js';
 import { MAX_PDF_STATEMENT_ROWS } from '../ai/statement-pdf.js';
 import { applyMapping, columnMappingSchema, type ColumnMapping } from './mapping.js';
+import { ofxRows } from './ofx.js';
 import { parseFile } from './parse-file.js';
 import {
   detectPreset,
@@ -118,9 +119,7 @@ async function prepare(
         `The statement is in ${ofx.currency} but the account is in ${account.currency}`,
       );
     }
-    const parsed = ofx.rows.map((r) =>
-      r.status === 'ok' ? { ...r, row: { ...r.row, currency: account.currency } } : r,
-    );
+    const parsed = ofxRows(ofx, account.currency);
     return { account, table, presetKey: null, mapping: null, parsed };
   }
 

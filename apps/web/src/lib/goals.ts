@@ -98,18 +98,26 @@ export type GoalFormResult =
   | { ok: false; errors: Partial<Record<keyof GoalFormValues, GoalFormError>> };
 
 /** An optional amount: empty is "not set" (null), a typed zero is zero. */
-function optionalAmount(raw: string): { ok: true; minor: number | null } | { ok: false } {
+function optionalAmount(
+  raw: string,
+  minorDigits: number,
+): { ok: true; minor: number | null } | { ok: false } {
   if (raw.trim() === '') return { ok: true, minor: null };
-  const parsed = parsePlanned(raw);
+  const parsed = parsePlanned(raw, minorDigits);
   return parsed.ok ? { ok: true, minor: parsed.minor } : { ok: false };
 }
 
 /**
  * The typed form as the service wants it, or what is wrong, field by field. "Já poupado" only
  * matters for a goal not linked to an account (an account's balance is what is saved), and is
- * sent only when it differs from `initial` (the stored values; none for a new goal).
+ * sent only when it differs from `initial` (the stored values; none for a new goal). Amounts are
+ * read in the minor units of the household currency (`minorDigits`, 2 by default).
  */
-export function parseGoalForm(values: GoalFormValues, initial?: GoalFormValues): GoalFormResult {
+export function parseGoalForm(
+  values: GoalFormValues,
+  initial?: GoalFormValues,
+  minorDigits = 2,
+): GoalFormResult {
   const errors: Partial<Record<keyof GoalFormValues, GoalFormError>> = {};
   const name = values.name.trim();
   if (!name) errors.name = 'nameRequired';
@@ -117,7 +125,7 @@ export function parseGoalForm(values: GoalFormValues, initial?: GoalFormValues):
   // An emergency fund's target is derived from the budget: nothing typed is sent.
   let targetAmount: number | null = null;
   if (values.kind === 'generic') {
-    const target = optionalAmount(values.target);
+    const target = optionalAmount(values.target, minorDigits);
     if (!target.ok) errors.target = 'targetInvalid';
     else targetAmount = target.minor;
   }
@@ -125,7 +133,7 @@ export function parseGoalForm(values: GoalFormValues, initial?: GoalFormValues):
   const targetDate = values.targetDate.trim() === '' ? null : values.targetDate;
   if (targetDate !== null && !isIsoDate(targetDate)) errors.targetDate = 'dateInvalid';
 
-  const contribution = optionalAmount(values.contribution);
+  const contribution = optionalAmount(values.contribution, minorDigits);
   if (!contribution.ok) errors.contribution = 'contributionInvalid';
 
   if (values.where === 'account' && !values.accountId) errors.accountId = 'accountRequired';
@@ -136,7 +144,7 @@ export function parseGoalForm(values: GoalFormValues, initial?: GoalFormValues):
     values.alreadySaved.trim() !== (initial?.alreadySaved ?? '').trim() ||
     values.alreadySavedDate !== (initial?.alreadySavedDate ?? '');
   if (values.where !== 'account' && changed) {
-    const saved = optionalAmount(values.alreadySaved);
+    const saved = optionalAmount(values.alreadySaved, minorDigits);
     const date = values.alreadySavedDate.trim() === '' ? null : values.alreadySavedDate;
     if (!saved.ok) errors.alreadySaved = 'savedInvalid';
     else if (saved.minor === null) baseline = { savedBaseline: null, savedBaselineDate: null };

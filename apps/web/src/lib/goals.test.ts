@@ -243,3 +243,22 @@ describe('parseGoalForm', () => {
     });
   });
 });
+
+describe('parseGoalForm: the household currency minor digits', () => {
+  it.each([
+    [0, '1.234', '15', 1234, 15],
+    [3, '1,5', '0,25', 1500, 250],
+  ])('reads amounts with %i digits', (digits, target, contribution, targetMinor, contribMinor) => {
+    expect(parseGoalForm({ ...form, target, contribution }, undefined, digits)).toMatchObject({
+      ok: true,
+      input: { targetAmount: targetMinor, monthlyContribution: contribMinor },
+    });
+  });
+
+  it('refuses more decimals than the currency has', () => {
+    expect(parseGoalForm({ ...form, contribution: '12,5' }, undefined, 0)).toMatchObject({
+      ok: false,
+      errors: { contribution: 'contributionInvalid' },
+    });
+  });
+});

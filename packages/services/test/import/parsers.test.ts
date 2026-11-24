@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 import { MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseFile, ValidationError } from '../../src/index.js';
+import { ofxRows } from '../../src/import/ofx.js';
 import { assertSafeXlsxArchive } from '../../src/import/xlsx.js';
 
 const fixture = (name: string) =>
@@ -97,14 +98,41 @@ describe('parseFile: ofx', () => {
     const table = await parseFile(fixture('statement-v2.ofx'), 'a.ofx');
     expect(table.kind).toBe('ofx');
     expect(table.ofx!.currency).toBe('EUR');
-    expect(table.ofx!.rows.filter((r) => r.status === 'ok').map((r) => r.row)).toEqual(expected);
-    const broken = table.ofx!.rows.filter((r) => r.status === 'error');
+    const rows = ofxRows(table.ofx!, 'EUR');
+    expect(rows.filter((r) => r.status === 'ok').map((r) => r.row)).toEqual(expected);
+    const broken = rows.filter((r) => r.status === 'error');
     expect(broken).toHaveLength(1);
   });
 
   it('reads OFX 1.x SGML (unclosed tags) the same way', async () => {
     const table = await parseFile(fixture('statement-v1.ofx'), 'a.ofx');
-    expect(table.ofx!.rows.map((r) => (r.status === 'ok' ? r.row : r))).toEqual(expected);
+    expect(ofxRows(table.ofx!, 'EUR').map((r) => (r.status === 'ok' ? r.row : r))).toEqual(
+      expected,
+    );
+  });
+
+  it.each([
+    ['JPY', '-1234', -1234],
+    ['JPY', '1,234.00', 1234],
+    ['EUR', '-1234.5', -123450],
+    ['KWD', '-1234.567', -1234567],
+    ['KWD', '12,5', 12500],
+  ])('reads %s amount %j in the account currency minor units', async (currency, text, minor) => {
+    const body = `<OFX><STMTRS><CURDEF>${currency}<BANKTRANLIST><STMTTRN><DTPOSTED>20260310<TRNAMT>${text}<NAME>Mercado Central</STMTTRN></BANKTRANLIST></STMTRS></OFX>`;
+    const table = await parseFile(Buffer.from(body), 'a.ofx');
+    expect(ofxRows(table.ofx!, currency)[0]).toMatchObject({
+      status: 'ok',
+      row: { amount: minor, currency },
+    });
+  });
+
+  it.each([
+    ['JPY', '-12.5'],
+    ['KWD', '-1.2345'],
+  ])('reports a %s amount %j with too many decimals as a row error', async (currency, text) => {
+    const body = `<OFX><STMTRS><BANKTRANLIST><STMTTRN><DTPOSTED>20260310<TRNAMT>${text}<NAME>Mercado Central</STMTTRN></BANKTRANLIST></STMTRS></OFX>`;
+    const table = await parseFile(Buffer.from(body), 'a.ofx');
+    expect(ofxRows(table.ofx!, currency)[0]).toMatchObject({ status: 'error' });
   });
 
   it('rejects files holding more than one statement', async () => {

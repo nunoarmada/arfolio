@@ -8,7 +8,8 @@ export function rowErrorKey(message: string): { key: string; values: Record<stri
     return { key: 'currency', values: { row: currency[1]!, account: currency[2]! } };
   }
   if (/date/i.test(message)) return { key: 'date', values: {} };
-  if (/more than 2 decimals/i.test(message)) return { key: 'decimals', values: {} };
+  const decimals = /more than (\d+) decimals/i.exec(message);
+  if (decimals) return { key: 'decimals', values: { digits: decimals[1]! } };
   if (/amount/i.test(message)) return { key: 'amount', values: {} };
   if (/description/i.test(message)) return { key: 'description', values: {} };
   return { key: 'other', values: {} };
