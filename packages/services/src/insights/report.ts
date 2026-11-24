@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 import { schema, withHousehold, type Db } from '@arfolio/db';
 import type { AiLogger, AiParseParams, AiParseResult, AnthropicLike } from '../ai/categorise.js';
+import { AiKeyChangedError } from '../ai/key-changed.js';
 import { assertCanWrite, parseInput, ValidationError, type ServiceCtx } from '../context.js';
 import { createNotificationInTx } from '../notifications.js';
 import { localDay } from '../sync.js';
@@ -410,6 +411,7 @@ function usageOf(response: AiParseResult): Usage {
  *  - ready: content, fact sheet, model and tokens stored, one household-wide notification
  *  - 429 or 5xx: still pending with a backoff of 5 minutes x 2^attempts (`attempts` was counted
  *    when the row was claimed), `failed` once {@link REPORT_MAX_ATTEMPTS} attempts failed
+ *  - the AI key changed during the run (no request sent): still pending, the claim given back
  *  - anything else: `failed` with a short `error_code`
  */
 export async function generateReport(
@@ -475,6 +477,12 @@ export async function generateReport(
     try {
       response = await deps.anthropic.messages.parse(params);
     } catch (err) {
+      if (err instanceof AiKeyChangedError) {
+        // Nothing was sent: give the claim back so the row is due again with the next key.
+        logger.warn(`ai report not sent: ${errorLabel(err)}`);
+        await settle({ attempts: row.attempts - 1 });
+        return 'retry';
+      }
       if (!isRetryable(err)) {
         logger.warn(`ai report failed: ${errorLabel(err)}`);
         return await fail('provider_error');

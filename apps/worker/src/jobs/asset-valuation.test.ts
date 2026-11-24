@@ -1,7 +1,12 @@
 import type { PgBoss } from 'pg-boss';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Db } from '@arfolio/db';
-import type { AnthropicCreateLike, AssetEstimateResult, DueAsset } from '@arfolio/services';
+import {
+  AiKeyChangedError,
+  type AnthropicCreateLike,
+  type AssetEstimateResult,
+  type DueAsset,
+} from '@arfolio/services';
 import { log } from '../log.js';
 import { QUEUES } from '../queues.js';
 import { makeConfig } from '../test-config.js';
@@ -99,6 +104,22 @@ describe('asset-valuation job', () => {
       .join('\n');
     expect(warned).toMatch(/TypeError/);
     expect(warned).not.toMatch(/secret asset text/);
+  });
+
+  it('stops the sweep without marking anything when the AI key changed during the run', async () => {
+    services.claimDueAssetValuations.mockResolvedValue([due('a'), due('b'), due('c')]);
+    services.estimateAssetValue
+      .mockResolvedValueOnce('ready')
+      .mockRejectedValueOnce(new AiKeyChangedError())
+      .mockResolvedValueOnce('ready');
+    const counts = await runAssetValuationSweep(
+      { db, anthropic, model: 'm', portals: DEFAULT_PORTALS },
+      'UTC',
+      NOW,
+    );
+    expect(counts).toEqual({ ready: 1, insufficient_data: 0, no_answer: 0, api_error: 0 });
+    expect(services.estimateAssetValue).toHaveBeenCalledTimes(2);
+    expect(services.markAssetValuationFailed).not.toHaveBeenCalled();
   });
 
   it('goes on when marking a thrown estimate fails too', async () => {

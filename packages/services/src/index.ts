@@ -285,6 +285,7 @@ export {
 } from './ai/statement-pdf.js';
 export type { PdfStatementDeps } from './ai/statement-pdf.js';
 export { createAnthropicClient } from './ai/client.js';
+export { AiKeyChangedError } from './ai/key-changed.js';
 export {
   listAssets,
   createAsset,
