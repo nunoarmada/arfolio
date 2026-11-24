@@ -102,6 +102,25 @@ describe('loadSpendingProfile', () => {
     expect(p.income).toMatchObject({ median: 300_000, months: 4 });
   });
 
+  it('still reports typical figures when the learning period is longer than the six-month window', async () => {
+    const w = await world();
+    await seedMonths(w, [
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+      '2026-07',
+      '2026-08',
+      '2026-09',
+      '2026-10',
+    ]);
+    const p = await loadSpendingProfile(w.ctx, { learningMonths: 8, today: TODAY });
+    expect(p.learning).toEqual({ ready: true, completeMonths: 8, required: 8 });
+    expect(p.window).toHaveLength(6);
+    expect(p.categories[0]!.typical).toMatchObject({ median: 20_000, months: 6 });
+    expect(p.income).toMatchObject({ median: 300_000, months: 6 });
+  });
+
   it('leaves a category without enough months of data at null', async () => {
     const w = await world();
     await seedMonths(w, ['2026-07', '2026-08', '2026-09', '2026-10']);

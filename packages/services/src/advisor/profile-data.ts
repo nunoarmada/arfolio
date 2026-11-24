@@ -23,9 +23,14 @@ function lastDayOf(month: string): string {
   return `${month}-${String(last.getUTCDate()).padStart(2, '0')}`;
 }
 
-/** `typical` once at least `required` months carry data; zero-filled months still count in it. */
+/**
+ * `typical` once at least `required` months carry data; zero-filled months still count in it. Only
+ * the last `TYPICAL_WINDOW_MONTHS` are ever looked at, so a longer learning period asks for all of
+ * them (never for more months than the window holds).
+ */
 function typicalOrNull(values: number[], required: number): TypicalSpend | null {
-  return values.filter((v) => v > 0).length >= required ? typicalSpend(values) : null;
+  const needed = Math.min(required, TYPICAL_WINDOW_MONTHS);
+  return values.filter((v) => v > 0).length >= needed ? typicalSpend(values) : null;
 }
 
 /**
