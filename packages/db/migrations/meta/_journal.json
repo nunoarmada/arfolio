@@ -351,6 +351,13 @@
       "when": 1793997792713,
       "tag": "0049_investment_bucket_holding",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795536386907,
+      "tag": "0050_settings_changed_notify",
+      "breakpoints": true
     }
   ]
 }

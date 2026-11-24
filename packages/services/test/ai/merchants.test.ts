@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { schema, withHousehold } from '@arfolio/db';
 import {
+  AiKeyChangedError,
   createAccount,
   enrichMerchants,
   type AiCategoriseDeps,
@@ -532,6 +533,28 @@ describe('enrichMerchants', () => {
     expect(broken.status).toBe('done');
     for (const id of [a, b]) expect((await stored(id)).merchantEnrichedAt).toBeNull();
     expect((await stored(a)).merchantEnrichAttempts).toBeGreaterThanOrEqual(1);
+  });
+
+  it('stops the run without using an attempt when the AI key changed during the run', async () => {
+    const a = await insertTx({ rawDescription: 'SHOP A', merchantEnrichAttempts: 1 });
+    const b = await insertTx({ rawDescription: 'SHOP B', merchantEnrichAttempts: 1 });
+    const result = await enrichMerchants(
+      deps(
+        () => {
+          throw new AiKeyChangedError();
+        },
+        { batchSize: 1 },
+      ),
+      { householdId: ctx.householdId },
+    );
+    expect(result.status).toBe('rate_limited');
+    expect(calls).toHaveLength(1);
+    for (const id of [a, b]) {
+      expect(await stored(id)).toMatchObject({
+        merchantEnrichAttempts: 1,
+        merchantEnrichedAt: null,
+      });
+    }
   });
 
   it.each([

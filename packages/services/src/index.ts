@@ -285,6 +285,7 @@ export {
 } from './ai/statement-pdf.js';
 export type { PdfStatementDeps } from './ai/statement-pdf.js';
 export { createAnthropicClient } from './ai/client.js';
+export { AiKeyChangedError } from './ai/key-changed.js';
 export {
   listAssets,
   createAsset,
@@ -376,6 +377,8 @@ export {
   deleteInstanceSetting,
 } from './instance-settings.js';
 export type { InstanceSettingKey, SettingsExecutor, StoredSetting } from './instance-settings.js';
+export { SETTINGS_CHANNEL, listenForSettingsChanges } from './settings-notify.js';
+export type { SettingsListener } from './settings-notify.js';
 export {
   DEFAULT_VALUATION_PORTALS,
   parseInstanceSetting,

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { schema } from '@arfolio/db';
 import { APIConnectionError, APIConnectionTimeoutError } from '@anthropic-ai/sdk';
 import {
+  AiKeyChangedError,
   AiUnavailableError,
   claimPendingReports,
   createCategory,
@@ -650,6 +651,24 @@ describe('monthly ai reports', () => {
       expect(await rowOf(w.ctx.householdId)).toMatchObject({
         status: 'failed',
         errorCode: 'provider_unavailable',
+      });
+    });
+
+    it('gives the claim back and keeps the report pending when the AI key changed during the run', async () => {
+      const w = await world();
+      await withActivity(w);
+      const { client } = fake(() => {
+        throw new AiKeyChangedError();
+      });
+      await pendingRow(w);
+      const claimed = await claimOne(w.ctx.householdId);
+      expect(claimed.attempts).toBe(1);
+      expect(await generateReport(deps(client), claimed)).toBe('retry');
+      expect(await rowOf(w.ctx.householdId)).toMatchObject({
+        status: 'pending',
+        attempts: 0,
+        errorCode: null,
+        nextAttemptAt: null,
       });
     });
 

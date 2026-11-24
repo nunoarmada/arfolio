@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels et les estimations des biens.",
+      "description": "Anthropic rédige les suggestions de catégories, les rapports mensuels et les estimations des biens, et lit les relevés PDF que vous importez. Les relevés sont le seul usage qui envoie des fichiers entiers, et seulement après confirmation de chaque fichier.",
       "apiKey": "Clé d’API Anthropic",
       "apiKeyHint": "Créez une clé dans la console Anthropic et collez-la ici.",
       "enableHint": "La clé est en place. Chaque foyer choisit encore s’il utilise l’IA.",
@@ -497,7 +497,9 @@
         "invalid_key": "Anthropic a refusé la clé. Vérifiez-la et remplacez-la.",
         "rate_limited": "Anthropic limite actuellement les requêtes. Réessayez dans une minute.",
         "unreachable": "Impossible de joindre Anthropic. Vérifiez l’accès à internet de ce serveur.",
-        "unavailable": "Anthropic n’a pas répondu comme prévu. Réessayez plus tard."
+        "unavailable": "Anthropic n’a pas répondu comme prévu. Réessayez plus tard.",
+        "model_unavailable": "La clé fonctionne, mais le service d’IA n’a pas reconnu ces modèles : {models}. Vérifiez les noms des modèles sous Avancé, ou les variables d’environnement qui les définissent. Si l’installation définit une adresse personnalisée pour le service d’IA (la variable d’environnement ANTHROPIC_BASE_URL), vérifiez-la aussi.",
+        "checks_incomplete": "Certaines vérifications de modèles n’ont pas pu être terminées. Réessayez plus tard."
       },
       "enableBanking": {
         "ok": "Enable Banking a accepté les identifiants.",
@@ -831,13 +833,14 @@
       "rate_limited": "Trop de relevés PDF au cours de la dernière heure. Réessayez plus tard.",
       "not_a_pdf": "Le fichier n'est pas un PDF.",
       "pdf_no_rows": "Aucun mouvement n'a été trouvé dans ce PDF.",
-      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois (environ 200). Divisez le PDF et importez chaque partie.",
+      "pdf_too_long": "Le relevé contient trop de mouvements pour être lu en une fois (la limite est de {max}). Divisez le PDF et importez chaque partie.",
       "ai_unusable": "L'IA n'a pas pu lire ce relevé de façon fiable. Rien n'a été importé.",
       "ai_timeout": "Le service d'IA a mis trop de temps à répondre. Réessayez.",
       "ai_unreachable": "Le service d'IA n'a pas pu être joint. Réessayez plus tard.",
       "pdf_rejected": "Le service d'IA n'a pas pu lire ce PDF. Il est peut-être protégé par un mot de passe, trop long ou endommagé.",
       "ai_key_rejected": "Le service d'IA a refusé la clé d'API de l'installation. Demandez à un propriétaire de la vérifier dans Réglages › Services.",
       "ai_busy": "Le service d'IA est occupé. Réessayez dans quelques minutes.",
+      "ai_model_unavailable": "Le service d’IA n’a pas trouvé le modèle configuré. Demandez à un propriétaire de vérifier les noms des modèles dans Réglages › Services et, si l’installation définit une adresse personnalisée pour le service d’IA (la variable d’environnement ANTHROPIC_BASE_URL), cette adresse aussi.",
       "pdf_multiple_accounts": "Ce PDF contient des mouvements de plusieurs comptes, il ne peut donc pas être importé dans un seul compte.",
       "connection_lost": "La connexion a été interrompue. Réessayez.",
       "invalid_input": "Certaines valeurs ne sont pas valides. Vérifiez les champs et réessayez."
@@ -1227,6 +1230,7 @@
         "setUp": "Configurer l’IA",
         "askOwner": "Demandez à un propriétaire du foyer de l’activer.",
         "send": "Envoyer et lire le fichier",
+        "continueRead": "Continuer avec ce qui a été lu",
         "reading": "Lecture du relevé. Cela peut prendre une minute."
       }
     },

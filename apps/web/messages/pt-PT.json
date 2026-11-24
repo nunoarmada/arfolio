@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "A Anthropic sugere categorias, escreve os relatórios mensais e estima o valor de bens.",
+      "description": "A Anthropic sugere categorias, escreve os relatórios mensais, estima o valor de bens e lê os extratos em PDF que importa. Os extratos são a única utilização que envia ficheiros inteiros, e só depois de confirmar cada ficheiro.",
       "apiKey": "Chave de API da Anthropic",
       "apiKeyHint": "Crie uma chave na consola da Anthropic e cole-a aqui.",
       "enableHint": "A chave está configurada. Cada agregado continua a escolher se usa IA.",
@@ -497,7 +497,9 @@
         "invalid_key": "A Anthropic rejeitou a chave. Verifique-a e substitua-a.",
         "rate_limited": "A Anthropic está a limitar os pedidos neste momento. Tente novamente dentro de um minuto.",
         "unreachable": "Não foi possível contactar a Anthropic. Verifique o acesso à internet deste servidor.",
-        "unavailable": "A Anthropic não respondeu como esperado. Tente mais tarde."
+        "unavailable": "A Anthropic não respondeu como esperado. Tente mais tarde.",
+        "model_unavailable": "A chave funciona, mas o serviço de IA não reconheceu estes modelos: {models}. Verifique os nomes dos modelos em Avançado, ou as variáveis de ambiente que os definem. Se a instalação definir um endereço próprio para o serviço de IA (a variável de ambiente ANTHROPIC_BASE_URL), verifique-o também.",
+        "checks_incomplete": "Algumas verificações de modelos não puderam ser concluídas. Tente mais tarde."
       },
       "enableBanking": {
         "ok": "A Enable Banking aceitou as credenciais.",
@@ -686,7 +688,7 @@
       },
       "granted": "Ligada a {date}",
       "revoke": "Revogar acesso",
-      "revokeNamed": "Revogar o acesso de {name}",
+      "revokeNamed": "Revogar acesso de {name}",
       "revokeTitle": "Revogar o acesso de {name}?",
       "revokeBody": "{name} deixa de conseguir ler ou alterar os dados do agregado, de imediato. Para voltar a ligar, terá de autorizar o acesso de novo.",
       "revokeError": "Não foi possível revogar o acesso. Tente novamente.",
@@ -831,13 +833,14 @@
       "rate_limited": "Demasiados extratos em PDF na última hora. Tente novamente mais tarde.",
       "not_a_pdf": "O ficheiro não é um PDF.",
       "pdf_no_rows": "Não foram encontrados movimentos neste PDF.",
-      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez (cerca de 200). Divida o PDF e importe cada parte.",
+      "pdf_too_long": "O extrato tem demasiados movimentos para ser lido de uma só vez (o limite é {max}). Divida o PDF e importe cada parte.",
       "ai_unusable": "A IA não conseguiu ler este extrato de forma fiável. Nada foi importado.",
       "ai_timeout": "O serviço de IA demorou demasiado a responder. Tente novamente.",
       "ai_unreachable": "Não foi possível contactar o serviço de IA. Tente novamente mais tarde.",
       "pdf_rejected": "O serviço de IA não conseguiu ler este PDF. Pode estar protegido por palavra-passe, ser demasiado longo ou estar danificado.",
       "ai_key_rejected": "O serviço de IA rejeitou a chave de API da instalação. Peça a um proprietário que a verifique em Definições › Serviços.",
       "ai_busy": "O serviço de IA está ocupado. Tente novamente dentro de alguns minutos.",
+      "ai_model_unavailable": "O serviço de IA não encontrou o modelo configurado. Peça a um proprietário que verifique os nomes dos modelos em Definições › Serviços e, se a instalação definir um endereço próprio para o serviço de IA (a variável de ambiente ANTHROPIC_BASE_URL), também esse endereço.",
       "pdf_multiple_accounts": "Este PDF lista movimentos de mais do que uma conta, pelo que não pode ser importado para uma única conta.",
       "connection_lost": "A ligação foi interrompida. Tente novamente.",
       "invalid_input": "Alguns valores não são válidos. Verifique os campos e tente novamente."
@@ -1227,6 +1230,7 @@
         "setUp": "Configurar a IA",
         "askOwner": "Peça a um proprietário do agregado que a ative.",
         "send": "Enviar e ler ficheiro",
+        "continueRead": "Continuar com o que foi lido",
         "reading": "A ler o extrato. Pode demorar um minuto."
       }
     },

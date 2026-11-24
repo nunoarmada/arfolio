@@ -5,7 +5,9 @@ import { createDb, schema } from '@arfolio/db';
 import {
   createIntegrationConfigCache,
   createWebPushSender,
+  listenForSettingsChanges,
   resolveIntegrationConfig,
+  type SettingsListener,
 } from '@arfolio/services';
 import { afterSyncAll } from './after-sync.js';
 import { startBoss } from './boss.js';
@@ -56,7 +58,8 @@ async function main(): Promise<void> {
   process.env.TZ = env.TZ;
 
   const onError = (message: string): void => log.error(`database pool error: ${message}`);
-  const { db, pool } = createDb(env.DATABASE_URL, { max: 4, onError });
+  // Max 5: one of the connections is held by the settings listener.
+  const { db, pool } = createDb(env.DATABASE_URL, { max: 5, onError });
   // Dedicated single-connection pool so a hung probe is cancelled server-side and never starves jobs.
   const probe = createDb(env.DATABASE_URL, {
     max: 1,
@@ -64,6 +67,7 @@ async function main(): Promise<void> {
     onError,
   });
   let boss: PgBoss | undefined;
+  let settingsListener: SettingsListener | undefined;
   let stopping = false;
 
   const health = createHealthServer(async () => {
@@ -87,6 +91,7 @@ async function main(): Promise<void> {
         await starting.catch(() => {});
         if (health.listening) await new Promise<void>((resolve) => health.close(() => resolve()));
         await boss?.stop({ graceful: true, timeout: STOP_TIMEOUT_MS });
+        await settingsListener?.close();
         await Promise.all([pool.end(), probe.pool.end()]);
       } catch (err) {
         log.error(`shutdown failed: ${errorMessage(err)}`);
@@ -121,12 +126,17 @@ async function main(): Promise<void> {
     // Jobs that create notifications ask for a prompt delivery when they finish.
     const afterNotify = () => queuePushDelivery(enqueuePush);
     // Integration settings (key, models, portals, bank credentials) are read at each run through
-    // this short cache, so a change saved in the app applies within a minute without a restart.
+    // this short cache, dropped as soon as any process saves a change (listener below).
     // The raw environment is passed: a set env variable still wins over a stored value.
-    const { get: getConfig } = createIntegrationConfigCache(
+    const configCache = createIntegrationConfigCache(
       () => resolveIntegrationConfig(db, encryptionKey, process.env),
       INTEGRATION_CONFIG_TTL_MS,
     );
+    const getConfig = configCache.get;
+    // A change saved by any process drops this cache at once; the TTL is only a backstop.
+    settingsListener = listenForSettingsChanges(pool, configCache.invalidate, {
+      onError: (message) => log.error(message),
+    });
     const aiDeps = { db, getConfig };
     const anthropic = createAnthropicMemo();
     const afterCategorise = await registerAiCategorise(

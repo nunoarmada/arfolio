@@ -39,6 +39,15 @@ describe('createDb pool resilience', () => {
     }
   });
 
+  it('turns on TCP keepalive so a half-open connection (such as a LISTEN one) is detected', async () => {
+    const { pool } = createDb(testDb.appUrl(APP_PASSWORD), { max: 1 });
+    try {
+      expect(pool.options).toMatchObject({ keepAlive: true, keepAliveInitialDelayMillis: 10_000 });
+    } finally {
+      await pool.end();
+    }
+  });
+
   it('applies a statement timeout when asked to', async () => {
     const { pool } = createDb(testDb.appUrl(APP_PASSWORD), { max: 1, statementTimeoutMs: 100 });
     try {

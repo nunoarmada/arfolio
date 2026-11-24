@@ -337,7 +337,7 @@ opts)`) built on `Intl.NumberFormat`. Components never format money by hand.
 
 - **pt-PT does not group 4-digit numbers by default.** CLDR sets `minimumGroupingDigits = 2` for `pt-PT`, so
   `Intl` outputs `1234,56 €`. Pass `useGrouping: "always"` to get `1 234,56 €` consistently (also matches the
-  household's spreadsheet). Verify with a unit test on Node 22.
+  household's spreadsheet). Verify with a unit test on Node 26.
 - Use whatever separator characters `Intl` emits (pt-PT uses non-breaking spaces between groups and before `€`).
   Never `.replace()` them; assertions in tests should normalise whitespace.
 - Signs: format the absolute value with `signDisplay: "never"`, then prepend U+2212 `−` or `+` per the table, so

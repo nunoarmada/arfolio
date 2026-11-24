@@ -148,6 +148,7 @@ export const integrationEnvShape = {
   AI_REPORT_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
   /** The model that estimates asset values (web research, so a bigger one). */
   AI_VALUATION_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
+  /** Model that reads PDF statements in the import wizard. */
   AI_IMPORT_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
   /**
    * Merchant logos: `on` (default) lets the worker fetch each merchant's favicon from Google's

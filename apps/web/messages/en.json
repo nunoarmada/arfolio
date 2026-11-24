@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "AI",
-      "description": "Anthropic writes category suggestions, monthly reports and asset valuations.",
+      "description": "Anthropic writes category suggestions, monthly reports and asset valuations, and reads PDF statements you import. Statements are the one use that sends whole files, and only after you confirm each file.",
       "apiKey": "Anthropic API key",
       "apiKeyHint": "Create a key in the Anthropic console and paste it here.",
       "enableHint": "The key is in place. Each household still chooses whether to use AI.",
@@ -497,7 +497,9 @@
         "invalid_key": "Anthropic rejected the key. Check it and replace it.",
         "rate_limited": "Anthropic is limiting requests right now. Try again in a minute.",
         "unreachable": "Could not reach Anthropic. Check this server's internet access.",
-        "unavailable": "Anthropic did not answer as expected. Try again later."
+        "unavailable": "Anthropic did not answer as expected. Try again later.",
+        "model_unavailable": "The key works, but the AI service did not recognise these models: {models}. Check the model names under Advanced, or the environment variables that set them. If the installation sets a custom AI service address (the ANTHROPIC_BASE_URL environment variable), check it too.",
+        "checks_incomplete": "Some model checks could not be completed. Try again later."
       },
       "enableBanking": {
         "ok": "Enable Banking accepted the credentials.",
@@ -831,13 +833,14 @@
       "rate_limited": "Too many PDF statements in the last hour. Try again later.",
       "not_a_pdf": "The file is not a PDF.",
       "pdf_no_rows": "No movements were found in this PDF.",
-      "pdf_too_long": "The statement has too many movements to read at once (about 200). Split the PDF and import each part.",
+      "pdf_too_long": "The statement has too many movements to read at once (the limit is {max}). Split the PDF and import each part.",
       "ai_unusable": "The AI could not read this statement reliably. Nothing was imported.",
       "ai_timeout": "The AI service took too long to answer. Try again.",
       "ai_unreachable": "The AI service could not be reached. Try again later.",
       "pdf_rejected": "The AI service could not read this PDF. It may be protected with a password, too long or damaged.",
       "ai_key_rejected": "The AI service rejected the installation's API key. Ask an owner to check it in Settings › Services.",
       "ai_busy": "The AI service is busy. Try again in a few minutes.",
+      "ai_model_unavailable": "The AI service did not find the configured model. Ask an owner to check the model names in Settings › Services and, if the installation sets a custom AI service address (the ANTHROPIC_BASE_URL environment variable), that address too.",
       "pdf_multiple_accounts": "This PDF lists movements of more than one account, so it cannot be imported into a single account.",
       "connection_lost": "The connection was interrupted. Try again.",
       "invalid_input": "Some values are not valid. Check the fields and try again."
@@ -1227,6 +1230,7 @@
         "setUp": "Set up AI",
         "askOwner": "Ask an owner of the household to switch it on.",
         "send": "Send and read file",
+        "continueRead": "Continue with what was read",
         "reading": "Reading the statement. This can take a minute."
       }
     },

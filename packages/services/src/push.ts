@@ -1,5 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
-import webpush from 'web-push';
+import { generateVAPIDKeys } from 'web-push';
 import { z } from 'zod';
 import { schema, withHousehold, type Db } from '@arfolio/db';
 import { EnvError } from '@arfolio/core';
@@ -74,7 +74,7 @@ export async function vapidKeys(deps: VapidDeps): Promise<VapidKeys> {
   };
   let stored = await read();
   if (!stored) {
-    const fresh = webpush.generateVAPIDKeys();
+    const fresh = generateVAPIDKeys();
     const value: StoredVapid = {
       publicKey: fresh.publicKey,
       privateKey: encryptSecret(fresh.privateKey, deps.encryptionKey, VAPID_AAD),

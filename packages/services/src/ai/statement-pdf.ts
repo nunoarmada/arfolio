@@ -64,6 +64,8 @@ function providerFailure(err: unknown): string {
   if (status === 400 || status === 413) return 'The AI service could not read this PDF';
   if (status === 401 || status === 403) return 'The AI service rejected the API key';
   if (status === 429 || status === 529) return 'The AI service is busy';
+  // A 404 usually means an unknown model; a wrong API address gives the same status.
+  if (status === 404) return 'The AI service did not find the configured model or address';
   return 'The AI service could not be reached';
 }
 
@@ -162,6 +164,15 @@ export async function extractPdfStatement(
     logger.warn(`pdf statement rejected: ${code}`);
     throw new ValidationError(message);
   };
+  const rejectTooMany = (code: string): never => {
+    logger.warn(`pdf statement rejected: ${code}`);
+    throw new ValidationError(
+      `The PDF statement has too many movements (maximum ${MAX_PDF_STATEMENT_ROWS})`,
+      [],
+      'pdf_too_long',
+      { max: MAX_PDF_STATEMENT_ROWS },
+    );
+  };
 
   let response: Anthropic.Message;
   try {
@@ -192,9 +203,8 @@ export async function extractPdfStatement(
     throw new ValidationError(providerFailure(err));
   }
 
-  const tooMany = 'The PDF statement has too many movements (maximum 200)';
   const unusable = 'The AI answer could not be used';
-  if (response.stop_reason === 'max_tokens') return reject('max_tokens', tooMany);
+  if (response.stop_reason === 'max_tokens') return rejectTooMany('max_tokens');
   if (response.stop_reason === 'refusal') return reject('refusal', unusable);
   // The stop reason comes first: a cut-off or refused answer is not valid JSON anyway.
   const answer = readAnswer(response);
@@ -205,7 +215,7 @@ export async function extractPdfStatement(
     return reject('multiple accounts', 'The PDF holds movements of more than one account');
   }
   if (rows.length === 0) return reject('no movements', 'No movements were found in this PDF');
-  if (rows.length > MAX_PDF_STATEMENT_ROWS) return reject('too many rows', tooMany);
+  if (rows.length > MAX_PDF_STATEMENT_ROWS) return rejectTooMany('too many rows');
   if (currency !== null && !/^[A-Za-z]{3}$/.test(currency)) return reject('bad currency', unusable);
   if (currency !== null && currency.toUpperCase() !== accountCurrency.toUpperCase()) {
     return reject(

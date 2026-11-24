@@ -16,7 +16,7 @@ Arfolio is a self-hosted web app for household finances. One container image run
 
 ## Stack
 
-- **TypeScript monorepo** (pnpm workspaces), Node 22.
+- **TypeScript monorepo** (pnpm workspaces), Node 26.
 - **`apps/web`**: Next.js App Router. UI, server actions, the REST-ish route handlers, the PWA (service worker), the MCP endpoint and the OAuth endpoints.
 - **`apps/worker`**: a Node process that runs the job queue. Same image as the web app, different command.
 - **`packages/db`**: Drizzle ORM schema, SQL migrations, the migration runner and the database roles.
@@ -65,7 +65,7 @@ A sync of one connection:
 
 ## Jobs and the worker
 
-The worker registers pg-boss queues and schedules at start-up: connection sync scheduler and runs, consent-expiry check, categorisation and merchant enrichment (plus hourly sweeps for leftovers), recurring detection, budget alerts, net-worth snapshots, the monthly AI report, the monthly asset valuation, push delivery, a heartbeat, and pruning of old sync data. Jobs are idempotent and keyed (for example one queued sync per connection). The worker exposes `/healthz` and reads the integration settings through a short-lived cache, so a change saved on the Services page reaches it within about a minute.
+The worker registers pg-boss queues and schedules at start-up: connection sync scheduler and runs, consent-expiry check, categorisation and merchant enrichment (plus hourly sweeps for leftovers), recurring detection, budget alerts, net-worth snapshots, the monthly AI report, the monthly asset valuation, push delivery, a heartbeat, and pruning of old sync data. Jobs are idempotent and keyed (for example one queued sync per connection). The worker exposes `/healthz` and reads the integration settings through a short-lived cache. A statement-level trigger on `instance_secret` (migration `0050`) runs `pg_notify('arfolio_settings', '')` on every insert, update or delete, including plain SQL; the web processes and the worker each hold one `LISTEN arfolio_settings` connection and drop their cache when it fires (and after every reconnect), so a saved or removed setting applies to every new request in every process as soon as it is saved. A removed or replaced AI key also stops AI runs already in progress before their next request: the worker checks the key before every model request and ends the run without counting an attempt. Notifications are delivered at commit. The 30 second cache lifetime stays as a backstop if a listener is down. The channel name is a technical identifier: do not rename it.
 
 ## Budget, net worth and insights
 

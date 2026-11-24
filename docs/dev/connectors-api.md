@@ -9,9 +9,7 @@ specs pulled from npm/PyPI/raw.githubusercontent. Every claim carries a tag:
 - [V-1]     observed in a single third-party client. Treat as probable.
 - [UNVERIFIED] from model memory or general PSD2 knowledge, no source found. Confirm against the vendor docs before relying on it.
 
-## Sources (local copies in the research scratchpad, re-fetchable)
-
-Scratchpad root: /tmp/claude-0/-home-user/44b8268f-5471-5a62-9055-a2812a593bda/scratchpad/apis
+## Sources (public, re-fetchable)
 
 | Id | Package / URL | What it gave |
 |----|---------------|--------------|

@@ -15,6 +15,7 @@ import {
   merchantOutputSchema,
   type MerchantPromptRow,
 } from './prompt.js';
+import { AiKeyChangedError } from './key-changed.js';
 import { redactForAi } from './redact.js';
 import { mergeDetailsSql } from '../details-sql.js';
 import { awaitingT212Export } from '../t212-pending.js';
@@ -353,13 +354,21 @@ async function applyBatch(
   });
 }
 
-/** Counted before the call, so a crash or timeout still uses up an attempt. */
-async function countAttempt(deps: AiMerchantsDeps, householdId: string, batch: Group[]) {
+/**
+ * Counted before the call, so a crash or timeout still uses up an attempt. `-1` gives it back when
+ * no request was sent (the AI key changed during the run).
+ */
+async function countAttempt(
+  deps: AiMerchantsDeps,
+  householdId: string,
+  batch: Group[],
+  by: 1 | -1 = 1,
+) {
   const ids = batch.flatMap((g) => g.rows.map((r) => r.id));
   await withHousehold(deps.db, householdId, (tx) =>
     tx
       .update(transaction)
-      .set({ merchantEnrichAttempts: sql`${transaction.merchantEnrichAttempts} + 1` })
+      .set({ merchantEnrichAttempts: sql`${transaction.merchantEnrichAttempts} + ${by}` })
       .where(and(eq(transaction.householdId, householdId), inArray(transaction.id, ids))),
   );
 }
@@ -419,6 +428,8 @@ export async function enrichMerchants(
         output_config: { format: zodOutputFormat(merchantOutputSchema) },
       });
     } catch (err) {
+      // Nothing was sent: the attempt counted above is given back.
+      if (err instanceof AiKeyChangedError) await countAttempt(deps, input.householdId, batch, -1);
       if (isStopError(err)) {
         logger.warn(`ai merchants stopped at batch ${n + 1}/${batches.length}: ${errorLabel(err)}`);
         result.status = 'rate_limited';

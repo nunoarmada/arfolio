@@ -356,9 +356,57 @@ describe('services settings actions', () => {
       const result = await run(() =>
         runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping })),
       );
-      expect(ping).toHaveBeenCalledWith(SECRET);
+      expect(ping).toHaveBeenCalledWith(SECRET, expect.any(Array));
       expect(result).toEqual({ ok: true, data: { ok: false, message: 'invalid_key' } });
       expect(JSON.stringify(result)).not.toContain(SECRET);
+    });
+
+    it('anthropic: names the model fields whose model the API does not know', async () => {
+      await writeInstanceSetting(db, encKey, 'anthropic.apiKey', SECRET, 'owner');
+      await writeInstanceSetting(db, encKey, 'ai.reportModel', 'claude-gone', 'owner');
+      await writeInstanceSetting(db, encKey, 'ai.importModel', 'claude-gone', 'owner');
+      const ping = vi.fn<NonNullable<ServiceSettingsDeps['ping']>>(async () => ({
+        ok: true,
+        unavailableModels: ['claude-gone'],
+        incomplete: true,
+      }));
+      const result = await run(() =>
+        runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping })),
+      );
+      const asked = ping.mock.calls[0]![1];
+      expect(asked).toContain('claude-gone');
+      expect(asked).toHaveLength(4);
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          ok: false,
+          message: 'model_unavailable',
+          unavailableModels: ['report', 'import'],
+          incomplete: true,
+        },
+      });
+      const fine = vi.fn(async () => ({
+        ok: true as const,
+        unavailableModels: [],
+        incomplete: false,
+      }));
+      expect(
+        await run(() => runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping: fine }))),
+      ).toEqual({ ok: true, data: { ok: true, message: 'ok' } });
+    });
+
+    it('anthropic: an incomplete check with no unavailable model is a failure, never success', async () => {
+      await writeInstanceSetting(db, encKey, 'anthropic.apiKey', SECRET, 'owner');
+      const incomplete = vi.fn(async () => ({
+        ok: true as const,
+        unavailableModels: [],
+        incomplete: true,
+      }));
+      expect(
+        await run(() =>
+          runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping: incomplete })),
+        ),
+      ).toEqual({ ok: true, data: { ok: false, message: 'unavailable' } });
     });
 
     it('bank: lists banks with a client built from the resolved config', async () => {
