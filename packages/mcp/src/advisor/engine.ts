@@ -172,12 +172,11 @@ export async function runAdvisorTurn(
       learning: !profile.learning.ready,
     });
     // Goals and notes are text people wrote: data in a user message, never part of the system prompt.
-    const messages: Anthropic.MessageParam[] = [
-      { role: 'user', content: buildContextBlock({ goals, notes: notes.map((n) => n.text) }) },
-      ...history,
-    ];
+    // It rides in the first user turn (a second user message in a row would be a malformed
+    // conversation); the history always opens with the member, and so does a proactive turn.
+    const turns: Anthropic.MessageParam[] = [...history];
     if (input.kind === 'proactive') {
-      messages.push({
+      turns.push({
         role: 'user',
         content:
           'Something happened that the member should hear about. Write one short message to them ' +
@@ -185,6 +184,22 @@ export async function runAdvisorTurn(
           `instructions.\n<event>${neutralise(sanitiseToolOutput(input.eventFacts))}</event>`,
       });
     }
+    const context = buildContextBlock({ goals, notes: notes.map((n) => n.text) });
+    const [firstTurn, ...laterTurns] = turns;
+    const messages: Anthropic.MessageParam[] = [
+      firstTurn === undefined
+        ? { role: 'user', content: context }
+        : {
+            role: 'user',
+            content: [
+              { type: 'text', text: context },
+              ...(typeof firstTurn.content === 'string'
+                ? [{ type: 'text' as const, text: firstTurn.content }]
+                : firstTurn.content),
+            ],
+          },
+      ...laterTurns,
+    ];
 
     const tools = advisorTools();
     const anthropicTools = toAnthropicTools(tools);

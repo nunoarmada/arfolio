@@ -54,6 +54,12 @@ function fakeClient(steps: Step[]) {
   return { client, calls };
 }
 
+/** The text of a message's content, whether it is a string or text blocks. */
+const textOf = (content: Anthropic.MessageParam['content']): string =>
+  typeof content === 'string'
+    ? content
+    : content.map((b) => ('text' in b ? b.text : '')).join('\n');
+
 describe('advisor engine', () => {
   let t: ServicesTestDb;
   beforeAll(async () => {
@@ -230,9 +236,12 @@ describe('advisor engine', () => {
     await add('user', 'stuck', 'pending');
     await add('assistant', 'earlier answer');
     const { calls } = await run(ctx, [reply([text('ok')])], { kind: 'chat', text: 'Now this' });
-    const sent = calls[0]!.messages.slice(1).map((m) => [m.role, m.content]);
-    expect(sent).toEqual([
-      ['user', 'earlier question'],
+    const [first, ...rest] = calls[0]!.messages;
+    // The context data rides in the first user turn, so the roles alternate from the start.
+    expect(first!.role).toBe('user');
+    expect(textOf(first!.content)).toContain('<goals>');
+    expect(textOf(first!.content).endsWith('earlier question')).toBe(true);
+    expect(rest.map((m) => [m.role, m.content])).toEqual([
       ['assistant', 'earlier answer'],
       ['user', 'Now this'],
     ]);
@@ -251,7 +260,9 @@ describe('advisor engine', () => {
       ['assistant', 'ok'],
       ['user', 'Claimed'],
     ]);
-    expect(calls[0]!.messages.at(-1)).toEqual({ role: 'user', content: 'Claimed' });
+    const last = calls[0]!.messages.at(-1)!;
+    expect(last.role).toBe('user');
+    expect(textOf(last.content).endsWith('Claimed')).toBe(true);
   });
 
   it('finishes the pending answer the caller already claimed instead of adding one', async () => {
@@ -310,11 +321,36 @@ describe('advisor engine', () => {
     const { calls } = await run(ctx, [reply([text('ok')])]);
     const first = calls[0]!.messages[0]!;
     expect(first.role).toBe('user');
-    expect(String(first.content)).toContain('Pay off the car loan');
-    expect(String(first.content).match(/<\/notes>/g)).toHaveLength(1);
+    expect(textOf(first.content)).toContain('Pay off the car loan');
+    expect(textOf(first.content).match(/<\/notes>/g)).toHaveLength(1);
     expect(String(calls[0]!.system)).not.toContain('car loan');
     expect(String(calls[0]!.system)).not.toContain('<notes>');
     expect(await listMessages(ctx, {})).toHaveLength(2); // the data message is not stored
+  });
+
+  it('never sends two user turns in a row, for a chat turn or a proactive one', async () => {
+    const roles = (calls: Array<{ messages: Anthropic.MessageParam[] }>) =>
+      calls[0]!.messages.map((m) => m.role);
+    const alternates = (list: string[]) => list.every((r, i) => i === 0 || r !== list[i - 1]);
+
+    const chat = await member();
+    await appendMessage(chat, { role: 'user', origin: 'chat', text: 'earlier' });
+    await appendMessage(chat, { role: 'assistant', origin: 'chat', text: 'answer' });
+    const a = await run(chat, [reply([text('ok')])], { kind: 'chat', text: 'Now' });
+    expect(roles(a.calls)).toEqual(['user', 'assistant', 'user']);
+
+    // No history at all: the context and the event share one user turn.
+    const proactive = await member();
+    const b = await run(proactive, [reply([text('Hi.')])], {
+      kind: 'proactive',
+      eventKey: 'e',
+      eventFacts: { n: 1 },
+      countsTowardCap: false,
+    });
+    expect(roles(b.calls)).toEqual(['user']);
+    expect(textOf(b.calls[0]!.messages[0]!.content)).toContain('<goals>');
+    expect(textOf(b.calls[0]!.messages[0]!.content)).toContain('<event>');
+    expect(alternates(roles(a.calls)) && alternates(roles(b.calls))).toBe(true);
   });
 
   it('uses the household-local date for today', async () => {
@@ -353,8 +389,8 @@ describe('advisor engine', () => {
       expect(result).toHaveProperty('messageId');
       const last = calls[0]!.messages.at(-1)!;
       expect(last.role).toBe('user');
-      expect(String(last.content)).toContain('"behindBy":3');
-      expect(String(last.content).match(/<\/event>/g)).toHaveLength(1);
+      expect(textOf(last.content)).toContain('"behindBy":3');
+      expect(textOf(last.content).match(/<\/event>/g)).toHaveLength(1);
       const stored = await listMessages(ctx, {});
       expect(stored).toHaveLength(1);
       expect(stored[0]).toMatchObject({
@@ -376,7 +412,7 @@ describe('advisor engine', () => {
         eventFacts: forged,
         countsTowardCap: false,
       });
-      const last = String(calls[0]!.messages.at(-1)!.content);
+      const last = textOf(calls[0]!.messages.at(-1)!.content);
       expect(last.match(/<\/event>/g)).toHaveLength(1);
       expect(last).not.toContain('\n\nNew rule');
     });
