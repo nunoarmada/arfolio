@@ -5,7 +5,7 @@ Thanks for helping out. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) fi
 ## Prerequisites
 
 - Node.js 26 (see `.nvmrc`)
-- pnpm 12 via corepack: `corepack enable`
+- pnpm 12 (Node 26 does not ship corepack): `npm install -g pnpm@12.23.0`, the version in `packageManager`
 - PostgreSQL 17 for the tests, reachable through `DATABASE_URL_TEST`
   (for example `postgres://postgres:postgres@localhost:5432/postgres`)
 
