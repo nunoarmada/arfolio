@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { schema, withHousehold, type Tx } from '@arfolio/db';
 import {
@@ -339,26 +339,77 @@ export async function countCappedSince(
 }
 
 /** Chat messages the member sent since local midnight (household timezone) at `now`. */
+async function countMessagesToday(
+  tx: Tx,
+  ctx: ServiceCtx,
+  now: Date,
+  /** Without the upper bound a claim also counts rows stored after `now` was read (concurrent claims). */
+  bounded = true,
+): Promise<number> {
+  const [settings] = await tx
+    .select({ timezone: householdSettings.timezone })
+    .from(householdSettings)
+    .where(eq(householdSettings.householdId, ctx.householdId));
+  const tz = settings?.timezone ?? 'UTC';
+  const nowTs = now.toISOString();
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(advisorMessage)
+    .where(
+      and(
+        mine(advisorMessage, ctx),
+        eq(advisorMessage.role, 'user'),
+        eq(advisorMessage.origin, 'chat'),
+        sql`${advisorMessage.createdAt} >= (date_trunc('day', ${nowTs}::timestamptz AT TIME ZONE ${tz}) AT TIME ZONE ${tz})`,
+        bounded ? sql`${advisorMessage.createdAt} <= ${nowTs}::timestamptz` : undefined,
+      ),
+    );
+  return row?.n ?? 0;
+}
+
 export async function messagesToday(ctx: ServiceCtx, now: Date): Promise<number> {
+  return withHousehold(ctx.db, ctx.householdId, (tx) => countMessagesToday(tx, ctx, now));
+}
+
+/**
+ * Starts a chat turn atomically per member: under an advisory lock it checks the daily cap and
+ * that no recent answer is still pending (one turn at a time), then stores the member's message.
+ * Checking and storing in separate steps would let concurrent requests slip past the cap.
+ */
+export async function claimChatTurn(
+  ctx: ServiceCtx,
+  opts: { text: string; dailyLimit: number; now: Date },
+): Promise<{ userMessageId: string } | { refused: 'daily_limit' | 'busy' }> {
   return withHousehold(ctx.db, ctx.householdId, async (tx) => {
-    const [settings] = await tx
-      .select({ timezone: householdSettings.timezone })
-      .from(householdSettings)
-      .where(eq(householdSettings.householdId, ctx.householdId));
-    const tz = settings?.timezone ?? 'UTC';
-    const nowTs = now.toISOString();
-    const [row] = await tx
-      .select({ n: sql<number>`count(*)::int` })
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`advisor_chat:${ctx.householdId}:${ctx.userId}`}))`,
+    );
+    if ((await countMessagesToday(tx, ctx, opts.now, false)) >= opts.dailyLimit) {
+      return { refused: 'daily_limit' as const };
+    }
+    const [pending] = await tx
+      .select({ id: advisorMessage.id })
       .from(advisorMessage)
       .where(
         and(
           mine(advisorMessage, ctx),
-          eq(advisorMessage.role, 'user'),
-          eq(advisorMessage.origin, 'chat'),
-          sql`${advisorMessage.createdAt} >= (date_trunc('day', ${nowTs}::timestamptz AT TIME ZONE ${tz}) AT TIME ZONE ${tz})`,
-          sql`${advisorMessage.createdAt} <= ${nowTs}::timestamptz`,
+          eq(advisorMessage.role, 'assistant'),
+          eq(advisorMessage.status, 'pending'),
+          gte(advisorMessage.createdAt, new Date(opts.now.getTime() - PENDING_TTL_MS)),
         ),
-      );
-    return row?.n ?? 0;
+      )
+      .limit(1);
+    if (pending) return { refused: 'busy' as const };
+    const [row] = await tx
+      .insert(advisorMessage)
+      .values({
+        householdId: ctx.householdId,
+        userId: ctx.userId,
+        role: 'user',
+        origin: 'chat',
+        text: opts.text,
+      })
+      .returning({ id: advisorMessage.id });
+    return { userMessageId: row!.id };
   });
 }

@@ -456,6 +456,7 @@ export type {
 export {
   addNote,
   appendMessage,
+  claimChatTurn,
   clearHistory,
   countCappedSince,
   deleteAdvisorDataForUser,

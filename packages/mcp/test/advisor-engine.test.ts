@@ -238,6 +238,22 @@ describe('advisor engine', () => {
     ]);
   });
 
+  it('does not store the member message again when the caller already claimed it', async () => {
+    const ctx = await member();
+    const claimed = await appendMessage(ctx, { role: 'user', origin: 'chat', text: 'Claimed' });
+    const { calls } = await run(ctx, [reply([text('ok')])], {
+      kind: 'chat',
+      text: 'Claimed',
+      userMessageId: claimed!.id,
+    });
+    const stored = await listMessages(ctx, {});
+    expect(stored.map((m) => [m.role, m.text])).toEqual([
+      ['assistant', 'ok'],
+      ['user', 'Claimed'],
+    ]);
+    expect(calls[0]!.messages.at(-1)).toEqual({ role: 'user', content: 'Claimed' });
+  });
+
   it('puts the system prompt and the tools into the request', async () => {
     const ctx = await member();
     const { calls } = await run(ctx, [reply([text('ok')])]);

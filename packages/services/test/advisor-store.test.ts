@@ -5,6 +5,7 @@ import { schema, withHousehold } from '@arfolio/db';
 import {
   addNote,
   appendMessage,
+  claimChatTurn,
   clearHistory,
   countCappedSince,
   deleteAdvisorDataForUser,
@@ -307,5 +308,65 @@ describe('advisor store', () => {
     expect(await listNotes(a)).toEqual([]);
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
     expect(await listMessages(b, {})).toHaveLength(1);
+  });
+
+  describe('claimChatTurn', () => {
+    const now = () => new Date();
+
+    it('stores the member message and returns its id', async () => {
+      const { a } = await pair();
+      const r = await claimChatTurn(a, { text: 'hello', dailyLimit: 5, now: now() });
+      expect(r).toEqual({ userMessageId: expect.any(String) });
+      const [m] = await listMessages(a, {});
+      expect(m).toMatchObject({ role: 'user', origin: 'chat', text: 'hello' });
+      expect('userMessageId' in r && m!.id).toBe('userMessageId' in r && r.userMessageId);
+    });
+
+    it('refuses at the daily limit and stores nothing', async () => {
+      const { a } = await pair();
+      await say(a, 'q1');
+      await say(a, 'q2');
+      expect(await claimChatTurn(a, { text: 'q3', dailyLimit: 2, now: now() })).toEqual({
+        refused: 'daily_limit',
+      });
+      expect(await listMessages(a, {})).toHaveLength(2);
+    });
+
+    it('lets only one of two concurrent claims through at limit - 1', async () => {
+      const { a } = await pair();
+      await say(a, 'q1');
+      const results = await Promise.all(
+        Array.from({ length: 4 }, (_, i) =>
+          claimChatTurn(a, { text: `race ${i}`, dailyLimit: 2, now: now() }),
+        ),
+      );
+      expect(results.filter((r) => 'userMessageId' in r)).toHaveLength(1);
+      expect(results.filter((r) => 'refused' in r)).toHaveLength(3);
+      expect(await messagesToday(a, now())).toBe(2);
+    });
+
+    it("refuses while a recent answer is pending, but not a stale or finished one, or another member's", async () => {
+      const { a, b } = await pair();
+      const pending = await appendMessage(a, {
+        role: 'assistant',
+        origin: 'chat',
+        text: '',
+        status: 'pending',
+      });
+      expect(await claimChatTurn(a, { text: 'x', dailyLimit: 9, now: now() })).toEqual({
+        refused: 'busy',
+      });
+      expect(await claimChatTurn(b, { text: 'y', dailyLimit: 9, now: now() })).toHaveProperty(
+        'userMessageId',
+      );
+      await t.owner
+        .update(schema.advisorMessage)
+        .set({ createdAt: new Date(Date.now() - 11 * 60_000) })
+        .where(eq(schema.advisorMessage.id, pending!.id));
+      expect(await claimChatTurn(a, { text: 'z', dailyLimit: 9, now: now() })).toHaveProperty(
+        'userMessageId',
+      );
+      await finishMessage(a, pending!.id, { text: 'done', status: 'complete' });
+    });
   });
 });

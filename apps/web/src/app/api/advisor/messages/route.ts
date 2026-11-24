@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { NextRequest } from 'next/server';
 import { AdvisorUnavailableError, runAdvisorTurn, type AdvisorTurnEvent } from '@arfolio/mcp';
-import { isAiAvailable, messagesToday } from '@arfolio/services';
+import { claimChatTurn, isAiAvailable } from '@arfolio/services';
 import { getBrand } from '@/lib/brand';
 import { getAdvisorLimits } from '@/server/advisor-data';
 import { createClient } from '@/server/advisor-client';
@@ -29,7 +29,7 @@ const toFrame = (e: AdvisorTurnEvent): string =>
 
 /**
  * One chat turn with the advisor, streamed as server-sent events (`text`, `tool`, `proposal`,
- * then `done` or `error`). The model call is aborted when the browser disconnects. Nothing the
+ * then `done` or `error`; 429 daily_limit and 409 busy before it). The model call is aborted when the browser disconnects. Nothing the
  * member wrote or the model answered is logged: only the class of a failure.
  */
 export async function POST(request: NextRequest): Promise<Response> {
@@ -49,11 +49,20 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!parsed.success) return json(400, { error: 'invalid_input' });
 
   const limits = getAdvisorLimits();
-  if ((await messagesToday(ctx, new Date())) >= limits.dailyMessages) {
-    return json(429, { error: 'daily_limit' });
+  const [format, client] = [await loadHouseholdFormat(ctx), createClient(apiKey)];
+
+  // Checks the cap and stores the member's message in one step: concurrent posts cannot slip past.
+  const claim = await claimChatTurn(ctx, {
+    text: parsed.data.text,
+    dailyLimit: limits.dailyMessages,
+    now: new Date(),
+  });
+  if ('refused' in claim) {
+    return claim.refused === 'daily_limit'
+      ? json(429, { error: 'daily_limit' })
+      : json(409, { error: 'busy' });
   }
 
-  const [format, client] = [await loadHouseholdFormat(ctx), createClient(apiKey)];
   const encoder = new TextEncoder();
   let open = true;
 
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest): Promise<Response> {
             locale: format.locale,
             currency: format.currency,
           },
-          { kind: 'chat', text: parsed.data.text },
+          { kind: 'chat', text: parsed.data.text, userMessageId: claim.userMessageId },
           (event) => send(toFrame(event)),
           request.signal,
         );

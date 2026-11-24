@@ -27,7 +27,8 @@ export type { AdvisorModelClient } from './client.js';
 export type AdvisorProposalView = AdvisorProposal;
 
 export type TurnInput =
-  | { kind: 'chat'; text: string }
+  /** `userMessageId`: the member's message was already stored (see `claimChatTurn`). */
+  | { kind: 'chat'; text: string; userMessageId?: string }
   | {
       kind: 'proactive';
       eventKey: string;
@@ -138,7 +139,9 @@ export async function runAdvisorTurn(
   const { ctx, client, limits } = deps;
   const proactive = input.kind === 'proactive';
 
-  if (!proactive) await appendMessage(ctx, { role: 'user', origin: 'chat', text: input.text });
+  if (input.kind === 'chat' && input.userMessageId === undefined) {
+    await appendMessage(ctx, { role: 'user', origin: 'chat', text: input.text });
+  }
   const pending = await appendMessage(ctx, {
     role: 'assistant',
     origin: proactive ? 'proactive' : 'chat',

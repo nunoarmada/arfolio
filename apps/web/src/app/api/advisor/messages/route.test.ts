@@ -128,6 +128,30 @@ describe('POST /api/advisor/messages', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('lets only one of two concurrent posts through at limit - 1', async () => {
+    const ctx = await t.member(hh);
+    signIn(ctx);
+    await appendMessage(ctx, { role: 'user', origin: 'chat', text: 'one' });
+    const [r1, r2] = await Promise.all([post({ text: 'two' }), post({ text: 'three' })]);
+    const bodies = await Promise.all([r1.text(), r2.text()]);
+    expect([r1.status, r2.status].sort()).toEqual([200, 429]);
+    expect(bodies.filter((b) => b.includes('event: done'))).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+    const users = (await listMessages(ctx, {})).filter((m) => m.role === 'user');
+    expect(users).toHaveLength(2);
+  });
+
+  it("answers 409 busy while the member's previous answer is still pending", async () => {
+    const ctx = await t.member(hh);
+    signIn(ctx);
+    await appendMessage(ctx, { role: 'assistant', origin: 'chat', text: '', status: 'pending' });
+    const res = await post({ text: 'again' });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'busy' });
+    expect(calls).toHaveLength(0);
+    expect(await listMessages(ctx, {})).toHaveLength(1);
+  });
+
   it('streams text then done as server-sent events and stores the answer', async () => {
     const ctx = await t.member(hh, 'viewer');
     signIn(ctx);
