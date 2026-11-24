@@ -319,6 +319,7 @@ export function AssetDetailView({
         <ValuationSheet
           mode="asset"
           recordId={asset.id}
+          currency={asset.currency}
           today={today}
           existingDates={entries.map((e) => e.asOf)}
           open={updating}

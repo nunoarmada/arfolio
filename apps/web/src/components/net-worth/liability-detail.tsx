@@ -284,6 +284,7 @@ export function LiabilityDetailView({
         <ValuationSheet
           mode="liability"
           recordId={liability.id}
+          currency={liability.currency}
           today={today}
           existingDates={entries.map((e) => e.asOf)}
           open={updating}

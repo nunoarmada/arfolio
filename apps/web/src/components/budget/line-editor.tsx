@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition, type FormEvent } from 'react';
+import { minorDigits } from '@arfolio/core';
 import { parsePlanned, tidyPlannedInput, toPlannedInput } from '@/lib/amount-input';
 import { truncateName } from '@/lib/budget-import-copy';
 import { monthlyAverage } from '@/lib/budget-grid';
@@ -97,6 +98,8 @@ export function LineEditor({
   const { locale, currency } = useHouseholdFormat();
   const formatMoney = useFormatMoney();
   const money = (minor: number) => formatMoney(minor, currency, locale);
+  // Budget amounts are in the household currency, typed and stored in its minor units.
+  const digits = minorDigits(currency);
   const symbol =
     new Intl.NumberFormat(locale, { style: 'currency', currency })
       .formatToParts(0)
@@ -119,11 +122,11 @@ export function LineEditor({
       categoryIds: line?.categoryIds ?? [],
       bucketIds: line?.bucketIds ?? [],
       amounts: (line?.amounts ?? Array.from({ length: 12 }, () => 0)).map((a) =>
-        toPlannedInput(a, locale),
+        toPlannedInput(a, locale, digits),
       ),
       notes: line?.notes ?? '',
     }),
-    [line, defaultKind, locale],
+    [line, defaultKind, locale, digits],
   );
   const [values, setValues] = useState<LineFormValues>(initial);
   const [saved, setSaved] = useState(false);
@@ -180,7 +183,7 @@ export function LineEditor({
       ? line.bucketIds
       : [];
 
-  const parsed = values.amounts.map(parsePlanned);
+  const parsed = values.amounts.map((a) => parsePlanned(a, digits));
   const minors = parsed.map((p) => (p.ok ? p.minor : 0));
   const total = minors.reduce((a, b) => a + b, 0);
 
@@ -195,14 +198,14 @@ export function LineEditor({
 
   // --- amount helpers: they only edit the form; nothing is saved until "Guardar".
   function applySame() {
-    const value = parsePlanned(same ?? '');
+    const value = parsePlanned(same ?? '', digits);
     if (!value.ok) {
       setErrors((e) => ({ ...e, same: t(`amount.${value.reason}`) }));
       return;
     }
     setErrors((e) => ({ ...e, same: '' }));
     const before = values.amounts;
-    const text = toPlannedInput(value.minor, locale);
+    const text = toPlannedInput(value.minor, locale, digits);
     const hadOther = minors.some((m) => m !== 0 && m !== value.minor);
     set(
       'amounts',
@@ -224,7 +227,7 @@ export function LineEditor({
     let hasValue = false;
     let setCount = 0;
     for (let i = 0; i < 12; i++) {
-      const p = parsePlanned(values.amounts[i]!);
+      const p = parsePlanned(values.amounts[i]!, digits);
       if (p.ok && p.minor !== 0) {
         carry = values.amounts[i]!;
         hasValue = true;
@@ -235,7 +238,7 @@ export function LineEditor({
       }
     }
     return { next, filled, hasValue, allSet: setCount === 12 };
-  }, [values.amounts]);
+  }, [values.amounts, digits]);
 
   function copyForward() {
     if (fillPlan.filled === 0) return;
@@ -608,7 +611,7 @@ export function LineEditor({
                       className="pr-8 text-right tabular-nums"
                       onBlur={() => {
                         // Tidy a valid amount into the locale's typing form ("3000,50").
-                        const tidy = tidyPlannedInput(values.amounts[i]!, locale);
+                        const tidy = tidyPlannedInput(values.amounts[i]!, locale, digits);
                         if (tidy === null || tidy === values.amounts[i]) return;
                         const next = [...values.amounts];
                         next[i] = tidy;
