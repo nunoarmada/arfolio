@@ -476,3 +476,6 @@ export type {
   AdvisorNote,
   AdvisorProposal,
 } from './advisor/store.js';
+export { completeMonths, typicalSpend } from './advisor/profile.js';
+export type { SpendingProfile, TypicalSpend } from './advisor/profile.js';
+export { loadSpendingProfile } from './advisor/profile-data.js';
