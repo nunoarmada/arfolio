@@ -146,12 +146,9 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
     <PanelFrame title={t('title')} onBack={onBack}>
       <PanelState data={panel.data} failed={panel.failed} retry={panel.retry}>
         {({ settings, weeklyCapDefault }) => {
-          const cap = settings.weeklyCap ?? weeklyCapDefault;
-          const options = Array.from(
-            { length: Math.max(weeklyCapDefault, cap, 1) },
-            (_, i) => i + 1,
-          );
-          if (!options.includes(cap)) options.unshift(cap);
+          // The installation's cap is the ceiling: a stored value above it counts as the ceiling.
+          const cap = Math.min(settings.weeklyCap ?? weeklyCapDefault, weeklyCapDefault);
+          const options = Array.from({ length: weeklyCapDefault + 1 }, (_, i) => i);
           return (
             <div className="grid grid-cols-1 gap-5">
               <div className="flex items-start justify-between gap-3">

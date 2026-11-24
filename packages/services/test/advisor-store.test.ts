@@ -255,10 +255,20 @@ describe('advisor store', () => {
   it('stores member settings with defaults', async () => {
     const { a } = await pair();
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
-    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 3 });
+    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 3 }, { maxWeeklyCap: 3 });
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: false, weeklyCap: 3 });
-    await saveMemberSettings(a, { proactiveEnabled: true, weeklyCap: null });
+    await saveMemberSettings(a, { proactiveEnabled: true, weeklyCap: null }, { maxWeeklyCap: 3 });
     expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
+  });
+
+  it("refuses a weekly cap above the installation's", async () => {
+    const { a } = await pair();
+    await expect(
+      saveMemberSettings(a, { proactiveEnabled: true, weeklyCap: 3 }, { maxWeeklyCap: 2 }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: null });
+    await saveMemberSettings(a, { proactiveEnabled: true, weeklyCap: 2 }, { maxWeeklyCap: 2 });
+    expect(await getMemberSettings(a)).toEqual({ proactiveEnabled: true, weeklyCap: 2 });
   });
 
   it('counts capped messages since a date and chat messages since local midnight', async () => {
@@ -299,7 +309,7 @@ describe('advisor store', () => {
     const { a, b } = await pair();
     await say(a, 'hi');
     await addNote(a, 'n');
-    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 });
+    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 }, { maxWeeklyCap: 14 });
     await say(b, 'keep');
     await withHousehold(t.db, a.householdId, (tx) =>
       deleteAdvisorDataForUser(tx, a.householdId, a.userId),

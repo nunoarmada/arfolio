@@ -129,6 +129,9 @@ describe('advisor actions', () => {
     expect(await getMemberSettings(ctx)).toEqual({ proactiveEnabled: false, weeklyCap: 1 });
     const bad = await saveAdvisorSettingsAction({ proactiveEnabled: true, weeklyCap: -3 });
     expect(bad).toMatchObject({ ok: false, code: 'validation' });
+    // Above the installation's cap (ADVISOR_WEEKLY_CAP, default 2).
+    const high = await saveAdvisorSettingsAction({ proactiveEnabled: true, weeklyCap: 3 });
+    expect(high).toMatchObject({ ok: false, code: 'validation' });
   });
 
   it("marks the member's advisor notifications read", async () => {

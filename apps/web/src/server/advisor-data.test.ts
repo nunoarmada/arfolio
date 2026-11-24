@@ -180,7 +180,7 @@ describe('loadAdvisorPanel', () => {
       settings: { proactiveEnabled: true, weeklyCap: null },
       weeklyCapDefault: 2,
     });
-    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 });
+    await saveMemberSettings(a, { proactiveEnabled: false, weeklyCap: 1 }, { maxWeeklyCap: 2 });
     expect((await loadAdvisorPanel(a)).settings).toEqual({ proactiveEnabled: false, weeklyCap: 1 });
   });
 });

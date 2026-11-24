@@ -89,7 +89,9 @@ export async function saveAdvisorSettingsAction(
   settings: AdvisorMemberSettings,
 ): Promise<ActionResult> {
   return run(async () => {
-    await saveMemberSettings(await ctx(), settings);
+    await saveMemberSettings(await ctx(), settings, {
+      maxWeeklyCap: getAdvisorLimits().weeklyCap,
+    });
     refresh();
     return null;
   });

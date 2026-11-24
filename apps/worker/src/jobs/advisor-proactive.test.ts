@@ -197,12 +197,30 @@ describe('advisor-proactive job', () => {
     expect(rows.every((r) => r.countsTowardCap)).toBe(true);
   });
 
-  it("uses the member's own weekly cap over the installation's", async () => {
+  it("uses the member's own weekly cap when it is lower than the installation's", async () => {
     const f = await household({ detected: 4 });
-    await saveMemberSettings(f.users.owner!, { proactiveEnabled: true, weeklyCap: 3 });
+    await saveMemberSettings(
+      f.users.owner!,
+      { proactiveEnabled: true, weeklyCap: 1 },
+      { maxWeeklyCap: 2 },
+    );
     const { client } = fakeClient();
     await runAdvisorProactive(depsFor(client), f.householdId);
-    expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(3);
+    expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(1);
+  });
+
+  it("never lets a member's weekly cap exceed the installation's", async () => {
+    const f = await household({ detected: 4 });
+    // Stored when the installation's cap was higher (or by a direct write): the worker clamps it.
+    await owner.insert(schema.advisorMemberSettings).values({
+      householdId: f.householdId,
+      userId: f.users.owner!.userId,
+      proactiveEnabled: true,
+      weeklyCap: 9,
+    });
+    const { client } = fakeClient();
+    await runAdvisorProactive(depsFor(client), f.householdId);
+    expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(2);
   });
 
   it('sends welcome and learned outside the cap', async () => {
@@ -243,7 +261,11 @@ describe('advisor-proactive job', () => {
 
   it('sends no capped message when the member cap is 0', async () => {
     const f = await household({ detected: 3 });
-    await saveMemberSettings(f.users.owner!, { proactiveEnabled: true, weeklyCap: 0 });
+    await saveMemberSettings(
+      f.users.owner!,
+      { proactiveEnabled: true, weeklyCap: 0 },
+      { maxWeeklyCap: 2 },
+    );
     const { client, calls } = fakeClient();
     await runAdvisorProactive(depsFor(client), f.householdId);
     expect(calls).toHaveLength(0);
@@ -251,7 +273,11 @@ describe('advisor-proactive job', () => {
 
   it('skips members with proactive off, viewers included in the rest', async () => {
     const f = await household({ roles: ['owner', 'member', 'viewer'], detected: 1 });
-    await saveMemberSettings(f.users.member!, { proactiveEnabled: false, weeklyCap: null });
+    await saveMemberSettings(
+      f.users.member!,
+      { proactiveEnabled: false, weeklyCap: null },
+      { maxWeeklyCap: 2 },
+    );
     const { client } = fakeClient();
     await runAdvisorProactive(depsFor(client), f.householdId);
     expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(1);

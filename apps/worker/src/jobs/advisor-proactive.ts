@@ -116,7 +116,8 @@ export async function runAdvisorProactive(
         }
       }
       const events = detectEvents({ ...signals, ...(await loadSentState(ctx)) });
-      const cap = settings.weeklyCap ?? deps.limits.weeklyCap;
+      // A member can only lower the installation's cap (a value stored under a higher one is clamped).
+      const cap = Math.min(settings.weeklyCap ?? deps.limits.weeklyCap, deps.limits.weeklyCap);
       const since = new Date(now.getTime() - WEEK_MS);
       for (const event of events) {
         if (event.countsTowardCap) {

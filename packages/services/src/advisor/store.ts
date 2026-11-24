@@ -293,8 +293,16 @@ export async function getMemberSettings(ctx: ServiceCtx): Promise<AdvisorMemberS
   });
 }
 
-export async function saveMemberSettings(ctx: ServiceCtx, s: AdvisorMemberSettings): Promise<void> {
+/** A member may choose fewer proactive messages than the installation allows, never more. */
+export async function saveMemberSettings(
+  ctx: ServiceCtx,
+  s: AdvisorMemberSettings,
+  limits: { maxWeeklyCap: number },
+): Promise<void> {
   const value = parseInput(settingsInput, s);
+  if (value.weeklyCap !== null && value.weeklyCap > limits.maxWeeklyCap) {
+    throw new ValidationError(`The weekly cap is at most ${limits.maxWeeklyCap}`);
+  }
   await withHousehold(ctx.db, ctx.householdId, (tx) =>
     tx
       .insert(advisorMemberSettings)
