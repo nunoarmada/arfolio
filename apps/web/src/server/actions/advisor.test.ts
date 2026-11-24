@@ -189,6 +189,10 @@ describe('advisor actions', () => {
       ok: false,
       code: 'conflict',
     });
+    expect(await applyAdvisorProposalAction(missing)).toMatchObject({
+      ok: false,
+      code: 'conflict',
+    });
     expect(await deleteAdvisorNoteAction(missing)).toMatchObject({ ok: false, code: 'conflict' });
     expect(await loadOlderAdvisorMessagesAction(missing)).toMatchObject({
       ok: false,

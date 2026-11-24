@@ -55,7 +55,7 @@ export async function applyAdvisorProposalAction(id: string): Promise<ActionResu
     const profile = await loadSpendingProfile(c, {
       learningMonths: getAdvisorLimits().learningMonths,
     });
-    await applyProposal(c, id, { profile });
+    await inPlace(() => applyProposal(c, id, { profile }));
     refresh();
     return null;
   });
