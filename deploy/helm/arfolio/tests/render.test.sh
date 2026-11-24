@@ -87,7 +87,7 @@ has "$D" "name: pfm-secrets$"; check "defaults: generated secret name" $?
 has "$D" 'name: pfm-secrets-bootstrap'; check "defaults: bootstrap job + RBAC" $?
 has "$D" 'optional: true'; check "defaults: optional secret keys are optional" $?
 for app in pfm-web pfm-worker; do
-  for k in ENABLE_BANKING_APP_ID ENABLE_BANKING_PRIVATE_KEY ENABLE_BANKING_API_URL ANTHROPIC_API_KEY AI_CATEGORISATION_MODEL AI_REPORT_MODEL AI_VALUATION_MODEL AI_IMPORT_MODEL MERCHANT_LOGOS VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT PUSH_ALLOWED_HOSTS MCP_ALLOWED_REDIRECT_URIS; do
+  for k in ENABLE_BANKING_APP_ID ENABLE_BANKING_PRIVATE_KEY ENABLE_BANKING_API_URL ANTHROPIC_API_KEY AI_CATEGORISATION_MODEL AI_REPORT_MODEL AI_ADVISOR_MODEL AI_VALUATION_MODEL AI_IMPORT_MODEL MERCHANT_LOGOS ADVISOR_LEARNING_MONTHS ADVISOR_WEEKLY_CAP ADVISOR_DAILY_MESSAGES ADVISOR_MAX_TOOL_CALLS VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT PUSH_ALLOWED_HOSTS MCP_ALLOWED_REDIRECT_URIS; do
     [ "$(tenv "$D" Deployment "$app" "$k" .valueFrom.secretKeyRef.optional)" = "true" ]; check "defaults: $app reads optional $k from the optional secret" $?
   done
   [ "$(tenv "$D" Deployment "$app" ENCRYPTION_KEY .valueFrom.secretKeyRef.optional)" = "" ]; check "defaults: $app requires ENCRYPTION_KEY" $?
@@ -193,6 +193,7 @@ helm template pfm "$CHART" --set fullnameOverride=pfm --set app.url=https://x --
 # The chart-name-derived label app.kubernetes.io/part-of is deliberately not asserted: labels on objects and pod
 # templates are mutable.
 [ "$(tenv "$D" Deployment pfm-web BRAND_NAME .value)" = "Arfolio" ]; check "defaults: BRAND_NAME is Arfolio" $?
+[ "$(tenv "$D" Deployment pfm-worker BRAND_NAME .value)" = "Arfolio" ]; check "defaults: worker BRAND_NAME is Arfolio (advisor name)" $?
 for n in pfm-postgres; do
   [ "$(field "$D" StatefulSet $n '.metadata.name')" = "$n" ]; check "compat: StatefulSet $n" $?
   [ "$(field "$D" Service $n '.metadata.name')" = "$n" ]; check "compat: Service $n" $?

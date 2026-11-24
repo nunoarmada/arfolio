@@ -11,9 +11,17 @@ vi.mock('@arfolio/services', async (orig) => ({
 }));
 vi.mock('../lib/db', () => ({ getDb: () => ({ $client: pool }) }));
 
-async function fresh() {
+/** A second copy of the module, as Next bundles it for server actions and for pages. */
+async function secondCopy() {
   vi.resetModules();
   return import('./integration-config');
+}
+
+/** A new process: no module copy and no cache left over from an earlier test. */
+async function fresh() {
+  delete (globalThis as { __arfolioIntegrationConfigCache?: unknown })
+    .__arfolioIntegrationConfigCache;
+  return secondCopy();
 }
 
 beforeEach(() => {
@@ -39,6 +47,15 @@ describe('getIntegrationConfig', () => {
     expect(resolve).toHaveBeenCalledTimes(1);
     m.invalidateIntegrationConfig();
     await m.getIntegrationConfig();
+    expect(resolve).toHaveBeenCalledTimes(2);
+  });
+
+  it('is invalidated for every copy of the module in the process', async () => {
+    const pages = await fresh();
+    await pages.getIntegrationConfig();
+    const actions = await secondCopy();
+    actions.invalidateIntegrationConfig();
+    await pages.getIntegrationConfig();
     expect(resolve).toHaveBeenCalledTimes(2);
   });
 

@@ -295,3 +295,46 @@ export async function markAllNotificationsRead(ctx: ServiceCtx): Promise<{ marke
     return { marked: unread.length };
   });
 }
+
+/** Whether this user has an unread notification of `kind` they can see. */
+export async function hasUnreadNotificationOfKind(ctx: ServiceCtx, kind: string): Promise<boolean> {
+  return withHousehold(ctx.db, ctx.householdId, async (tx) => {
+    const [row] = await tx
+      .select({ id: notification.id })
+      .from(notification)
+      .leftJoin(notificationRead, readByUser(ctx))
+      .where(
+        and(visibleTo(ctx), eq(notification.kind, kind), isNull(notificationRead.notificationId)),
+      )
+      .limit(1);
+    return row !== undefined;
+  });
+}
+
+/** Marks this user's unread notifications of `kind` as read (for them only). */
+export async function markNotificationsReadByKind(
+  ctx: ServiceCtx,
+  kind: string,
+): Promise<{ marked: number }> {
+  return withHousehold(ctx.db, ctx.householdId, async (tx) => {
+    const unread = await tx
+      .select({ id: notification.id })
+      .from(notification)
+      .leftJoin(notificationRead, readByUser(ctx))
+      .where(
+        and(visibleTo(ctx), eq(notification.kind, kind), isNull(notificationRead.notificationId)),
+      );
+    if (unread.length === 0) return { marked: 0 };
+    await tx
+      .insert(notificationRead)
+      .values(
+        unread.map((r) => ({
+          notificationId: r.id,
+          userId: ctx.userId,
+          householdId: ctx.householdId,
+        })),
+      )
+      .onConflictDoNothing();
+    return { marked: unread.length };
+  });
+}

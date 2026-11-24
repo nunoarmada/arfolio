@@ -23,7 +23,7 @@ Open **Settings > Services** as a household owner. Everything on it applies to t
 
 | Section           | Fields                                                                                                          | Environment variables                                                         |
 | ----------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| AI                | Anthropic API key, model for categories, model for reports, model for valuations, model for statement import; **Test API key** | `ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL` |
+| AI                | Anthropic API key, model for categories, model for reports, model for the advisor, model for valuations, model for statement import; **Test API key** | `ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_ADVISOR_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL` |
 | Valuation portals | Websites the AI may search per kind of asset (property, vehicles, other items), one host per line, 20 at most   | none (page only)                                                              |
 | Bank connections  | The redirect URL to register, Application ID, private key, API address; **Test bank connection**                | `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL` |
 | Email             | SMTP address (`smtp://` or `smtps://`, no query string), sender; **Send test email**                            | `SMTP_URL`, `MAIL_FROM`                                                       |
@@ -33,7 +33,7 @@ Behaviour worth knowing:
 - **Secrets are write-only.** A saved API key, private key or SMTP address is never shown again, never sent back to the browser, and never written to logs or the audit log (which records only which setting changed). You can only replace or remove it.
 - **Fresh sign-in.** Changing these settings requires that you signed in within the last 10 minutes. If the page says so, sign out and in again, then retry.
 - **When changes take effect.** Saving applies at once for the web app; the worker picks the change up within about a minute. Environment variables are read at start-up, so restart after changing them.
-- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
+- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), the same as the report model (the advisor, unless you set its own), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
 - **Invalid or unreadable values.** A saved value that no longer validates is ignored and the page asks you to enter it again. A saved value that cannot be decrypted (the `ENCRYPTION_KEY` changed) is treated as not set and shown as unreadable: enter it again to replace it.
 
 ### The encryption key
@@ -79,7 +79,7 @@ These are read by the web app (and `TZ` by the worker). With Compose, set them i
 
 | Variable                | Default       | Meaning                                                                                                 |
 | ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `BRAND_NAME`            | `Arfolio`     | Product name: UI wordmark, page titles, manifest, social cards.                                         |
+| `BRAND_NAME`            | `Arfolio`     | Product name: UI wordmark, page titles, manifest, social cards, and the name the AI advisor writes under (the worker reads it too).                                         |
 | `BRAND_PRIMARY_COLOR`   | `#2F5BC2`     | Interface colour (derived per light and dark mode) and the tile colour of every icon.                   |
 | `BRAND_LOGO_URL`        | unset         | Replaces the mark in the UI (sign-in, setup, sidebar). Needs an origin your CSP allows.                 |
 | `DEFAULT_LOCALE`        | `en`          | Language before a person picks theirs: `en`, `pt-PT`, `es-ES`, `fr-FR` or `it-IT`.                                          |
@@ -96,6 +96,10 @@ These have no field on the Services page.
 | Variable                    | Default        | Meaning                                                                                                                                          |
 | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `MERCHANT_LOGOS`            | `on`           | `on` lets the worker fetch each merchant's favicon through Google's favicon service (it learns the merchant's domain, not your transactions). `off` disables it. |
+| `ADVISOR_LEARNING_MONTHS`   | `3`            | Months of history the AI advisor needs before it proposes anything (1-24). |
+| `ADVISOR_WEEKLY_CAP`        | `2`            | Proactive advisor messages per member and week (0-14); a member can lower it for themselves, never raise it. The welcome and the "what I learned" message do not count. `0` turns the rest off. |
+| `ADVISOR_DAILY_MESSAGES`    | `50`           | Chat messages one member may send to the advisor per day (1-1000).         |
+| `ADVISOR_MAX_TOOL_CALLS`    | `8`            | Tool calls the advisor may make while answering one message (1-20).        |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | generated | Web Push key pair. When unset the app generates one on first use and stores it (private key encrypted). Set **both** or neither: one alone is a startup error. Generate with `npx web-push generate-vapid-keys`. |
 | `VAPID_SUBJECT`             | https `APP_URL`, else `mailto:no-reply@localhost` | `mailto:` or `https:` contact given to push services.                                                  |
 | `PUSH_ALLOWED_HOSTS`        | unset          | Extra push-service host suffixes, comma separated, for self-hosted push such as UnifiedPush. FCM, Mozilla, Windows and Apple are always allowed. |
@@ -106,11 +110,13 @@ These have no field on the Services page.
 
 ### Settings that are also on the Services page
 
-`ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`, `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `SMTP_URL` and `MAIL_FROM` are optional. Leave them out of `.env` to manage them from the app. The compose file already passes them through when you set them. In Helm they go in the optional Secret (`<fullname>-optional`): see [Kubernetes](kubernetes.md).
+`ANTHROPIC_API_KEY`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_ADVISOR_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`, `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `SMTP_URL` and `MAIL_FROM` are optional. Leave them out of `.env` to manage them from the app. The compose file already passes them through when you set them. In Helm they go in the optional Secret (`<fullname>-optional`): see [Kubernetes](kubernetes.md).
 
 ### Reverse proxy timeouts
 
 Reading a PDF statement with AI is a single request that can take up to two minutes. If your reverse proxy closes responses sooner (many default to 30 or 60 seconds), long statements fail even though the server is still working. Raise the proxy's response timeout to at least two minutes for the app. Other requests are not affected. See [AI features](ai.md#statement-import-from-pdf).
+
+The advisor's chat (`POST /api/advisor/messages`) answers as a server-sent event stream: the response stays open while the model writes and while it looks things up, which can take a minute or more. The app sends `X-Accel-Buffering: no`, which nginx honours; with other proxies, turn response buffering off for that path (and keep the idle and response timeouts above a couple of minutes), or the reply only appears when it is finished. See [AI features](ai.md#financial-advisor).
 
 ## What leaves your server
 

@@ -267,11 +267,19 @@ export function HouseholdForm({
               <span className="font-medium">{ai('reportsSentLabel')}: </span>
               {ai('reportsSentBody')}
             </p>
+            <p>
+              <span className="font-medium">{ai('advisorSentLabel')}: </span>
+              {ai('advisorSentBody')}
+            </p>
           </div>
           <div className="grid grid-cols-1 content-start gap-1">
             <p>
               <span className="font-medium">{ai('neverLabel')}: </span>
               {ai('neverBody')}
+            </p>
+            <p>
+              <span className="font-medium">{ai('advisorNeverLabel')}: </span>
+              {ai('advisorNeverBody')}
             </p>
             <p className="text-muted-foreground">{ai('caveat')}</p>
           </div>

@@ -24,6 +24,7 @@ const EXPECTED: Record<NotificationKind, [string, string]> = {
   sync_failing: [`/connections#conn-${C}`, '/connections'],
   push_test: ['/', '/'],
   ai_report_ready: ['/insights/reports/2026-09', '/insights'],
+  advisor_message: ['/advisor', '/advisor'],
 };
 
 describe('notificationPath', () => {

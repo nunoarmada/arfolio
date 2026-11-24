@@ -1,5 +1,5 @@
-// Bundles the worker into dist/index.js (ESM). Only the TS-source workspace packages @arfolio/core and
-// @arfolio/services are inlined; every other dependency (pg-boss is ESM-only, @arfolio/db ships a built dist) stays external
+// Bundles the worker into dist/index.js (ESM). Only the TS-source workspace packages @arfolio/core, @arfolio/services and
+// @arfolio/mcp (its advisor entry only, not the MCP server) are inlined; every other dependency (pg-boss is ESM-only, @arfolio/db ships a built dist) stays external
 // and is resolved from node_modules at runtime.
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
@@ -23,6 +23,9 @@ const result = await build({
     ),
     '@arfolio/core/server': fileURLToPath(
       new URL('../../packages/core/src/server.ts', import.meta.url),
+    ),
+    '@arfolio/mcp/advisor': fileURLToPath(
+      new URL('../../packages/mcp/src/advisor/index.ts', import.meta.url),
     ),
     '@arfolio/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
     '@arfolio/services': fileURLToPath(

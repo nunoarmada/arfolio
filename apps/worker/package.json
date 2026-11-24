@@ -15,6 +15,7 @@
     "@arfolio/connectors": "workspace:*",
     "@arfolio/core": "workspace:*",
     "@arfolio/db": "workspace:*",
+    "@arfolio/mcp": "workspace:*",
     "@arfolio/services": "workspace:*",
     "csv-parse": "7.0.3",
     "drizzle-orm": "0.45.4",

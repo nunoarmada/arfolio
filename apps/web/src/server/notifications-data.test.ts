@@ -172,3 +172,23 @@ describe('toNotificationDto: ai_report_ready', () => {
     });
   });
 });
+
+describe('toNotificationDto: advisor_message', () => {
+  it('is its own kind, not a connection notice', () => {
+    const dto = toNotificationDto(row('advisor_message', { messageId: REC }));
+    expect(dto).toEqual({
+      id: 'n1',
+      read: false,
+      createdAt: expect.any(String),
+      kind: 'advisor_message',
+      messageId: REC,
+    });
+  });
+
+  it('drops a message id that is not a uuid', () => {
+    expect(toNotificationDto(row('advisor_message', { messageId: '../x' }))).toMatchObject({
+      kind: 'advisor_message',
+      messageId: null,
+    });
+  });
+});

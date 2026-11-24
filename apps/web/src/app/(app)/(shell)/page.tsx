@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { AdvisorBlock } from '@/components/home/advisor-block';
 import { BlockSkeleton, KpiSkeleton } from '@/components/home/block-frame';
 import {
   AccountsBlock,
@@ -23,6 +24,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { monthStart, todayIn } from '@/lib/dates';
 import { isHomeEmpty } from '@/lib/home-empty';
+import { loadAdvisorLauncherState } from '@/server/advisor-data';
 import { loadHomeBudget } from '@/server/budget-data';
 import {
   loadHomeAccounts,
@@ -54,7 +56,10 @@ export default async function HomePage() {
   ]);
   const ctx = toServiceCtx(session);
   const canWrite = session.role !== 'viewer';
-  const format = await loadHouseholdFormat(ctx);
+  const [format, advisor] = await Promise.all([
+    loadHouseholdFormat(ctx),
+    loadAdvisorLauncherState(ctx),
+  ]);
   const today = todayIn(format.timeZone);
   const now = new Date();
 
@@ -167,12 +172,32 @@ export default async function HomePage() {
             <UpcomingBlock upcoming={upcoming} canWrite={canWrite} />
           </Suspense>
         </div>
-        <div className={cn(cell, 'lg:col-span-12 lg:row-start-3')}>
+        <div
+          className={cn(
+            cell,
+            'lg:col-span-12 lg:row-start-3',
+            // Beside the advisor from xl; alone it keeps the full width.
+            advisor.available && 'xl:col-span-8',
+          )}
+        >
           <Suspense fallback={<BlockSkeleton className="min-h-[260px]" />}>
             <NetWorthBlock netWorth={netWorth} currentMonth={monthStart(today)} />
           </Suspense>
         </div>
-        <div className={cn(cell, 'lg:col-span-12 lg:row-start-4')}>
+        {advisor.available ? (
+          <div className={cn(cell, 'lg:col-span-12 lg:row-start-4 xl:col-span-4 xl:row-start-3')}>
+            <Suspense fallback={<BlockSkeleton className="min-h-[148px]" />}>
+              <AdvisorBlock ctx={ctx} />
+            </Suspense>
+          </div>
+        ) : null}
+        <div
+          className={cn(
+            cell,
+            'lg:col-span-12',
+            advisor.available ? 'lg:row-start-5' : 'lg:row-start-4',
+          )}
+        >
           <Suspense fallback={<BlockSkeleton className="min-h-[160px]" />}>
             <AccountsBlock
               accounts={accounts}

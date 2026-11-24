@@ -97,6 +97,10 @@ export default defineConfig({
       dependencies: ['phase1'],
       use: ip(16),
     },
+    // The AI advisor: launcher, streamed answer against the fake Anthropic API, focus on Escape, the
+    // AI-off state on the instance without a key, axe on /advisor. Removes its rows and puts the AI
+    // switch back.
+    { name: 'advisor', testMatch: /advisor\.spec\.ts/, dependencies: ['phase1'], use: ip(17) },
     { name: 'privacy', testMatch: /privacy\.spec\.ts/, dependencies: ['phase1'], use: ip(15) },
   ],
 });

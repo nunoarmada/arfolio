@@ -38,6 +38,9 @@ spec:
             # The default VAPID subject for web push (push services reject a non-https/mailto one).
             - name: APP_URL
               value: {{ .Values.app.url | quote }}
+            # The name the advisor writes under; same as the web Deployment's.
+            - name: BRAND_NAME
+              value: {{ .Values.app.brandName | quote }}
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

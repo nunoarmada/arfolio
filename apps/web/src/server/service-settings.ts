@@ -37,6 +37,7 @@ export const SERVICE_KEYS = [
   'anthropic.apiKey',
   'ai.categorisationModel',
   'ai.reportModel',
+  'ai.advisorModel',
   'ai.valuationModel',
   'ai.importModel',
   'ai.valuationPortals',
@@ -149,6 +150,8 @@ function resolvedFor(cfg: IntegrationConfig, key: InstanceSettingKey): Resolved<
       return cfg.models.categorisation;
     case 'ai.reportModel':
       return cfg.models.report;
+    case 'ai.advisorModel':
+      return cfg.models.advisor;
     case 'ai.valuationModel':
       return cfg.models.valuation;
     case 'ai.importModel':

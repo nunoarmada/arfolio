@@ -5,12 +5,14 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./advisor": "./src/advisor/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.12.0",
     "@modelcontextprotocol/server": "2.4.0",
     "@arfolio/core": "workspace:*",
     "@arfolio/db": "workspace:*",

@@ -17,6 +17,8 @@ export const QUEUES = {
   budgetAlerts: 'budget-alerts',
   netWorthSnapshotScheduler: 'net-worth-snapshot-scheduler',
   netWorthSnapshot: 'net-worth-snapshot',
+  advisorProactiveScheduler: 'advisor-proactive-scheduler',
+  advisorProactive: 'advisor-proactive',
   pushDeliver: 'push-deliver',
   t212Export: 't212-export',
 } as const;

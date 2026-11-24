@@ -86,6 +86,7 @@ const CASES: Array<
     { ...base, kind: 'ai_report_ready', month: '2026-09' },
     { reportMonth: '2026-09' },
   ],
+  ['advisor_message', { ...base, kind: 'advisor_message', messageId: null }, {}],
   ...(['consent_expiring', 'consent_expired', 'sync_failing'] as const).map(
     (kind) =>
       [
@@ -177,5 +178,20 @@ describe('describeNotification in privacy mode', () => {
     expect(text).toContain('••••');
     expect(text).not.toContain('123,45');
     expect(text).not.toContain('100,00');
+  });
+});
+
+describe('describeNotification: advisor_message', () => {
+  it('has its own copy and opens the advisor, never the connection copy', () => {
+    const described = describeNotification(
+      { ...base, kind: 'advisor_message', messageId: null },
+      deps,
+    );
+    expect(described).toMatchObject({
+      tone: 'info',
+      title: 'advisorMessage',
+      body: 'advisorMessageBody',
+      action: { href: '/advisor', label: 'viewAdvisor' },
+    });
   });
 });

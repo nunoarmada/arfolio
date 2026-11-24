@@ -424,6 +424,7 @@
       "apiKey": "Inserire la chiave API.",
       "categorisationModel": "Inserire il nome di un modello.",
       "reportModel": "Inserire il nome di un modello.",
+      "advisorModel": "Inserire il nome di un modello.",
       "valuationModel": "Inserire il nome di un modello.",
       "importModel": "Inserire il nome di un modello.",
       "valuationPortals": "Controllare gli host: uno per riga, come idealista.pt, fino a 20 per elenco.",
@@ -435,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni, e legge gli estratti conto in PDF importati. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
+      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili, le valutazioni dei beni e le risposte del consulente, e legge gli estratti conto in PDF importati. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
       "apiKey": "Chiave API di Anthropic",
       "apiKeyHint": "Creare una chiave nella console di Anthropic e incollarla qui.",
       "enableHint": "La chiave è configurata. Ogni nucleo familiare sceglie comunque se usare l’IA.",
@@ -444,11 +445,13 @@
       "categorisationModelHint": "Classifica i movimenti per categoria. Basta un modello veloce e a basso costo.",
       "reportModel": "Modello per i report",
       "reportModelHint": "Scrive il report mensile.",
+      "advisorModel": "Modello per il consulente",
+      "advisorModelHint": "Risponde ai messaggi del consulente e scrive le sue proposte.",
       "valuationModel": "Modello per le valutazioni",
       "importModel": "Modello per l’importazione degli estratti conto",
       "valuationModelHint": "Stima il valore di beni come immobili e veicoli.",
       "importModelHint": "Legge gli estratti conto PDF nella procedura guidata di importazione.",
-      "removeWarning": "Categorie, report, valutazioni e importazione di estratti conto PDF con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
+      "removeWarning": "Categorie, report, valutazioni, importazione di estratti conto PDF e consulente con IA smetteranno di funzionare finché non verrà aggiunta di nuovo una chiave.",
       "test": "Verifica la chiave API"
     },
     "portals": {
@@ -1869,7 +1872,10 @@
     "aiReportReady": "Il report di {month} è pronto",
     "aiReportReadyNoMonth": "Il report mensile è pronto",
     "aiReportReadyBody": "Leggere il riepilogo del mese generato dall’IA.",
-    "viewReport": "Vai al report"
+    "viewReport": "Vai al report",
+    "advisorMessage": "L’assistente ha un messaggio per lei",
+    "advisorMessageBody": "Apra la conversazione per leggerlo.",
+    "viewAdvisor": "Apri assistente"
   },
   "ai": {
     "badge": "IA",
@@ -1892,12 +1898,16 @@
   },
   "aiSettings": {
     "title": "IA: categorie e report",
-    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione. Legge anche gli estratti conto PDF nella procedura di importazione. Gli estratti conto PDF vengono inviati per intero, solo quando qualcuno lo conferma per quel file.",
+    "help": "Suggerisce le categorie per i movimenti che regole e memoria hanno lasciato senza categoria e, all’inizio di ogni mese, scrive un report sul mese precedente in Analisi › Report. Applica sempre una categoria; con affidabilità più bassa il movimento resta in Da rivedere per essere confermato e, dopo tre tentativi falliti, passa ad Altro e viene segnalato per la revisione. Legge anche gli estratti conto PDF nella procedura di importazione. Gli estratti conto PDF vengono inviati per intero, solo quando qualcuno lo conferma per quel file. Con l’IA attiva, ogni membro può usare anche il consulente finanziario, un assistente di chat che può proporre modifiche che applichi tu stesso; sotto è indicato cosa invia.",
     "sentTitle": "Cosa viene inviato",
     "sentLabel": "Per le categorie",
     "sentBody": "descrizione e controparte del movimento, senza IBAN, numeri di carta, email, numeri di telefono o lunghe sequenze di cifre; importo e valuta; mese (non il giorno); nomi delle categorie del nucleo familiare.",
     "neverLabel": "Mai inviato per categorie e report",
     "neverBody": "nomi dei conti, IBAN, saldi dei singoli conti, note, nomi dei membri del nucleo familiare.",
+    "advisorSentLabel": "Per il consulente",
+    "advisorSentBody": "ciò che scrivi nella chat e la conversazione recente, più i dati che il consulente chiede mentre risponde: descrizioni e controparti dei movimenti senza IBAN, numeri di carta, email, telefoni né lunghe sequenze di cifre; importi e date; nomi dei conti e degli istituti, saldi, limiti di credito e importi dovuti; categorie, nomi delle voci di budget e degli obiettivi; il tuo profilo di spesa; e le note che conserva. Solo quando qualcuno gli scrive, o quando scrive un aggiornamento.",
+    "advisorNeverLabel": "Mai inviato al consulente",
+    "advisorNeverBody": "IBAN e numeri di carta, note dei movimenti, conversazioni di altri membri. I nomi di conti, categorie, voci di budget e obiettivi non sono oscurati.",
     "caveat": "Per le categorie, una descrizione può includere il nome di un esercente o di una persona così come compare nell’estratto conto. I report non includono mai le descrizioni.",
     "provider": "Fornitore: Anthropic · categorie: modello {model} · report: modello {reportModel}",
     "limits": "Solo movimenti contabilizzati; fino a 500 all’ora. Un report al mese, che può essere rigenerato fino a {max} volte.",
@@ -2107,6 +2117,153 @@
     "goalsHelp": "Risparmi con un traguardo e una data prevista",
     "insights": "Analisi",
     "insightsHelp": "Dove va il denaro e come cambia"
+  },
+  "advisor": {
+    "title": "Consulente {brand}",
+    "open": "Apri il consulente",
+    "unread": "Apri il consulente, nuovo messaggio",
+    "status": "Disponibile",
+    "thinking": "Sto pensando…",
+    "menu": "Menu del consulente",
+    "minimise": "Riduci il consulente",
+    "openFullPage": "Apri il consulente a pagina intera",
+    "conversation": "Conversazione con il consulente",
+    "loadEarlier": "Carica i messaggi precedenti",
+    "loadingEarlier": "Caricamento…",
+    "newMessages": "Nuovi messaggi",
+    "speakerYou": "Tu",
+    "speakerAdvisor": "Consulente",
+    "proactive": "Aggiornamento",
+    "loading": "Caricamento della conversazione…",
+    "loadError": "Non è stato possibile caricare la conversazione.",
+    "privacyReveal": "Gli importi sono nascosti, quindi anche questa risposta. Selezionala per mostrarla.",
+    "moreHelp": "Fai domande su spese, budget e obiettivi",
+    "tools": {
+      "default": "Controllo i tuoi dati…",
+      "budget": "Guardo il tuo budget…",
+      "netWorth": "Controllo il tuo patrimonio…",
+      "accounts": "Controllo i tuoi conti…",
+      "transactions": "Guardo i tuoi movimenti…",
+      "spending": "Controllo le tue spese abituali…",
+      "goals": "Guardo i tuoi obiettivi…",
+      "propose": "Preparo un suggerimento…",
+      "note": "Prendo nota…"
+    },
+    "error": {
+      "busy": "Sto ancora rispondendo al tuo ultimo messaggio.",
+      "dailyLimit": "Hai raggiunto il limite di messaggi di oggi. Si azzera domani.",
+      "unavailable": "In questo momento non sono riuscito a rispondere.",
+      "retry": "Riprova"
+    },
+    "proposal": {
+      "label": "Suggerimento",
+      "summary": {
+        "goalCreate": "Crea l’obiettivo «{name}»",
+        "goalUpdate": "Aggiorna un obiettivo",
+        "budgetLine": "Imposta una voce di budget a {amount} al mese da {month}",
+        "ruleCreate": "Crea la regola «{name}»",
+        "categorise": "Cambia la categoria di un movimento",
+        "goalUpdateNamed": "Aggiorna l’obiettivo «{name}»",
+        "budgetLineNamed": "Imposta la voce «{line}» del budget a {amount} al mese, da {from} a {to}",
+        "categoriseTo": "Cambia la categoria di un movimento in «{category}»"
+      },
+      "detail": {
+        "targetAmount": "Traguardo",
+        "targetDate": "Data obiettivo",
+        "monthlyContribution": "Versamento mensile",
+        "account": "Conto",
+        "category": "Categoria",
+        "condition": "Quando",
+        "date": "Data",
+        "amount": "Importo",
+        "description": "Descrizione",
+        "merchantAll": "Si applica anche a tutti i movimenti di questo esercente"
+      },
+      "condition": {
+        "descriptionContains": "la descrizione contiene «{text}»",
+        "descriptionPattern": "la descrizione corrisponde a «{text}»",
+        "counterpartyContains": "la controparte contiene «{text}»",
+        "amountMin": "importo di almeno {amount}",
+        "amountMax": "importo di al massimo {amount}",
+        "directionIn": "denaro in entrata",
+        "directionOut": "denaro in uscita",
+        "accounts": "su {names}"
+      },
+      "basis": "{months, plural, one {Ultimo mese} other {Ultimi # mesi}}: {min}–{max}, mediana {median}",
+      "applied": "Applicato",
+      "appliedToast": "Applicato",
+      "dismissed": "Ignorato",
+      "stale": "Non aggiornato",
+      "staleHelp": "I tuoi dati sono cambiati da quando è stato proposto. Chiedi di nuovo.",
+      "viewerNote": "Solo i titolari e i membri possono applicarlo.",
+      "notAcceptable": "Non è più coerente con i tuoi dati. Chiedi di nuovo al consulente.",
+      "alreadyResolved": "Questo suggerimento è già stato gestito."
+    },
+    "suggestions": {
+      "label": "Domande suggerite",
+      "howThisMonth": "Come sta andando questo mese?",
+      "whereSave": "Dove posso risparmiare?",
+      "emergencyFund": "Quanto dovrebbe essere grande il mio fondo di emergenza?",
+      "setGoal": "Aiutami a fissare un obiettivo di risparmio",
+      "whatLearned": "Cosa hai capito finora delle mie spese?",
+      "reviewGoals": "Come stanno andando i miei obiettivi?"
+    },
+    "learning": {
+      "title": "Sto ancora imparando le tue abitudini",
+      "body": "{completeMonths} mesi di dati su {required}. Fino ad allora non suggerirò importi.",
+      "meter": "Mesi di dati raccolti"
+    },
+    "empty": {
+      "title": "Fai domande sui tuoi soldi",
+      "body": "Posso guardare le tue spese, il budget e gli obiettivi. Non cambio nulla senza il tuo consenso."
+    },
+    "off": {
+      "title": "L’IA è disattivata per questo nucleo familiare",
+      "owner": "Attiva l’IA nelle impostazioni del nucleo familiare per usare il consulente.",
+      "member": "Chiedi al titolare del nucleo familiare di attivarla.",
+      "action": "Apri le impostazioni dell’IA"
+    },
+    "notConfigured": {
+      "title": "Il consulente non è ancora configurato",
+      "owner": "Scegli un modello per il consulente nelle impostazioni dei servizi.",
+      "member": "Chiedi al titolare del nucleo familiare di completare la configurazione.",
+      "action": "Apri le impostazioni dei servizi"
+    },
+    "composer": {
+      "label": "Messaggio al consulente",
+      "placeholder": "Fai una domanda",
+      "hint": "Il consulente può sbagliare. Controlla prima di applicare."
+    },
+    "send": "Invia messaggio",
+    "menuSettings": "Impostazioni del consulente",
+    "menuNotes": "Note",
+    "menuClear": "Cancella cronologia",
+    "settings": {
+      "title": "Impostazioni del consulente",
+      "proactive": "Messaggi proattivi",
+      "proactiveHelp": "Lascia che il consulente scriva per primo quando nota qualcosa che merita un’occhiata.",
+      "weeklyCap": "Al massimo a settimana",
+      "weeklyCapOption": "{count, plural, one {# messaggio} other {# messaggi}}",
+      "saved": "Impostazioni salvate"
+    },
+    "notes": {
+      "title": "Note",
+      "empty": "Ancora nessuna nota. Quello che mi chiedi di ricordare compare qui.",
+      "delete": "Elimina nota: {text}",
+      "deleted": "Nota eliminata"
+    },
+    "clear": {
+      "title": "Cancellare la cronologia della conversazione?",
+      "body": "Vengono eliminati i tuoi messaggi con il consulente e le sue note. Le modifiche già applicate e i tuoi obiettivi restano.",
+      "confirm": "Cancella cronologia",
+      "done": "Cronologia cancellata"
+    },
+    "home": {
+      "empty": "Chiedi al consulente delle tue spese, del budget o degli obiettivi.",
+      "open": "Apri",
+      "error": "Non è stato possibile caricare il consulente."
+    },
+    "answerReady": "Il consulente ha risposto."
   },
   "budgetYear": {
     "title": "Anno di budget",

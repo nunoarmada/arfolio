@@ -24,6 +24,7 @@ export type IntegrationConfig = {
     report: Resolved<string>;
     valuation: Resolved<string>;
     import: Resolved<string>;
+    advisor: Resolved<string>;
   };
   valuationPortals: Resolved<ValuationPortals>;
   enableBanking: {
@@ -237,6 +238,12 @@ const SPECS = {
     parse: modelName(integrationEnvShape.AI_REPORT_MODEL),
     defaultValue: schemaDefault(integrationEnvShape.AI_REPORT_MODEL),
   },
+  advisor: {
+    envVar: 'AI_ADVISOR_MODEL',
+    dbKey: 'ai.advisorModel',
+    parse: modelName(integrationEnvShape.AI_ADVISOR_MODEL),
+    // No default of its own: unset, it follows the report model (see `resolveIntegrationConfig`).
+  },
   valuation: {
     envVar: 'AI_VALUATION_MODEL',
     dbKey: 'ai.valuationModel',
@@ -304,13 +311,20 @@ export async function resolveIntegrationConfig(
 ): Promise<IntegrationConfig> {
   const stored = await readInstanceSettings(db, encKey);
   const one = <T>(spec: Spec<T>) => resolveOne(spec, env, stored);
+  const report = one(SPECS.report);
+  const advisor = one(SPECS.advisor);
   return {
     anthropicApiKey: one(SPECS.anthropicApiKey),
     models: {
       categorisation: one(SPECS.categorisation),
-      report: one(SPECS.report),
+      report,
       valuation: one(SPECS.valuation),
       import: one(SPECS.import),
+      // Env, then Settings, else the model the reports use.
+      advisor:
+        advisor.source === 'unset'
+          ? { ...advisor, value: report.value, source: 'default' }
+          : advisor,
     },
     valuationPortals: one(SPECS.valuationPortals),
     enableBanking: {

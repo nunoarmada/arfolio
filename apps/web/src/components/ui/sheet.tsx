@@ -20,6 +20,7 @@ export function Sheet({
   footer,
   tall = false,
   titleHidden = false,
+  full = false,
   onOpenAutoFocus,
   onCloseAutoFocus,
 }: {
@@ -33,6 +34,11 @@ export function Sheet({
   tall?: boolean;
   /** The visible heading lives in `children` (e.g. the detail header). */
   titleHidden?: boolean;
+  /**
+   * Phones: the whole screen, with no handle and no close row; the content brings its own close
+   * button and fills the sheet edge to edge. From md up it is the usual panel.
+   */
+  full?: boolean;
   /** Where focus lands on open (call preventDefault to take over). */
   onOpenAutoFocus?: (event: Event) => void;
   /** Where focus goes on close (call preventDefault to take over). */
@@ -55,13 +61,18 @@ export function Sheet({
             'md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[480px] md:rounded-none md:pb-0',
             'md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right',
             tall && 'h-[90dvh] md:h-auto',
+            full &&
+              'max-md:inset-y-0 max-md:h-dvh max-md:max-h-none max-md:rounded-none max-md:pb-0 max-md:pt-[env(safe-area-inset-top)]',
           )}
         >
           <div
             aria-hidden="true"
-            className="mx-auto mt-2 h-1 w-10 rounded-full bg-surface-3 md:hidden"
+            className={cn(
+              'mx-auto mt-2 h-1 w-10 rounded-full bg-surface-3 md:hidden',
+              full && 'hidden',
+            )}
           />
-          <div className="flex items-start gap-2 px-4 pt-2 md:pt-4">
+          <div className={cn('flex items-start gap-2 px-4 pt-2 md:pt-4', full && 'max-md:hidden')}>
             <div className="min-w-0 flex-1 pt-1.5">
               <Dialog.Title className={cn('text-lg font-semibold', titleHidden && 'sr-only')}>
                 {title}
@@ -79,7 +90,14 @@ export function Sheet({
               <X className="size-6" aria-hidden="true" />
             </Dialog.Close>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">{children}</div>
+          <div
+            className={cn(
+              'min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2',
+              full && 'max-md:overflow-hidden max-md:p-0',
+            )}
+          >
+            {children}
+          </div>
           {footer ? <div className="border-t px-4 py-3">{footer}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>

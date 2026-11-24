@@ -155,6 +155,8 @@ const listSchema = z.strictObject({
   from: isoDate.optional(),
   to: isoDate.optional(),
   search: z.string().trim().max(200).optional(),
+  /** Whether `search` also looks in the free-text notes (default true). */
+  searchNotes: z.boolean().optional(),
   needsReview: z.boolean().optional(),
   /** Only booked or pending rows with no category that are not part of a transfer. */
   uncategorised: z.boolean().optional(),
@@ -225,7 +227,9 @@ export async function queryTransactions(
       or(
         sql`${transaction.rawDescription} ilike ${pattern} escape '\\'`,
         sql`${transaction.counterparty} ilike ${pattern} escape '\\'`,
-        sql`${transaction.notes} ilike ${pattern} escape '\\'`,
+        opts.searchNotes === false
+          ? undefined
+          : sql`${transaction.notes} ilike ${pattern} escape '\\'`,
         // Only a real friendly name (AI or user), not the raw text the memory remembered.
         and(
           isNotNull(merchant.nameSource),

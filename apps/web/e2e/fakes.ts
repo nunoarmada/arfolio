@@ -276,10 +276,76 @@ export interface FakeAnthropicRequest {
   hasTools: boolean;
 }
 
+/** The text the fake advisor streams once its tool call has been answered. */
+export const FAKE_ADVISOR_ANSWER = 'Example advice';
+
+/** One server-sent event in the Messages API streaming format. */
+const sse = (event: string, data: unknown): string =>
+  `event: ${event}\ndata: ${JSON.stringify({ type: event, ...(data as object) })}\n\n`;
+
+/**
+ * The advisor's streamed reply (`stream: true` with the `propose_action` tool): the first call asks
+ * for `get_spending_profile`; once the request carries that tool's result, the answer is a short
+ * text and `end_turn`. Same event sequence the real API sends, so the SDK's stream parser is
+ * exercised for real.
+ */
+function advisorStream(model: string, answered: boolean): string {
+  const start = sse('message_start', {
+    message: {
+      id: 'msg_e2e_advisor',
+      type: 'message',
+      role: 'assistant',
+      model,
+      content: [],
+      stop_reason: null,
+      stop_sequence: null,
+      usage: { input_tokens: 10, output_tokens: 1 },
+    },
+  });
+  const end = (stop: 'end_turn' | 'tool_use') =>
+    sse('message_delta', {
+      delta: { stop_reason: stop, stop_sequence: null },
+      usage: { output_tokens: 10 },
+    }) + sse('message_stop', {});
+  if (!answered) {
+    return (
+      start +
+      sse('content_block_start', {
+        index: 0,
+        content_block: {
+          type: 'tool_use',
+          id: 'toolu_e2e_profile',
+          name: 'get_spending_profile',
+          input: {},
+        },
+      }) +
+      sse('content_block_delta', {
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '{}' },
+      }) +
+      sse('content_block_stop', { index: 0 }) +
+      end('tool_use')
+    );
+  }
+  return (
+    start +
+    sse('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
+    sse('content_block_delta', {
+      index: 0,
+      delta: { type: 'text_delta', text: FAKE_ADVISOR_ANSWER },
+    }) +
+    sse('content_block_stop', { index: 0 }) +
+    end('end_turn')
+  );
+}
+
 /**
  * A fake Messages API (`POST /v1/messages`) that answers a PDF statement request with two fixed
  * movements, as the structured JSON the service reads from the text block. It refuses (HTTP 400) a
  * request that breaks the contract: wrong key, no PDF document block, or any tool.
+ *
+ * The advisor's streaming requests (`stream: true` with a `propose_action` tool) get a canned
+ * stream instead, see `advisorStream`; they still have to carry the right key.
  *
  * The spec runs in another process than this one, so what it needs (the request count, the last
  * request, a per-test delay, a longer answer) is also served under `/__fake/` on the same port.
@@ -331,6 +397,22 @@ export async function startFakeAnthropic(): Promise<
         return send(res, 404, { type: 'error', error: { type: 'not_found_error', message: 'x' } });
       }
       const body = await readJson(req);
+      const tools = Array.isArray(body.tools) ? (body.tools as { name?: string }[]) : [];
+      if (body.stream === true && tools.some((t) => t.name === 'propose_action')) {
+        if (req.headers.authorization !== `Bearer ${FAKE_ANTHROPIC_KEY}`) {
+          return send(res, 401, {
+            type: 'error',
+            error: { type: 'authentication_error', message: 'invalid x-api-key' },
+          });
+        }
+        const messages = (body.messages as { content?: unknown }[] | undefined) ?? [];
+        const lastContent = messages.at(-1)?.content;
+        const answered =
+          Array.isArray(lastContent) &&
+          (lastContent as { type?: string }[]).some((b) => b.type === 'tool_result');
+        res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+        return void res.end(advisorStream(String(body.model), answered));
+      }
       count += 1;
       const blocks = (body.messages as { content?: unknown }[] | undefined)?.flatMap((m) =>
         Array.isArray(m.content) ? (m.content as Record<string, unknown>[]) : [],

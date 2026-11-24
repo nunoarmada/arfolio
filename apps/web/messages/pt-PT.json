@@ -424,6 +424,7 @@
       "apiKey": "Introduza a chave de API.",
       "categorisationModel": "Introduza o nome de um modelo.",
       "reportModel": "Introduza o nome de um modelo.",
+      "advisorModel": "Introduza o nome de um modelo.",
       "valuationModel": "Introduza o nome de um modelo.",
       "importModel": "Introduza o nome de um modelo.",
       "valuationPortals": "Verifique os endereços: um por linha, como idealista.pt, até 20 em cada lista.",
@@ -435,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "A Anthropic sugere categorias, escreve os relatórios mensais, estima o valor de bens e lê os extratos em PDF que importa. Os extratos são a única utilização que envia ficheiros inteiros, e só depois de confirmar cada ficheiro.",
+      "description": "A Anthropic sugere categorias, escreve os relatórios mensais, estima o valor de bens, responde no consultor e lê os extratos em PDF que importa. Os extratos são a única utilização que envia ficheiros inteiros, e só depois de confirmar cada ficheiro.",
       "apiKey": "Chave de API da Anthropic",
       "apiKeyHint": "Crie uma chave na consola da Anthropic e cole-a aqui.",
       "enableHint": "A chave está configurada. Cada agregado continua a escolher se usa IA.",
@@ -444,11 +445,13 @@
       "categorisationModelHint": "Basta um modelo rápido e económico.",
       "reportModel": "Modelo para relatórios",
       "reportModelHint": "Escreve o relatório mensal.",
+      "advisorModel": "Modelo para o assistente",
+      "advisorModelHint": "Responde às mensagens do assistente e escreve as suas propostas.",
       "valuationModel": "Modelo para avaliações",
       "importModel": "Modelo para importar extratos",
       "valuationModelHint": "Estima o valor de bens como imóveis e veículos.",
       "importModelHint": "Lê extratos em PDF no assistente de importação.",
-      "removeWarning": "As categorias, os relatórios, as avaliações e a importação de extratos em PDF com IA deixam de funcionar até voltar a adicionar uma chave.",
+      "removeWarning": "As categorias, os relatórios, as avaliações, a importação de extratos em PDF e o consultor com IA deixam de funcionar até voltar a adicionar uma chave.",
       "test": "Testar a chave de API"
     },
     "portals": {
@@ -1869,7 +1872,10 @@
     "aiReportReady": "O relatório de {month} está pronto",
     "aiReportReadyNoMonth": "O relatório mensal está pronto",
     "aiReportReadyBody": "Leia o resumo do mês feito pela IA.",
-    "viewReport": "Ver relatório"
+    "viewReport": "Ver relatório",
+    "advisorMessage": "O assistente tem uma mensagem para si",
+    "advisorMessageBody": "Abra a conversa para a ler.",
+    "viewAdvisor": "Abrir assistente"
   },
   "ai": {
     "badge": "IA",
@@ -1892,12 +1898,16 @@
   },
   "aiSettings": {
     "title": "IA: categorias e relatórios",
-    "help": "Sugere categorias para os movimentos que as regras e a memória não classificaram e, no início de cada mês, escreve um relatório do mês anterior em Análises › Relatórios. Aplica sempre uma categoria; com confiança mais baixa o movimento fica em Por rever para o confirmar, e ao fim de três tentativas falhadas vai para Outros e fica marcado para rever. Também lê extratos em PDF no assistente de importação. Os extratos em PDF são enviados por inteiro, apenas quando alguém o confirma para esse ficheiro.",
+    "help": "Sugere categorias para os movimentos que as regras e a memória não classificaram e, no início de cada mês, escreve um relatório do mês anterior em Análises › Relatórios. Aplica sempre uma categoria; com confiança mais baixa o movimento fica em Por rever para o confirmar, e ao fim de três tentativas falhadas vai para Outros e fica marcado para rever. Também lê extratos em PDF no assistente de importação. Os extratos em PDF são enviados por inteiro, apenas quando alguém o confirma para esse ficheiro. Com a IA ligada, cada membro pode também usar o consultor financeiro, um assistente de conversa que pode propor alterações que aplica você mesmo; abaixo está o que envia.",
     "sentTitle": "O que é enviado",
     "sentLabel": "Para as categorias",
     "sentBody": "descrição do movimento e contraparte, sem IBAN, números de cartão, emails, telefones nem sequências longas de dígitos; valor e moeda; mês (não o dia); nomes das categorias do agregado.",
     "neverLabel": "Nunca enviado nas categorias e nos relatórios",
     "neverBody": "nomes de contas, IBAN, saldos de contas individuais, notas, nomes dos membros do agregado.",
+    "advisorSentLabel": "Para o consultor",
+    "advisorSentBody": "o que escreve na conversa e a conversa recente, mais os dados que o consultor pede enquanto responde: descrições e contrapartes dos movimentos sem IBAN, números de cartão, emails, telefones nem longas sequências de dígitos; montantes e datas; nomes de contas e de instituições, saldos, limites de crédito e montantes em dívida; categorias, nomes de rubricas do orçamento e de objetivos; o seu perfil de despesas; e as notas que guarda. Só quando alguém lhe escreve ou quando ele escreve um ponto de situação.",
+    "advisorNeverLabel": "Nunca enviado ao consultor",
+    "advisorNeverBody": "IBAN e números de cartão, notas dos movimentos, conversas de outros membros. Os nomes de contas, categorias, rubricas do orçamento e objetivos não são ocultados.",
     "caveat": "Nas categorias, a descrição pode incluir o nome de um comerciante ou de uma pessoa tal como aparece no extrato. Os relatórios nunca incluem descrições.",
     "provider": "Fornecedor: Anthropic · categorias: modelo {model} · relatórios: modelo {reportModel}",
     "limits": "Só movimentos contabilizados; até 500 por hora. Um relatório por mês, que pode ser gerado novamente até {max} vezes.",
@@ -2107,6 +2117,153 @@
     "goalsHelp": "Poupanças com meta e data prevista",
     "insights": "Análises",
     "insightsHelp": "Para onde vai o dinheiro e como evolui"
+  },
+  "advisor": {
+    "title": "Consultor {brand}",
+    "open": "Abrir consultor",
+    "unread": "Abrir consultor, nova mensagem",
+    "status": "Disponível",
+    "thinking": "A pensar…",
+    "menu": "Menu do consultor",
+    "minimise": "Minimizar consultor",
+    "openFullPage": "Abrir o consultor em página inteira",
+    "conversation": "Conversa com o consultor",
+    "loadEarlier": "Carregar mensagens anteriores",
+    "loadingEarlier": "A carregar…",
+    "newMessages": "Novas mensagens",
+    "speakerYou": "Eu",
+    "speakerAdvisor": "Consultor",
+    "proactive": "Ponto de situação",
+    "loading": "A carregar a conversa…",
+    "loadError": "Não foi possível carregar a conversa.",
+    "privacyReveal": "Os montantes estão escondidos, por isso esta resposta também. Selecione para mostrar.",
+    "moreHelp": "Pergunte sobre despesas, orçamento e objetivos",
+    "tools": {
+      "default": "A consultar os seus dados…",
+      "budget": "A ver o seu orçamento…",
+      "netWorth": "A consultar o seu património…",
+      "accounts": "A consultar as suas contas…",
+      "transactions": "A analisar os seus movimentos…",
+      "spending": "A ver as suas despesas habituais…",
+      "goals": "A ver os seus objetivos…",
+      "propose": "A preparar uma sugestão…",
+      "note": "A tomar nota…"
+    },
+    "error": {
+      "busy": "Ainda estou a responder à sua última mensagem.",
+      "dailyLimit": "Atingiu o limite de mensagens de hoje. Volta a estar disponível amanhã.",
+      "unavailable": "Não consegui responder neste momento.",
+      "retry": "Repetir"
+    },
+    "proposal": {
+      "label": "Sugestão",
+      "summary": {
+        "goalCreate": "Criar o objetivo «{name}»",
+        "goalUpdate": "Atualizar um objetivo",
+        "budgetLine": "Definir uma rubrica do orçamento em {amount} por mês a partir de {month}",
+        "ruleCreate": "Criar a regra «{name}»",
+        "categorise": "Mudar a categoria de um movimento",
+        "goalUpdateNamed": "Atualizar o objetivo «{name}»",
+        "budgetLineNamed": "Definir a rubrica «{line}» do orçamento em {amount} por mês, de {from} a {to}",
+        "categoriseTo": "Mudar a categoria de um movimento para «{category}»"
+      },
+      "detail": {
+        "targetAmount": "Meta",
+        "targetDate": "Data-alvo",
+        "monthlyContribution": "Contribuição mensal",
+        "account": "Conta",
+        "category": "Categoria",
+        "condition": "Quando",
+        "date": "Data",
+        "amount": "Montante",
+        "description": "Descrição",
+        "merchantAll": "Aplica-se também a todos os movimentos deste comerciante"
+      },
+      "condition": {
+        "descriptionContains": "a descrição contém «{text}»",
+        "descriptionPattern": "a descrição corresponde a «{text}»",
+        "counterpartyContains": "a contraparte contém «{text}»",
+        "amountMin": "montante de pelo menos {amount}",
+        "amountMax": "montante de, no máximo, {amount}",
+        "directionIn": "entrada de dinheiro",
+        "directionOut": "saída de dinheiro",
+        "accounts": "em {names}"
+      },
+      "basis": "{months, plural, one {Último mês} other {Últimos # meses}}: {min}–{max}, mediana {median}",
+      "applied": "Aplicada",
+      "appliedToast": "Aplicada",
+      "dismissed": "Dispensada",
+      "stale": "Desatualizada",
+      "staleHelp": "Os seus dados mudaram desde esta sugestão. Pergunte de novo.",
+      "viewerNote": "Só os titulares e os membros podem aplicar isto.",
+      "notAcceptable": "Isto já não corresponde aos seus dados. Pergunte de novo ao consultor.",
+      "alreadyResolved": "Esta sugestão já foi tratada."
+    },
+    "suggestions": {
+      "label": "Perguntas sugeridas",
+      "howThisMonth": "Como está a correr este mês?",
+      "whereSave": "Onde posso poupar?",
+      "emergencyFund": "Que tamanho deve ter o meu fundo de emergência?",
+      "setGoal": "Ajude-me a definir um objetivo de poupança",
+      "whatLearned": "O que já aprendeu sobre as minhas despesas?",
+      "reviewGoals": "Como estão os meus objetivos?"
+    },
+    "learning": {
+      "title": "Ainda a conhecer os seus hábitos",
+      "body": "{completeMonths} de {required} meses de dados. Até lá, não sugiro valores.",
+      "meter": "Meses de dados recolhidos"
+    },
+    "empty": {
+      "title": "Pergunte sobre o seu dinheiro",
+      "body": "Posso ver as suas despesas, o orçamento e os objetivos. Nunca altero nada sem a sua autorização."
+    },
+    "off": {
+      "title": "A IA está desligada neste agregado",
+      "owner": "Ligue a IA nas definições do agregado para usar o consultor.",
+      "member": "Peça ao titular do agregado que a ligue.",
+      "action": "Abrir definições de IA"
+    },
+    "notConfigured": {
+      "title": "O consultor ainda não está configurado",
+      "owner": "Escolha um modelo para o consultor nas definições dos serviços.",
+      "member": "Peça ao titular do agregado que conclua a configuração.",
+      "action": "Abrir definições dos serviços"
+    },
+    "composer": {
+      "label": "Mensagem para o consultor",
+      "placeholder": "Faça uma pergunta",
+      "hint": "O consultor pode enganar-se. Confirme antes de aplicar."
+    },
+    "send": "Enviar mensagem",
+    "menuSettings": "Definições do consultor",
+    "menuNotes": "Notas",
+    "menuClear": "Limpar histórico",
+    "settings": {
+      "title": "Definições do consultor",
+      "proactive": "Mensagens proativas",
+      "proactiveHelp": "Deixe o consultor escrever primeiro quando notar algo que mereça atenção.",
+      "weeklyCap": "No máximo por semana",
+      "weeklyCapOption": "{count, plural, one {# mensagem} other {# mensagens}}",
+      "saved": "Definições guardadas"
+    },
+    "notes": {
+      "title": "Notas",
+      "empty": "Ainda não há notas. O que me pedir para recordar aparece aqui.",
+      "delete": "Apagar nota: {text}",
+      "deleted": "Nota apagada"
+    },
+    "clear": {
+      "title": "Limpar o histórico da conversa?",
+      "body": "Isto apaga as suas mensagens com o consultor e as notas. As alterações que já aplicou e os seus objetivos mantêm-se.",
+      "confirm": "Limpar histórico",
+      "done": "Histórico limpo"
+    },
+    "home": {
+      "empty": "Pergunte ao consultor sobre despesas, orçamento ou objetivos.",
+      "open": "Abrir",
+      "error": "Não foi possível carregar o consultor."
+    },
+    "answerReady": "O consultor respondeu."
   },
   "budgetYear": {
     "title": "Orçamento do ano",

@@ -65,6 +65,8 @@ export {
   unreadNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByKind,
+  hasUnreadNotificationOfKind,
 } from './notifications.js';
 export type { NotificationRow, NotificationPage } from './notifications.js';
 export {
@@ -454,3 +456,58 @@ export type {
   DueAsset,
   EstimateAssetDeps,
 } from './ai/asset-valuation.js';
+export {
+  addNote,
+  appendMessage,
+  claimChatTurn,
+  clearHistory,
+  countCappedSince,
+  deleteAdvisorDataForUser,
+  deleteMessage,
+  deleteNote,
+  deleteProposalsForMessage,
+  finishMessage,
+  getMemberSettings,
+  getProposal,
+  hasOpenedAdvisor,
+  listMessages,
+  listNotes,
+  markAdvisorOpened,
+  MAX_ADVISOR_NOTES,
+  messagesToday,
+  saveMemberSettings,
+  saveProposal,
+} from './advisor/store.js';
+export type {
+  AdvisorMemberSettings,
+  AdvisorMessage,
+  AdvisorMessageView,
+  AdvisorNote,
+  AdvisorProposal,
+  AdvisorProposalView,
+} from './advisor/store.js';
+export type { ProposalDisplay } from './advisor/proposal-display.js';
+export {
+  applyProposal,
+  dismissProposal,
+  proposalDraftSchema,
+  recentUserTexts,
+  storedBasis,
+  validateDraft,
+} from './advisor/proposals.js';
+export type { DraftVerdict, ProposalBasis, ProposalDraft } from './advisor/proposals.js';
+export {
+  detectEvents,
+  loadHouseholdSignals,
+  loadSentState,
+  notifyAdvisorMessage,
+} from './advisor/events.js';
+export type {
+  AdvisorEvent,
+  AdvisorEventType,
+  EventInput as AdvisorEventInput,
+  HouseholdSignals,
+} from './advisor/events.js';
+export { completeMonths, typicalSpend } from './advisor/profile.js';
+export type { SpendingProfile, TypicalSpend } from './advisor/profile.js';
+export { loadSpendingProfile } from './advisor/profile-data.js';

@@ -36,7 +36,8 @@ export class ConflictError extends Error {
       | 'category_already_linked'
       | 'bucket_already_linked'
       | 'budget_exists'
-      | 'set_by_environment',
+      | 'set_by_environment'
+      | 'proposal_not_pending',
     message: string,
   ) {
     super(message);
@@ -96,6 +97,10 @@ export type ValidationCode =
   | 'sale_transaction_invalid'
   | 'sale_transaction_taken'
   | 'liability_not_linked'
+  | 'note_limit'
+  | 'stale'
+  | 'learning'
+  | 'out_of_range'
   | 'pdf_too_long';
 
 export class ValidationError extends Error {

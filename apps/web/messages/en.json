@@ -424,6 +424,7 @@
       "apiKey": "Enter the API key.",
       "categorisationModel": "Enter a model name.",
       "reportModel": "Enter a model name.",
+      "advisorModel": "Enter a model name.",
       "valuationModel": "Enter a model name.",
       "importModel": "Enter a model name.",
       "valuationPortals": "Check the hosts: one per line, like idealista.pt, up to 20 in each list.",
@@ -435,7 +436,7 @@
     },
     "ai": {
       "title": "AI",
-      "description": "Anthropic writes category suggestions, monthly reports and asset valuations, and reads PDF statements you import. Statements are the one use that sends whole files, and only after you confirm each file.",
+      "description": "Anthropic writes category suggestions, monthly reports and asset valuations, answers your advisor questions, and reads PDF statements you import. Statements are the one use that sends whole files, and only after you confirm each file.",
       "apiKey": "Anthropic API key",
       "apiKeyHint": "Create a key in the Anthropic console and paste it here.",
       "enableHint": "The key is in place. Each household still chooses whether to use AI.",
@@ -444,11 +445,13 @@
       "categorisationModelHint": "Sorts movements into categories. A fast, low-cost model is enough.",
       "reportModel": "Model for reports",
       "reportModelHint": "Writes the monthly report.",
+      "advisorModel": "Model for the advisor",
+      "advisorModelHint": "Answers advisor chat messages and writes its proposals.",
       "valuationModel": "Model for valuations",
       "importModel": "Statement import model",
       "valuationModelHint": "Estimates the value of assets such as property and vehicles.",
       "importModelHint": "Reads PDF statements in the import wizard.",
-      "removeWarning": "AI categories, reports, valuations and PDF statement import stop working until you add a key again.",
+      "removeWarning": "AI categories, reports, valuations, PDF statement import and the advisor stop working until you add a key again.",
       "test": "Test API key"
     },
     "portals": {
@@ -1869,7 +1872,10 @@
     "aiReportReady": "Your {month} report is ready",
     "aiReportReadyNoMonth": "Your monthly report is ready",
     "aiReportReadyBody": "Read the AI summary of the month.",
-    "viewReport": "View report"
+    "viewReport": "View report",
+    "advisorMessage": "The advisor has a message for you",
+    "advisorMessageBody": "Open the conversation to read it.",
+    "viewAdvisor": "Open advisor"
   },
   "ai": {
     "badge": "AI",
@@ -1892,12 +1898,16 @@
   },
   "aiSettings": {
     "title": "AI: categories and reports",
-    "help": "Suggests categories for movements that rules and memory left uncategorised and, at the start of each month, writes a report on the previous month in Insights › Reports. It always applies a category; with lower confidence the movement stays in To review for you to confirm, and after three failed attempts it goes to Other and is flagged for review. It also reads PDF statements in the import wizard. PDF statements are sent whole, only when someone confirms it for that file.",
+    "help": "Suggests categories for movements that rules and memory left uncategorised and, at the start of each month, writes a report on the previous month in Insights › Reports. It always applies a category; with lower confidence the movement stays in To review for you to confirm, and after three failed attempts it goes to Other and is flagged for review. It also reads PDF statements in the import wizard. PDF statements are sent whole, only when someone confirms it for that file. With AI on, each member can also use the financial advisor, a chat assistant that can propose changes you apply yourself; what it sends is listed below.",
     "sentTitle": "What is sent",
     "sentLabel": "For categories",
     "sentBody": "movement description and counterparty, without IBANs, card numbers, emails, phone numbers or long digit sequences; amount and currency; month (not the day); the household's category names.",
     "neverLabel": "Never sent for categories and reports",
     "neverBody": "account names, IBANs, balances of individual accounts, notes, household member names.",
+    "advisorSentLabel": "For the advisor",
+    "advisorSentBody": "what you write in the chat and the recent conversation, plus the data the advisor asks for while it answers: movement descriptions and counterparties without IBANs, card numbers, emails, phone numbers or long digit sequences; amounts and dates; account and institution names, balances, credit limits and amounts owed; categories, budget line and goal names; your spending profile; and the notes it keeps. Only when someone writes to it, or when it writes a check-in.",
+    "advisorNeverLabel": "Never sent to the advisor",
+    "advisorNeverBody": "IBANs and card numbers, movement notes, other members' conversations. Names of accounts, categories, budget lines and goals are not redacted.",
     "caveat": "For categories, a description can include a merchant's or a person's name as it appears on the statement. Reports never include descriptions.",
     "provider": "Provider: Anthropic · categories: model {model} · reports: model {reportModel}",
     "limits": "Booked movements only; up to 500 per hour. One report per month, which can be generated again up to {max} times.",
@@ -2107,6 +2117,153 @@
     "goalsHelp": "Savings with a target and an expected date",
     "insights": "Insights",
     "insightsHelp": "Where the money goes and how it changes"
+  },
+  "advisor": {
+    "title": "{brand} advisor",
+    "open": "Open advisor",
+    "unread": "Open advisor, new message",
+    "status": "Ready",
+    "thinking": "Thinking…",
+    "menu": "Advisor menu",
+    "minimise": "Minimise advisor",
+    "openFullPage": "Open the advisor as a full page",
+    "conversation": "Conversation with the advisor",
+    "loadEarlier": "Load earlier messages",
+    "loadingEarlier": "Loading…",
+    "newMessages": "New messages",
+    "speakerYou": "You",
+    "speakerAdvisor": "Advisor",
+    "proactive": "Check-in",
+    "loading": "Loading the conversation…",
+    "loadError": "The conversation couldn't load.",
+    "privacyReveal": "Amounts are hidden, so this reply is too. Select to show it.",
+    "moreHelp": "Ask about your spending, budget and goals",
+    "tools": {
+      "default": "Checking your data…",
+      "budget": "Looking at your budget…",
+      "netWorth": "Checking your net worth…",
+      "accounts": "Checking your accounts…",
+      "transactions": "Looking through your transactions…",
+      "spending": "Checking your usual spending…",
+      "goals": "Looking at your goals…",
+      "propose": "Preparing a suggestion…",
+      "note": "Making a note…"
+    },
+    "error": {
+      "busy": "Still answering your last message.",
+      "dailyLimit": "You've reached today's message limit. It resets tomorrow.",
+      "unavailable": "The advisor couldn't answer right now.",
+      "retry": "Retry"
+    },
+    "proposal": {
+      "label": "Suggestion",
+      "summary": {
+        "goalCreate": "Create the goal “{name}”",
+        "goalUpdate": "Update a goal",
+        "budgetLine": "Set a budget line to {amount} a month from {month}",
+        "ruleCreate": "Create the rule “{name}”",
+        "categorise": "Change the category of a transaction",
+        "goalUpdateNamed": "Update the goal “{name}”",
+        "budgetLineNamed": "Set the budget line “{line}” to {amount} a month, from {from} to {to}",
+        "categoriseTo": "Change the category of a transaction to “{category}”"
+      },
+      "detail": {
+        "targetAmount": "Target amount",
+        "targetDate": "Target date",
+        "monthlyContribution": "Monthly contribution",
+        "account": "Account",
+        "category": "Category",
+        "condition": "When",
+        "date": "Date",
+        "amount": "Amount",
+        "description": "Description",
+        "merchantAll": "Also applies to all movements of this merchant"
+      },
+      "condition": {
+        "descriptionContains": "description contains “{text}”",
+        "descriptionPattern": "description matches “{text}”",
+        "counterpartyContains": "counterparty contains “{text}”",
+        "amountMin": "amount of at least {amount}",
+        "amountMax": "amount of at most {amount}",
+        "directionIn": "money in",
+        "directionOut": "money out",
+        "accounts": "in {names}"
+      },
+      "basis": "{months, plural, one {Last month} other {Last # months}}: {min}–{max}, median {median}",
+      "applied": "Applied",
+      "appliedToast": "Applied",
+      "dismissed": "Dismissed",
+      "stale": "Out of date",
+      "staleHelp": "Your data changed since this was suggested. Ask again.",
+      "viewerNote": "Only owners and members can apply this.",
+      "notAcceptable": "This no longer fits your data. Ask the advisor again.",
+      "alreadyResolved": "This suggestion was already handled."
+    },
+    "suggestions": {
+      "label": "Suggested questions",
+      "howThisMonth": "How is this month going?",
+      "whereSave": "Where could I save money?",
+      "emergencyFund": "How big should my emergency fund be?",
+      "setGoal": "Help me set a savings goal",
+      "whatLearned": "What have you learned about my spending so far?",
+      "reviewGoals": "How are my goals doing?"
+    },
+    "learning": {
+      "title": "Still learning your patterns",
+      "body": "{completeMonths} of {required} months of data. I won't suggest amounts until then.",
+      "meter": "Months of data collected"
+    },
+    "empty": {
+      "title": "Ask about your money",
+      "body": "I can look at your spending, budget and goals. I never change anything without your OK."
+    },
+    "off": {
+      "title": "AI is off for this household",
+      "owner": "Turn on AI in the household settings to use the advisor.",
+      "member": "Ask the household owner to turn it on.",
+      "action": "Open AI settings"
+    },
+    "notConfigured": {
+      "title": "The advisor isn't set up yet",
+      "owner": "Choose a model for the advisor in the services settings.",
+      "member": "Ask the household owner to finish the setup.",
+      "action": "Open services settings"
+    },
+    "composer": {
+      "label": "Message to the advisor",
+      "placeholder": "Ask a question",
+      "hint": "The advisor can be wrong. Check before applying."
+    },
+    "send": "Send message",
+    "menuSettings": "Advisor settings",
+    "menuNotes": "Notes",
+    "menuClear": "Clear history",
+    "settings": {
+      "title": "Advisor settings",
+      "proactive": "Proactive messages",
+      "proactiveHelp": "Let the advisor write first when it notices something worth a look.",
+      "weeklyCap": "At most per week",
+      "weeklyCapOption": "{count, plural, one {# message} other {# messages}}",
+      "saved": "Settings saved"
+    },
+    "notes": {
+      "title": "Notes",
+      "empty": "No notes yet. Things you ask me to remember appear here.",
+      "delete": "Delete note: {text}",
+      "deleted": "Note deleted"
+    },
+    "clear": {
+      "title": "Clear the conversation history?",
+      "body": "This deletes your messages with the advisor and its notes. Changes you already applied and your goals stay.",
+      "confirm": "Clear history",
+      "done": "History cleared"
+    },
+    "home": {
+      "empty": "Ask the advisor about your spending, budget or goals.",
+      "open": "Open",
+      "error": "Couldn't load the advisor."
+    },
+    "answerReady": "The advisor replied."
   },
   "budgetYear": {
     "title": "Budget year",

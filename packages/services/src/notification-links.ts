@@ -16,6 +16,7 @@ export const NOTIFICATION_KINDS = [
   'budget_unallocated_negative',
   'push_test',
   'ai_report_ready',
+  'advisor_message',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -66,6 +67,8 @@ export function notificationPath(kind: NotificationKind, t: NotificationLinkTarg
       return t.connectionId ? `/connections#conn-${t.connectionId}` : '/connections';
     case 'ai_report_ready':
       return t.reportMonth ? `/insights/reports/${t.reportMonth}` : '/insights';
+    case 'advisor_message':
+      return '/advisor';
     case 'push_test':
       return '/';
   }

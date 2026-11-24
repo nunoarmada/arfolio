@@ -598,6 +598,7 @@ describe('pushCopy', () => {
       'budget_unallocated_negative',
       'push_test',
       'ai_report_ready',
+      'advisor_message',
     ] as const;
     for (const kind of kinds) {
       for (const locale of ['pt-PT', 'es-ES', 'fr-FR', 'it-IT', 'en']) {
@@ -608,8 +609,10 @@ describe('pushCopy', () => {
     }
     // neutral: no amounts, no figures, no month
     for (const locale of ['pt-PT', 'es-ES', 'fr-FR', 'it-IT', 'en']) {
-      const c = pushCopy('ai_report_ready', locale);
-      expect(`${c.title} ${c.body}`).not.toMatch(/\d/);
+      for (const kind of ['ai_report_ready', 'advisor_message'] as const) {
+        const c = pushCopy(kind, locale);
+        expect(`${c.title} ${c.body}`).not.toMatch(/\d/);
+      }
     }
     expect(pushCopy('push_test', 'pt-PT').title).toBe('Notificações ativas');
     expect(pushCopy('push_test', 'es-ES').title).toBe('Notificaciones activas');
