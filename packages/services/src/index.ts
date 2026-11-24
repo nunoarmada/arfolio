@@ -65,6 +65,8 @@ export {
   unreadNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByKind,
+  hasUnreadNotificationOfKind,
 } from './notifications.js';
 export type { NotificationRow, NotificationPage } from './notifications.js';
 export {

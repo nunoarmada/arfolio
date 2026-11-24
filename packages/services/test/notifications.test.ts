@@ -5,8 +5,10 @@ import {
   addTrading212Connection,
   completeBankConsent,
   linkConnectionAccounts,
+  hasUnreadNotificationOfKind,
   listNotifications,
   markAllNotificationsRead,
+  markNotificationsReadByKind,
   markNotificationRead,
   notifyExpiringConsents,
   NotFoundError,
@@ -268,5 +270,40 @@ describe('notification read state', () => {
     expect(await unreadNotificationCount(viewer)).toBe(1);
     await expect(markNotificationRead(withRole(viewer, 'viewer'), fresh!)).resolves.toBeUndefined();
     expect(await unreadNotificationCount(viewer)).toBe(0);
+  });
+});
+
+describe('notifications by kind', () => {
+  let t: ServicesTestDb;
+  beforeAll(async () => {
+    t = await startServicesDb();
+  });
+  afterAll(() => t.close());
+
+  const seedKind = async (ctx: ServiceCtx, kind: string, userId: string | null) => {
+    const [row] = await t.owner
+      .insert(notification)
+      .values({ householdId: ctx.householdId, userId, kind, payload: {} })
+      .returning({ id: notification.id });
+    return row!.id;
+  };
+
+  it('reports and marks read only the member own unread rows of that kind', async () => {
+    const ctx = await t.household();
+    const mine = { ...ctx, userId: 'user-1' };
+    const theirs = { ...ctx, userId: 'user-2' };
+    expect(await hasUnreadNotificationOfKind(mine, 'advisor_message')).toBe(false);
+
+    await seedKind(ctx, 'advisor_message', 'user-1');
+    await seedKind(ctx, 'advisor_message', 'user-2');
+    await seedKind(ctx, 'sync_failing', null);
+
+    expect(await hasUnreadNotificationOfKind(mine, 'advisor_message')).toBe(true);
+    expect(await markNotificationsReadByKind(mine, 'advisor_message')).toEqual({ marked: 1 });
+    expect(await hasUnreadNotificationOfKind(mine, 'advisor_message')).toBe(false);
+    // Another member's row and other kinds stay unread.
+    expect(await hasUnreadNotificationOfKind(theirs, 'advisor_message')).toBe(true);
+    expect(await unreadNotificationCount(mine)).toBe(1);
+    expect(await markNotificationsReadByKind(mine, 'advisor_message')).toEqual({ marked: 0 });
   });
 });
