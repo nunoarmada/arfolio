@@ -175,7 +175,7 @@ test.describe('PDF statement import with AI', () => {
     const spend = page.getByRole('row', { name: /Grocer Example/ });
     const refund = page.getByRole('row', { name: /Refund/ });
     const invert = page.getByTestId('invert-sign');
-    const proceed = page.getByRole('button', { name: 'Continuar' });
+    const proceed = page.getByRole('button', { name: 'Continuar', exact: true });
     await invert.check();
     // Until the live preview shows the new mapping, Continue cannot move on with the old rows.
     await expect(proceed).toBeDisabled();
@@ -213,7 +213,7 @@ test.describe('PDF statement import with AI', () => {
     await expect(page.getByTestId('stat-new')).toHaveText('2');
     await expect(page.getByRole('row', { name: /Grocer Example/ })).toContainText(/[-−]\s?12,30/);
     await expect(page.getByRole('cell', { name: 'Refund, "Example" Shop' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Continuar', exact: true })).toBeEnabled();
     expect(await requests()).toBe(1);
     await page.getByRole('button', { name: 'Voltar' }).click();
     await page.getByRole('button', { name: 'Voltar' }).click();
@@ -232,7 +232,7 @@ test.describe('PDF statement import with AI', () => {
     await expect(page.getByTestId('stat-new')).toHaveText('2');
     expect(await requests()).toBe(2);
 
-    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
     // A PDF has no file format of its own: the confirmation says how it was read.
     await expect(page.getByText('PDF lido por IA')).toBeVisible();
     await page.getByRole('button', { name: 'Importar 2 movimentos' }).click();
@@ -253,6 +253,35 @@ test.describe('PDF statement import with AI', () => {
       { description: 'Refund, "Example" Shop', amount: '500' },
     ]);
     expect(await amounts(ids[ACCOUNT_A]!)).toEqual([]);
+  });
+
+  test('continuing with what was read after leaving Columns mid-edit refreshes the preview without a new request', async () => {
+    await page.goto(`/import?account=${ids[ACCOUNT_A]}`);
+    await page.locator('#import-file').setInputFiles(PDF);
+    await page.getByRole('button', { name: SEND }).click();
+    await expect(page.getByTestId('stat-new')).toHaveText('2');
+    const before = await requests();
+
+    // Change the mapping and leave before the live preview catches up (it waits a moment).
+    await page.getByRole('button', { name: 'Voltar' }).click();
+    await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
+    await page.getByTestId('invert-sign').check();
+    await page.getByRole('button', { name: 'Voltar' }).click();
+    await expect(page.getByTestId('chosen-file')).toHaveText('statement.pdf');
+
+    // The extraction is kept, but its preview is for the old mapping: continuing lands on Columns.
+    await page.getByTestId('pdf-continue').click();
+    await expect(page.getByRole('heading', { name: 'Colunas do ficheiro' })).toBeVisible();
+    await expect(page.getByTestId('invert-sign')).toBeChecked();
+    const proceed = page.getByRole('button', { name: 'Continuar', exact: true });
+    // Continue is enabled again once the live preview shows the edited mapping.
+    await expect(proceed).toBeEnabled();
+    await expect(page.getByRole('row', { name: /Grocer Example/ })).toContainText(
+      /(?<![-−]\s?)12,30/,
+    );
+    await proceed.click();
+    await expect(page.getByTestId('stat-new')).toHaveText('2');
+    expect(await requests()).toBe(before);
   });
 
   test('while the PDF is being read, the account and the file cannot be changed', async () => {
