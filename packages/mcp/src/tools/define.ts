@@ -23,6 +23,15 @@ export type ToolDef<I extends z.ZodObject, O extends z.ZodObject> = {
   handler: (args: z.output<I>, env: ToolEnv) => Promise<z.input<O>>;
 };
 
+/** Identity helper: lets a tool be declared as a standalone constant with its types inferred. */
+export const toolDef = <I extends z.ZodObject, O extends z.ZodObject>(
+  def: ToolDef<I, O>,
+): ToolDef<I, O> => def;
+
+/** A tool of any schema, for lists of tools (the registry, the advisor). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolDef = ToolDef<any, any>;
+
 /** Registers one tool: scope and role checks first, then the handler, errors as tool errors. */
 export function defineTool<I extends z.ZodObject, O extends z.ZodObject>(
   server: McpServer,
