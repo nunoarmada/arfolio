@@ -376,6 +376,8 @@ export {
   deleteInstanceSetting,
 } from './instance-settings.js';
 export type { InstanceSettingKey, SettingsExecutor, StoredSetting } from './instance-settings.js';
+export { SETTINGS_CHANNEL, listenForSettingsChanges } from './settings-notify.js';
+export type { SettingsListener } from './settings-notify.js';
 export {
   DEFAULT_VALUATION_PORTALS,
   parseInstanceSetting,

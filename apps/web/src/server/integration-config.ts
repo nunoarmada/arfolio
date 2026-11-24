@@ -1,6 +1,7 @@
 import { loadEncryptionKey } from '@arfolio/core/server';
 import {
   createIntegrationConfigCache,
+  listenForSettingsChanges,
   resolveIntegrationConfig,
   type IntegrationConfig,
 } from '@arfolio/services';
@@ -19,7 +20,25 @@ const cache = createIntegrationConfigCache(
   INTEGRATION_CONFIG_TTL_MS,
 );
 
-export const getIntegrationConfig = (): Promise<IntegrationConfig> => cache.get();
+let listening = false;
+
+/**
+ * Other processes (the worker, other web replicas) save settings too: the database announces every
+ * change and this process drops its cache, so a removed key stops being used at once. Started on the
+ * first read, next to the cache it feeds, so it exists once per process; the TTL stays as a backstop.
+ */
+function listenForChanges(): void {
+  if (listening) return;
+  listening = true;
+  listenForSettingsChanges(getDb().$client, invalidateIntegrationConfig, {
+    onError: (message) => console.error(message),
+  });
+}
+
+export const getIntegrationConfig = (): Promise<IntegrationConfig> => {
+  listenForChanges();
+  return cache.get();
+};
 
 /** Forgets the cached config; call after a save so the next read sees the new values. */
 export const invalidateIntegrationConfig = (): void => cache.invalidate();
