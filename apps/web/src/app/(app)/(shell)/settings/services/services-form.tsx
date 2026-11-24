@@ -38,6 +38,7 @@ const MESSAGE_ID = {
   'anthropic.apiKey': 'apiKey',
   'ai.categorisationModel': 'categorisationModel',
   'ai.reportModel': 'reportModel',
+  'ai.advisorModel': 'advisorModel',
   'ai.valuationModel': 'valuationModel',
   'ai.importModel': 'importModel',
   'ai.valuationPortals': 'valuationPortals',
@@ -632,6 +633,7 @@ export function ServicesForm({ view }: { view: ServicesView }) {
   const aiAdvanced = [
     'ai.categorisationModel',
     'ai.reportModel',
+    'ai.advisorModel',
     'ai.valuationModel',
     'ai.importModel',
     'ai.valuationPortals',
@@ -682,6 +684,13 @@ export function ServicesForm({ view }: { view: ServicesView }) {
             field={f['ai.reportModel']}
             label={t('ai.reportModel')}
             hint={t('ai.reportModelHint')}
+            resetLabel={t('actions.useDefault')}
+          />
+          <PlainRow
+            key={rowKey(f['ai.advisorModel'])}
+            field={f['ai.advisorModel']}
+            label={t('ai.advisorModel')}
+            hint={t('ai.advisorModelHint')}
             resetLabel={t('actions.useDefault')}
           />
           <PlainRow

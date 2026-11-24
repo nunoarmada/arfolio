@@ -149,6 +149,25 @@ export const integrationEnvShape = {
   /** The model that estimates asset values (web research, so a bigger one). */
   AI_VALUATION_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
   AI_IMPORT_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
+  /** The model behind the AI advisor chat and its proposals. */
+  AI_ADVISOR_MODEL: z.preprocess(emptyAsUnset, z.string().min(1).default('claude-opus-5-5')),
+  /** Months of history the advisor needs before it proposes anything. */
+  ADVISOR_LEARNING_MONTHS: z.preprocess(
+    emptyAsUnset,
+    z.coerce.number().int().min(1).max(24).default(3),
+  ),
+  /** Proactive advisor proposals per household and week; 0 turns them off. */
+  ADVISOR_WEEKLY_CAP: z.preprocess(emptyAsUnset, z.coerce.number().int().min(0).max(14).default(2)),
+  /** Chat messages one member may send to the advisor per day. */
+  ADVISOR_DAILY_MESSAGES: z.preprocess(
+    emptyAsUnset,
+    z.coerce.number().int().min(1).max(1000).default(50),
+  ),
+  /** Tool calls the advisor may make while answering one message. */
+  ADVISOR_MAX_TOOL_CALLS: z.preprocess(
+    emptyAsUnset,
+    z.coerce.number().int().min(1).max(20).default(8),
+  ),
   /**
    * Merchant logos: `on` (default) lets the worker fetch each merchant's favicon from Google's
    * favicon service (it sends the merchant's domain there); `off` disables fetching entirely.
@@ -172,4 +191,26 @@ export function refineIntegrationEnv(
       message: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set together',
     });
   }
+}
+
+export type AdvisorLimits = {
+  learningMonths: number;
+  weeklyCap: number;
+  dailyMessages: number;
+  maxToolCalls: number;
+};
+
+/** The advisor's numeric limits, from an env parsed with `integrationEnvShape`. */
+export function advisorLimits(env: {
+  ADVISOR_LEARNING_MONTHS: number;
+  ADVISOR_WEEKLY_CAP: number;
+  ADVISOR_DAILY_MESSAGES: number;
+  ADVISOR_MAX_TOOL_CALLS: number;
+}): AdvisorLimits {
+  return {
+    learningMonths: env.ADVISOR_LEARNING_MONTHS,
+    weeklyCap: env.ADVISOR_WEEKLY_CAP,
+    dailyMessages: env.ADVISOR_DAILY_MESSAGES,
+    maxToolCalls: env.ADVISOR_MAX_TOOL_CALLS,
+  };
 }

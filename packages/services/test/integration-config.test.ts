@@ -39,6 +39,22 @@ describe('integration config resolver', () => {
     expect(isAiAvailable(cfg)).toBe(true);
   });
 
+  it('resolves the advisor model env > db > default', async () => {
+    expect((await resolve()).models.advisor).toMatchObject({
+      value: 'claude-opus-5-5',
+      source: 'default',
+    });
+    await put('ai.advisorModel', 'claude-test-db');
+    expect((await resolve()).models.advisor).toMatchObject({
+      value: 'claude-test-db',
+      source: 'db',
+    });
+    expect((await resolve({ AI_ADVISOR_MODEL: 'claude-test-env' })).models.advisor).toMatchObject({
+      value: 'claude-test-env',
+      source: 'env',
+    });
+  });
+
   it('an empty env variable does not count as env', async () => {
     await put('anthropic.apiKey', 'db-key');
     const cfg = await resolve({ ANTHROPIC_API_KEY: '' });

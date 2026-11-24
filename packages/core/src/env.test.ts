@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
+  advisorLimits,
   EnvError,
   integrationEnvShape,
   isHttpsOrLoopbackUrl,
@@ -26,6 +27,43 @@ describe('parseEnv', () => {
     expect(message).toContain('A');
     expect(message).toContain('B');
     expect(message).not.toContain('nope');
+  });
+});
+
+describe('advisor limits', () => {
+  const parse = (extra: Record<string, string> = {}) =>
+    parseEnv(z.object(integrationEnvShape), { ENCRYPTION_KEY: 'a'.repeat(64), ...extra });
+
+  it('defaults advisor limits', () => {
+    expect(advisorLimits(parse({}))).toEqual({
+      learningMonths: 3,
+      weeklyCap: 2,
+      dailyMessages: 50,
+      maxToolCalls: 8,
+    });
+  });
+
+  it('treats empty as unset and accepts overrides', () => {
+    expect(advisorLimits(parse({ ADVISOR_WEEKLY_CAP: '' })).weeklyCap).toBe(2);
+    expect(advisorLimits(parse({ ADVISOR_WEEKLY_CAP: '0' })).weeklyCap).toBe(0);
+    expect(advisorLimits(parse({ ADVISOR_LEARNING_MONTHS: '12' })).learningMonths).toBe(12);
+  });
+
+  it('rejects ADVISOR_WEEKLY_CAP=-1', () => {
+    expect(() => parse({ ADVISOR_WEEKLY_CAP: '-1' })).toThrow(EnvError);
+  });
+
+  it.each([
+    ['ADVISOR_LEARNING_MONTHS', '0'],
+    ['ADVISOR_LEARNING_MONTHS', '25'],
+    ['ADVISOR_WEEKLY_CAP', '15'],
+    ['ADVISOR_DAILY_MESSAGES', '0'],
+    ['ADVISOR_DAILY_MESSAGES', '1001'],
+    ['ADVISOR_MAX_TOOL_CALLS', '0'],
+    ['ADVISOR_MAX_TOOL_CALLS', '21'],
+    ['ADVISOR_MAX_TOOL_CALLS', '2.5'],
+  ])('rejects %s=%s', (name, value) => {
+    expect(() => parse({ [name]: value })).toThrow(EnvError);
   });
 });
 

@@ -58,7 +58,7 @@ The passwords are placed inside connection URLs without encoding, so they must b
 
 Optional settings live in a separate Secret (`optionalSecret.name`, default `<fullname>-optional`), read with
 `optional: true`: `SMTP_URL`, `MAIL_FROM`, `ANTHROPIC_API_KEY`, `ENABLE_BANKING_APP_ID`,
-`ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`,
+`ENABLE_BANKING_PRIVATE_KEY`, `ENABLE_BANKING_API_URL`, `AI_CATEGORISATION_MODEL`, `AI_REPORT_MODEL`, `AI_ADVISOR_MODEL`, `AI_VALUATION_MODEL`, `AI_IMPORT_MODEL`, `ADVISOR_LEARNING_MONTHS`, `ADVISOR_WEEKLY_CAP`, `ADVISOR_DAILY_MESSAGES`, `ADVISOR_MAX_TOOL_CALLS`,
 `MERCHANT_LOGOS` (`on` by default, `off` stops the worker fetching merchant favicons from Google's favicon service), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_ALLOWED_HOSTS`, `MCP_ALLOWED_REDIRECT_URIS` (web and worker), and
 `BACKUP_PING_URL` (backup). Use `extraEnv` / `extraEnvFrom` for anything else.
 

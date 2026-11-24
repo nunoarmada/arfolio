@@ -24,6 +24,7 @@ export type IntegrationConfig = {
     report: Resolved<string>;
     valuation: Resolved<string>;
     import: Resolved<string>;
+    advisor: Resolved<string>;
   };
   valuationPortals: Resolved<ValuationPortals>;
   enableBanking: {
@@ -237,6 +238,12 @@ const SPECS = {
     parse: modelName(integrationEnvShape.AI_REPORT_MODEL),
     defaultValue: schemaDefault(integrationEnvShape.AI_REPORT_MODEL),
   },
+  advisor: {
+    envVar: 'AI_ADVISOR_MODEL',
+    dbKey: 'ai.advisorModel',
+    parse: modelName(integrationEnvShape.AI_ADVISOR_MODEL),
+    defaultValue: schemaDefault(integrationEnvShape.AI_ADVISOR_MODEL),
+  },
   valuation: {
     envVar: 'AI_VALUATION_MODEL',
     dbKey: 'ai.valuationModel',
@@ -311,6 +318,7 @@ export async function resolveIntegrationConfig(
       report: one(SPECS.report),
       valuation: one(SPECS.valuation),
       import: one(SPECS.import),
+      advisor: one(SPECS.advisor),
     },
     valuationPortals: one(SPECS.valuationPortals),
     enableBanking: {

@@ -18,6 +18,7 @@ export function makeConfig(
     unreadableKey?: boolean;
     categorisationModel?: string;
     reportModel?: string;
+    advisorModel?: string;
     valuationModel?: string;
     importModel?: string;
     portals?: IntegrationConfig['valuationPortals']['value'];
@@ -33,6 +34,7 @@ export function makeConfig(
       report: resolved(over.reportModel ?? 'report-model', 'default'),
       valuation: resolved(over.valuationModel ?? 'valuation-model', 'default'),
       import: resolved(over.importModel ?? 'import-model', 'default'),
+      advisor: resolved(over.advisorModel ?? 'advisor-model', 'default'),
     },
     valuationPortals: resolved(over.portals ?? DEFAULT_VALUATION_PORTALS, 'default'),
     enableBanking: {

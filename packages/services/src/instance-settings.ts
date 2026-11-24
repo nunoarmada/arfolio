@@ -8,6 +8,7 @@ export type InstanceSettingKey =
   | 'anthropic.apiKey'
   | 'ai.categorisationModel'
   | 'ai.reportModel'
+  | 'ai.advisorModel'
   | 'ai.valuationModel'
   | 'ai.importModel'
   | 'ai.valuationPortals'
