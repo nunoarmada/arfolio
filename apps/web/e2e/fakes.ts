@@ -399,7 +399,7 @@ export async function startFakeAnthropic(): Promise<
       const body = await readJson(req);
       const tools = Array.isArray(body.tools) ? (body.tools as { name?: string }[]) : [];
       if (body.stream === true && tools.some((t) => t.name === 'propose_action')) {
-        if (req.headers['x-api-key'] !== FAKE_ANTHROPIC_KEY) {
+        if (req.headers.authorization !== `Bearer ${FAKE_ANTHROPIC_KEY}`) {
           return send(res, 401, {
             type: 'error',
             error: { type: 'authentication_error', message: 'invalid x-api-key' },
