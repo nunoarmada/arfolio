@@ -1,5 +1,6 @@
 export * from './env';
 export * from './money';
+export * from './money-input';
 export * from './brand';
 export * from './amount';
 export * from './date';
