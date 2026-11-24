@@ -1229,6 +1229,7 @@
         "setUp": "Configurer l’IA",
         "askOwner": "Demandez à un propriétaire du foyer de l’activer.",
         "send": "Envoyer et lire le fichier",
+        "continueRead": "Continuer avec ce qui a été lu",
         "reading": "Lecture du relevé. Cela peut prendre une minute."
       }
     },

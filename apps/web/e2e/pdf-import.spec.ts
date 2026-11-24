@@ -161,7 +161,7 @@ test.describe('PDF statement import with AI', () => {
 
     // The contract with the provider: the installation key, the PDF as a document, no tools.
     const last = (await fakeState()).last;
-    expect(last?.apiKey).toBe(FAKE_ANTHROPIC_KEY);
+    expect(last?.authorization).toBe(`Bearer ${FAKE_ANTHROPIC_KEY}`);
     expect(last?.documentMediaTypes).toEqual(['application/pdf']);
     expect(last?.hasTools).toBe(false);
   });
@@ -207,7 +207,21 @@ test.describe('PDF statement import with AI', () => {
     await expect(page.getByTestId('pdf-notice')).toContainText('Anthropic');
     await expect(page.getByRole('button', { name: SEND })).toBeEnabled();
 
+    // What was read can be used again without sending the PDF a second time.
+    await page.getByTestId('pdf-continue').click();
+    await expect(page.getByTestId('pdf-source-line')).toContainText('statement.pdf');
+    await expect(page.getByTestId('stat-new')).toHaveText('2');
+    await expect(page.getByRole('row', { name: /Grocer Example/ })).toContainText(/[-−]\s?12,30/);
+    await expect(page.getByRole('cell', { name: 'Refund, "Example" Shop' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    expect(await requests()).toBe(1);
+    await page.getByRole('button', { name: 'Voltar' }).click();
+    await page.getByRole('button', { name: 'Voltar' }).click();
+    await expect(page.getByTestId('pdf-continue')).toHaveText('Continuar com o que foi lido');
+
+    // Another account is another confirmation: nothing read so far is offered for it.
     await page.getByLabel('Conta', { exact: true }).selectOption(ids[ACCOUNT_B]!);
+    await expect(page.getByTestId('pdf-continue')).toHaveCount(0);
     await expect(page.getByTestId('pdf-notice')).toContainText('Anthropic');
     await expect(page.getByRole('button', { name: SEND })).toBeEnabled();
     expect(await requests()).toBe(1);

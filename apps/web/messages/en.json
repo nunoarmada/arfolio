@@ -1229,6 +1229,7 @@
         "setUp": "Set up AI",
         "askOwner": "Ask an owner of the household to switch it on.",
         "send": "Send and read file",
+        "continueRead": "Continue with what was read",
         "reading": "Reading the statement. This can take a minute."
       }
     },

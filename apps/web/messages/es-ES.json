@@ -1229,6 +1229,7 @@
         "setUp": "Configurar la IA",
         "askOwner": "Pida a un propietario del hogar que la active.",
         "send": "Enviar y leer archivo",
+        "continueRead": "Continuar con lo que se leyó",
         "reading": "Leyendo el extracto. Puede tardar un minuto."
       }
     },

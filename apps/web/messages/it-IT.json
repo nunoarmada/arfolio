@@ -1229,6 +1229,7 @@
         "setUp": "Configura l’IA",
         "askOwner": "Chiedere a un proprietario del nucleo familiare di attivarla.",
         "send": "Invia e leggi file",
+        "continueRead": "Continua con quanto letto",
         "reading": "Lettura dell’estratto conto. Può richiedere un minuto."
       }
     },

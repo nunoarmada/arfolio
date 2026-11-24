@@ -1229,6 +1229,7 @@
         "setUp": "Configurar a IA",
         "askOwner": "Peça a um proprietário do agregado que a ative.",
         "send": "Enviar e ler ficheiro",
+        "continueRead": "Continuar com o que foi lido",
         "reading": "A ler o extrato. Pode demorar um minuto."
       }
     },
