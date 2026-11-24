@@ -254,6 +254,48 @@ describe('advisor engine', () => {
     expect(calls[0]!.messages.at(-1)).toEqual({ role: 'user', content: 'Claimed' });
   });
 
+  it('finishes the pending answer the caller already claimed instead of adding one', async () => {
+    const ctx = await member();
+    const user = await appendMessage(ctx, { role: 'user', origin: 'chat', text: 'Q' });
+    const held = await appendMessage(ctx, {
+      role: 'assistant',
+      origin: 'chat',
+      text: '',
+      status: 'pending',
+    });
+    const { result } = await run(ctx, [reply([text('A')])], {
+      kind: 'chat',
+      text: 'Q',
+      userMessageId: user!.id,
+      assistantMessageId: held!.id,
+    });
+    expect(result).toEqual({ messageId: held!.id });
+    expect((await listMessages(ctx, {})).map((m) => [m.role, m.status, m.text])).toEqual([
+      ['assistant', 'complete', 'A'],
+      ['user', 'complete', 'Q'],
+    ]);
+  });
+
+  it('marks a claimed answer failed when the model fails', async () => {
+    const ctx = await member();
+    const held = await appendMessage(ctx, {
+      role: 'assistant',
+      origin: 'chat',
+      text: '',
+      status: 'pending',
+    });
+    const { client } = fakeClient([new Error('boom')]);
+    await expect(
+      runAdvisorTurn(
+        deps(ctx, client),
+        { kind: 'chat', text: 'Q', assistantMessageId: held!.id },
+        () => {},
+      ),
+    ).rejects.toBeInstanceOf(AdvisorUnavailableError);
+    const stored = await listMessages(ctx, {});
+    expect(stored.find((m) => m.id === held!.id)).toMatchObject({ status: 'failed' });
+  });
+
   it('puts the system prompt and the tools into the request', async () => {
     const ctx = await member();
     const { calls } = await run(ctx, [reply([text('ok')])]);

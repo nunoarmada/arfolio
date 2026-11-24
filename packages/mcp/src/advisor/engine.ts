@@ -27,8 +27,8 @@ export type { AdvisorModelClient } from './client.js';
 export type AdvisorProposalView = AdvisorProposal;
 
 export type TurnInput =
-  /** `userMessageId`: the member's message was already stored (see `claimChatTurn`). */
-  | { kind: 'chat'; text: string; userMessageId?: string }
+  /** The ids come from `claimChatTurn`: the member's message and the pending answer already exist. */
+  | { kind: 'chat'; text: string; userMessageId?: string; assistantMessageId?: string }
   | {
       kind: 'proactive';
       eventKey: string;
@@ -142,13 +142,19 @@ export async function runAdvisorTurn(
   if (input.kind === 'chat' && input.userMessageId === undefined) {
     await appendMessage(ctx, { role: 'user', origin: 'chat', text: input.text });
   }
-  const pending = await appendMessage(ctx, {
-    role: 'assistant',
-    origin: proactive ? 'proactive' : 'chat',
-    text: '',
-    status: 'pending',
-    ...(proactive ? { eventKey: input.eventKey, countsTowardCap: input.countsTowardCap } : {}),
-  });
+  const claimedAnswer = input.kind === 'chat' ? input.assistantMessageId : undefined;
+  const pending =
+    claimedAnswer !== undefined
+      ? { id: claimedAnswer }
+      : await appendMessage(ctx, {
+          role: 'assistant',
+          origin: proactive ? 'proactive' : 'chat',
+          text: '',
+          status: 'pending',
+          ...(proactive
+            ? { eventKey: input.eventKey, countsTowardCap: input.countsTowardCap }
+            : {}),
+        });
   if (!pending) return { skipped: 'duplicate' };
 
   try {

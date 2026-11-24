@@ -316,10 +316,27 @@ describe('advisor store', () => {
     it('stores the member message and returns its id', async () => {
       const { a } = await pair();
       const r = await claimChatTurn(a, { text: 'hello', dailyLimit: 5, now: now() });
-      expect(r).toEqual({ userMessageId: expect.any(String) });
-      const [m] = await listMessages(a, {});
+      expect(r).toEqual({
+        userMessageId: expect.any(String),
+        assistantMessageId: expect.any(String),
+      });
+      const m = (await listMessages(a, {})).find((x) => x.role === 'user');
       expect(m).toMatchObject({ role: 'user', origin: 'chat', text: 'hello' });
-      expect('userMessageId' in r && m!.id).toBe('userMessageId' in r && r.userMessageId);
+      expect('userMessageId' in r && m?.id).toBe('userMessageId' in r && r.userMessageId);
+    });
+
+    it('holds the turn with a pending answer, so a second claim is busy at once', async () => {
+      const { a } = await pair();
+      const first = await claimChatTurn(a, { text: 'one', dailyLimit: 9, now: now() });
+      expect(first).toHaveProperty('assistantMessageId');
+      const stored = await listMessages(a, {});
+      expect(stored.map((m) => [m.role, m.status])).toEqual([
+        ['assistant', 'pending'],
+        ['user', 'complete'],
+      ]);
+      expect(await claimChatTurn(a, { text: 'two', dailyLimit: 9, now: now() })).toEqual({
+        refused: 'busy',
+      });
     });
 
     it('refuses at the daily limit and stores nothing', async () => {

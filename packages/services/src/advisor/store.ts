@@ -373,13 +373,15 @@ export async function messagesToday(ctx: ServiceCtx, now: Date): Promise<number>
 
 /**
  * Starts a chat turn atomically per member: under an advisory lock it checks the daily cap and
- * that no recent answer is still pending (one turn at a time), then stores the member's message.
+ * that no recent answer is still pending (one turn at a time), then stores the member's message and a pending answer that holds the turn.
  * Checking and storing in separate steps would let concurrent requests slip past the cap.
  */
 export async function claimChatTurn(
   ctx: ServiceCtx,
   opts: { text: string; dailyLimit: number; now: Date },
-): Promise<{ userMessageId: string } | { refused: 'daily_limit' | 'busy' }> {
+): Promise<
+  { userMessageId: string; assistantMessageId: string } | { refused: 'daily_limit' | 'busy' }
+> {
   return withHousehold(ctx.db, ctx.householdId, async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`advisor_chat:${ctx.householdId}:${ctx.userId}`}))`,
@@ -410,6 +412,20 @@ export async function claimChatTurn(
         text: opts.text,
       })
       .returning({ id: advisorMessage.id });
-    return { userMessageId: row!.id };
+    // The pending answer is what makes a second claim `busy`: it must exist before the lock ends.
+    const [answer] = await tx
+      .insert(advisorMessage)
+      .values({
+        householdId: ctx.householdId,
+        userId: ctx.userId,
+        role: 'assistant',
+        origin: 'chat',
+        text: '',
+        status: 'pending',
+        // now() is the transaction start, equal to the member message's: the answer must sort after it.
+        createdAt: sql`clock_timestamp()`,
+      })
+      .returning({ id: advisorMessage.id });
+    return { userMessageId: row!.id, assistantMessageId: answer!.id };
   });
 }

@@ -82,7 +82,12 @@ export async function POST(request: NextRequest): Promise<Response> {
             locale: format.locale,
             currency: format.currency,
           },
-          { kind: 'chat', text: parsed.data.text, userMessageId: claim.userMessageId },
+          {
+            kind: 'chat',
+            text: parsed.data.text,
+            userMessageId: claim.userMessageId,
+            assistantMessageId: claim.assistantMessageId,
+          },
           (event) => send(toFrame(event)),
           request.signal,
         );
