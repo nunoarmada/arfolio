@@ -65,6 +65,67 @@ describe('readWorkbookStream', () => {
   it('rejects a compound file without a workbook stream', () => {
     expectInvalid(() => readWorkbookStream(buildCfb(patterned(5000), { name: 'Other' })));
   });
+
+  describe('directory tree', () => {
+    const payload = patterned(5000);
+    const entryAt = (id: number) => id * 128;
+    const LEFT = 68;
+    const RIGHT = 72;
+    const CHILD = 76;
+
+    it('ignores a Workbook stream inside a sub-storage listed before the real one', () => {
+      const file = buildCfb(payload, { decoyStorage: true });
+      expect(readWorkbookStream(file).equals(payload)).toBe(true);
+    });
+
+    it('does not descend into a storage, even when it holds the only Workbook stream', () => {
+      const file = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => dir.writeUInt32LE(0xffffffff, entryAt(1) + RIGHT),
+      });
+      expectInvalid(() => readWorkbookStream(file));
+    });
+
+    it('finds the stream through a left sibling', () => {
+      const file = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => {
+          dir.writeUInt32LE(3, entryAt(0) + CHILD);
+          dir.writeUInt32LE(0xffffffff, entryAt(1) + RIGHT);
+          dir.writeUInt32LE(1, entryAt(3) + LEFT);
+        },
+      });
+      expect(readWorkbookStream(file).equals(payload)).toBe(true);
+    });
+
+    it('rejects a stream that the root cannot reach', () => {
+      const file = buildCfb(payload, {
+        dirPatch: (dir) => dir.writeUInt32LE(0xffffffff, entryAt(0) + CHILD),
+      });
+      expectInvalid(() => readWorkbookStream(file));
+    });
+
+    it('rejects a tree that loops back on itself', () => {
+      const file = buildCfb(payload, {
+        name: 'Other',
+        dirPatch: (dir) => dir.writeUInt32LE(1, entryAt(1) + RIGHT),
+      });
+      expectInvalid(() => readWorkbookStream(file));
+      const loopBeforeStream = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => dir.writeUInt32LE(1, entryAt(1) + LEFT),
+      });
+      expectInvalid(() => readWorkbookStream(loopBeforeStream));
+    });
+
+    it('rejects a sibling id outside the directory', () => {
+      const file = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => dir.writeUInt32LE(99, entryAt(1) + LEFT),
+      });
+      expectInvalid(() => readWorkbookStream(file));
+    });
+  });
 });
 
 const one = (rows: XlsCell[][], opts?: Parameters<typeof buildXls>[1]) =>
@@ -202,6 +263,10 @@ describe('parseXls', () => {
       expect(one([['x'.repeat(MAX_XLSX_CELL_CHARS)]])[0]![0]).toHaveLength(MAX_XLSX_CELL_CHARS);
     });
 
+    it('rejects an inline label holding too much text', () => {
+      expectInvalid(() => one([['a', { label: 'x'.repeat(MAX_XLSX_CELL_CHARS + 1) }]]), 'too much');
+    });
+
     it('rejects a record that runs past the end of the stream', () => {
       const stream = buildWorkbookStream([{ rows: [['a', 1, 2, 3]] }]);
       expectInvalid(() => parseXls(buildCfb(stream.subarray(0, stream.length - 10))));
@@ -211,11 +276,63 @@ describe('parseXls', () => {
       expectInvalid(() => one([['a', { sst: 5 }]]));
     });
 
-    it('rejects a shared string table that claims more strings than it holds', () => {
+    it('rejects a shared string table that claims an impossible number of strings', () => {
       const stream = buildWorkbookStream([{ rows: [['a']] }]);
       const sst = stream.indexOf(Buffer.from([0xfc, 0x00]));
       stream.writeUInt32LE(1_000_000, sst + 8);
       expectInvalid(() => parseXls(buildCfb(stream)));
+    });
+
+    it('rejects a shared string cut inside its characters', () => {
+      const stream = buildWorkbookStream([{ rows: [['abcdefgh']] }]);
+      const sst = stream.indexOf(Buffer.from([0xfc, 0x00]));
+      stream.writeUInt16LE(20, sst + 4 + 8); // claims 20 characters, holds 8
+      expectInvalid(() => parseXls(buildCfb(stream)));
+    });
+  });
+});
+
+describe('parseXls: shared strings', () => {
+  const tooLong = 'x'.repeat(MAX_XLSX_CELL_CHARS + 1);
+
+  it('accepts an over-limit text that only another sheet uses', () => {
+    const file = buildXls([{ rows: [['ok', 'fine']] }, { rows: [[tooLong]] }]);
+    expect(parseXls(file)).toEqual([['ok', 'fine']]);
+  });
+
+  it('accepts an over-limit text that only a hidden sheet uses', () => {
+    const file = buildXls([{ hidden: true, rows: [[tooLong]] }, { rows: [['visible']] }]);
+    expect(parseXls(file)).toEqual([['visible']]);
+  });
+
+  it('keeps reading the strings after an over-limit one', () => {
+    const file = buildXls([{ rows: [['before', 'after']] }, { rows: [['before', tooLong, 'z']] }]);
+    expect(parseXls(file)).toEqual([['before', 'after']]);
+    const second = buildXls([{ rows: [['a', tooLong, 'z']] }, { rows: [['z']] }]);
+    expectInvalid(() => parseXls(second), 'too much text');
+  });
+
+  describe('a table shorter than its declared count', () => {
+    /** The declared unique count of the SST, raised to `declared`. */
+    function declare(stream: Buffer, declared: number): Buffer {
+      stream.writeUInt32LE(declared, stream.indexOf(Buffer.from([0xfc, 0x00])) + 8);
+      return buildCfb(stream);
+    }
+
+    it('keeps the strings read when the table ends at a string boundary', () => {
+      const stream = buildWorkbookStream([{ rows: [['a', 'b']] }]);
+      expect(parseXls(declare(stream, 5))).toEqual([['a', 'b']]);
+    });
+
+    it('stops at the end of the CONTINUE data too', () => {
+      const rows = [['Café Açúcar € Exemplo', '€uro Example Shop Central']];
+      const stream = buildWorkbookStream([{ rows }], { sstChunk: 7 });
+      expect(parseXls(declare(stream, 9))).toEqual(rows);
+    });
+
+    it('still rejects a shared string index past the strings read', () => {
+      const stream = buildWorkbookStream([{ rows: [['a', { sst: 1 }]] }]);
+      expectInvalid(() => parseXls(declare(stream, 3)));
     });
   });
 });

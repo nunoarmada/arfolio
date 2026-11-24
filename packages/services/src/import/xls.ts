@@ -12,6 +12,11 @@ const DIR_ENTRY_BYTES = 128;
 const MINI_SECTOR_BYTES = 64;
 const DIR_TYPE_STREAM = 2;
 const DIR_TYPE_ROOT = 5;
+/** Offsets in a directory entry of its left sibling, right sibling and child ids. */
+const DIR_LEFT = 68;
+const DIR_RIGHT = 72;
+const DIR_CHILD = 76;
+const DIR_NO_ENTRY = 0xffffffff;
 
 const notXls = () => new ValidationError('The file is not a valid XLS workbook');
 const protectedWorkbook = () => new ValidationError('The workbook is password-protected');
@@ -82,23 +87,34 @@ export function readWorkbookStream(buf: Buffer): Buffer {
     };
 
     const directory = chain(buf.readUInt32LE(48));
-    let root: Buffer | undefined;
+    const entryCount = Math.floor(directory.length / DIR_ENTRY_BYTES);
+    const entryAt = (id: number): Buffer => {
+      if (id >= entryCount) throw notXls();
+      return directory.subarray(id * DIR_ENTRY_BYTES, (id + 1) * DIR_ENTRY_BYTES);
+    };
+    if (entryCount === 0 || entryAt(0)[66] !== DIR_TYPE_ROOT) throw notXls();
+    const root = entryAt(0);
+    // The entries form a red-black tree per storage. Walk the root's own tree only: storages are
+    // not entered, so a stream of the same name inside one is never mistaken for the workbook.
     const streams = new Map<string, Buffer>();
-    for (let at = 0; at + DIR_ENTRY_BYTES <= directory.length; at += DIR_ENTRY_BYTES) {
-      const entry = directory.subarray(at, at + DIR_ENTRY_BYTES);
-      const nameBytes = entry.readUInt16LE(64);
-      if (nameBytes < 2 || nameBytes > 64) continue;
-      const type = entry[66];
-      if (type === DIR_TYPE_ROOT) root ??= entry;
-      if (type === DIR_TYPE_STREAM) {
-        const name = entry.toString('utf16le', 0, nameBytes - 2).toLowerCase();
-        if (!streams.has(name)) streams.set(name, entry);
-      }
+    const seen = new Set<number>();
+    const pending = [root.readUInt32LE(DIR_CHILD)];
+    while (pending.length > 0) {
+      const id = pending.pop()!;
+      if (id === DIR_NO_ENTRY) continue;
+      if (seen.has(id) || seen.size >= entryCount) throw notXls();
+      seen.add(id);
+      const node = entryAt(id);
+      pending.push(node.readUInt32LE(DIR_RIGHT), node.readUInt32LE(DIR_LEFT));
+      const nameBytes = node.readUInt16LE(64);
+      if (node[66] !== DIR_TYPE_STREAM || nameBytes < 2 || nameBytes > 64) continue;
+      const name = node.toString('utf16le', 0, nameBytes - 2).toLowerCase();
+      if (!streams.has(name)) streams.set(name, node);
     }
     const entry = streams.get('workbook') ?? streams.get('book');
     // A password-protected OOXML workbook is a compound file too, holding the encrypted archive.
     if (!entry && streams.has('encryptedpackage')) throw protectedWorkbook();
-    if (!entry || !root) throw notXls();
+    if (!entry) throw notXls();
     const start = entry.readUInt32LE(116);
     const length = entry.readUInt32LE(120);
     // The high half of the size only counts with 4096-byte sectors; writers of 512-byte-sector
@@ -154,6 +170,9 @@ const MAX_DATE_SERIAL = 2_958_465;
 const tooOld = () => new ValidationError('Excel 95 and older workbooks are not supported');
 const tooMuchText = () =>
   new ValidationError(`A cell holds too much text (maximum ${MAX_XLSX_CELL_CHARS} characters)`);
+
+/** Stands in the shared string table for a text over the cell limit; the text is not kept. */
+const TOO_LONG = Symbol('too long');
 
 interface BiffRecord {
   type: number;
@@ -236,10 +255,29 @@ class RecordReader {
     }
   }
 
+  /** True when every byte of the record and its CONTINUE records has been read. */
+  get done(): boolean {
+    const left = this.segments.slice(this.segment).reduce((sum, part) => sum + part.length, 0);
+    return left - this.pos <= 0;
+  }
+
   /** A string with a 16-bit character count: flags, optional rich-text and phonetic blocks. */
   string(): string {
+    return this.read(false) as string;
+  }
+
+  /**
+   * Like string(), but a text over the cell limit is skipped without being kept and TOO_LONG is
+   * returned: the shared string table serves every sheet, so only a cell that uses it may fail.
+   */
+  sharedString(): string | typeof TOO_LONG {
+    return this.read(true);
+  }
+
+  private read(skipTooLong: boolean): string | typeof TOO_LONG {
     const count = this.u16();
-    if (count > MAX_XLSX_CELL_CHARS) throw tooMuchText();
+    const tooLong = count > MAX_XLSX_CELL_CHARS;
+    if (tooLong && !skipTooLong) throw tooMuchText();
     const flags = this.u8();
     let wide = (flags & 0x01) !== 0;
     const runs = flags & 0x08 ? this.u16() : 0;
@@ -250,11 +288,12 @@ class RecordReader {
       const width = wide ? 2 : 1;
       const fit = Math.min(left, Math.floor((this.current().length - this.pos) / width));
       if (fit <= 0) throw notXls();
-      text += this.take(fit * width).toString(wide ? 'utf16le' : 'latin1');
+      const part = this.take(fit * width);
+      if (!tooLong) text += part.toString(wide ? 'utf16le' : 'latin1');
       left -= fit;
     }
     this.skip(runs * 4 + phonetic);
-    return text;
+    return tooLong ? TOO_LONG : text;
   }
 }
 
@@ -295,7 +334,7 @@ interface Globals {
   date1904: boolean;
   /** Per XF index: whether its number format shows a date. */
   dateXf: boolean[];
-  strings: string[];
+  strings: Array<string | typeof TOO_LONG>;
   sheets: Array<{ offset: number; hidden: boolean; worksheet: boolean }>;
 }
 
@@ -334,7 +373,11 @@ function readGlobals(wb: Buffer): Globals {
       const unique = reader.u32();
       // Every string takes at least three bytes: a bigger count than that cannot be honest.
       if (unique > wb.length / 3) throw notXls();
-      for (let i = 0; i < unique; i += 1) globals.strings.push(reader.string());
+      // A table may end early, at a string boundary: keep what it holds. A cut inside a string
+      // is an error, and so is a cell pointing past the strings read.
+      for (let i = 0; i < unique && !reader.done; i += 1) {
+        globals.strings.push(reader.sharedString());
+      }
       pos = next;
     }
   }
@@ -401,6 +444,7 @@ export function parseXls(buf: Buffer): string[][] {
       if (type === R.LABELSST) {
         const text = globals.strings[data.readUInt32LE(6)];
         if (text === undefined) throw notXls();
+        if (text === TOO_LONG) throw tooMuchText();
         put(data.readUInt16LE(0), data.readUInt16LE(2), text);
       } else if (type === R.NUMBER) {
         const xf = data.readUInt16LE(4);
