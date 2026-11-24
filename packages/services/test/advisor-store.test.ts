@@ -10,6 +10,7 @@ import {
   deleteAdvisorDataForUser,
   deleteMessage,
   deleteNote,
+  deleteProposalsForMessage,
   finishMessage,
   getMemberSettings,
   getProposal,
@@ -48,6 +49,27 @@ describe('advisor store', () => {
     text: string,
     extra: Partial<Parameters<typeof appendMessage>[1]> = {},
   ) => appendMessage(ctx, { role: 'user', origin: 'chat', text, ...extra });
+
+  it("deletes the proposals of one message and nobody else's", async () => {
+    const { a, b } = await pair();
+    const mine = await say(a, 'hello');
+    const other = await say(a, 'again');
+    const draft = (messageId: string) => ({
+      messageId,
+      kind: 'rule_create' as const,
+      payload: {},
+      basis: null,
+      targetUpdatedAt: null,
+    });
+    await saveProposal(a, draft(mine!.id));
+    const kept = await saveProposal(a, draft(other!.id));
+    await deleteProposalsForMessage(b, mine!.id);
+    expect((await listMessages(a, {})).flatMap((m) => m.proposals)).toHaveLength(2);
+    await deleteProposalsForMessage(a, mine!.id);
+    const left = (await listMessages(a, {})).flatMap((m) => m.proposals);
+    expect(left.map((p) => p.id)).toEqual([kept.id]);
+    await expect(deleteProposalsForMessage(a, 'not-a-uuid')).rejects.toBeInstanceOf(NotFoundError);
+  });
 
   it('keeps conversations private between members', async () => {
     const { a, b } = await pair();

@@ -113,6 +113,16 @@ export async function deleteMessage(ctx: ServiceCtx, id: string): Promise<void> 
   );
 }
 
+/** Drops the proposals a message holds (a turn that failed must leave none behind). */
+export async function deleteProposalsForMessage(ctx: ServiceCtx, messageId: string): Promise<void> {
+  assertUuid(messageId, 'Message');
+  await withHousehold(ctx.db, ctx.householdId, (tx) =>
+    tx
+      .delete(advisorProposal)
+      .where(and(eq(advisorProposal.messageId, messageId), mine(advisorProposal, ctx))),
+  );
+}
+
 /** Newest first. `before` is the id of the oldest message the caller already holds. */
 export async function listMessages(
   ctx: ServiceCtx,

@@ -459,6 +459,7 @@ export {
   deleteAdvisorDataForUser,
   deleteMessage,
   deleteNote,
+  deleteProposalsForMessage,
   finishMessage,
   getMemberSettings,
   getProposal,
