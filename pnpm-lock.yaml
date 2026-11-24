@@ -371,8 +371,8 @@ importers:
         specifier: 12.39.0
         version: 12.39.0(@opentelemetry/api@1.9.1)
       saxes:
-        specifier: 5.0.1
-        version: 5.0.1
+        specifier: 6.0.0
+        version: 6.0.0
       web-push:
         specifier: 3.6.7
         version: 3.6.7
@@ -473,8 +473,8 @@ importers:
         specifier: 4.4.0
         version: 4.4.0
       saxes:
-        specifier: 5.0.1
-        version: 5.0.1
+        specifier: 6.0.0
+        version: 6.0.0
       web-push:
         specifier: 3.6.7
         version: 3.6.7
@@ -4512,6 +4512,10 @@ packages:
   saxes@5.0.1:
     resolution: {integrity: sha512-5LBh1Tls8c9xgGjw3QrMwETmTMVk0oFgvrFSvWx62llR2hcEInrKNZ2GZCCuuy2lvWrdl5jhbpeqc5hRYKFOcw==}
     engines: {node: '>=10'}
+
+  saxes@6.0.0:
+    resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
+    engines: {node: '>=v12.22.7'}
 
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
@@ -8890,6 +8894,10 @@ snapshots:
   safer-buffer@2.1.2: {}
 
   saxes@5.0.1:
+    dependencies:
+      xmlchars: 2.2.0
+
+  saxes@6.0.0:
     dependencies:
       xmlchars: 2.2.0
 
