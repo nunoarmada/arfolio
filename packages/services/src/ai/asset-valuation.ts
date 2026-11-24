@@ -22,6 +22,7 @@ import type { ValuationPortals } from '../integration-config.js';
 import { refreshStoredSnapshotsInTx } from '../net-worth.js';
 import { localDay } from '../sync.js';
 import { errorLabel, type AiLogger } from './categorise.js';
+import { AiKeyChangedError } from './key-changed.js';
 import {
   buildValuationSystemBlocks,
   buildValuationUserMessage,
@@ -306,6 +307,7 @@ export async function markAssetValuationFailed(
  *    switched off, archived or linked meanwhile.
  *  - `value: null`: `insufficient_data`; refusal, no call, or an unusable answer: `no_answer`; the
  *    provider call failing: `api_error`. The code is stored in `ai_last_error`.
+ *  - the AI key changed during the run: {@link AiKeyChangedError} is rethrown, nothing is stored.
  * Settling clears the request unless a newer one came in after the claim.
  */
 export async function estimateAssetValue(
@@ -374,6 +376,8 @@ export async function estimateAssetValue(
   const { outcome, calls, searches } = await ask(deps.anthropic, params);
   logger.info(`ai valuation: ${calls} request(s), ${searches} web search(es)`);
   if (outcome.kind === 'api_error') {
+    // Nothing was sent: the run stops and the asset is left as claimed, not marked as failed.
+    if (outcome.err instanceof AiKeyChangedError) throw outcome.err;
     logger.warn(`ai valuation request failed: ${errorLabel(outcome.err)}`);
     return fail('api_error');
   }

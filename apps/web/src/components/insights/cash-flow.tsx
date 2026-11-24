@@ -520,14 +520,16 @@ export function CashFlow({
                               href={txHref({ from, to, accountId: a.accountId })}
                               data-testid="cashflow-account-row"
                               data-account-id={a.accountId}
-                              aria-label={t('accountLink', {
-                                account: a.name,
-                                in: money(a.inflow),
-                                out: money(a.outflow),
-                              })}
                               className="grid grid-cols-1 min-h-16 content-center gap-1.5 rounded-md py-2 hover:bg-surface-2"
                             >
-                              <span className="flex items-center gap-2">
+                              <span className="sr-only">
+                                {t('accountLink', {
+                                  account: a.name,
+                                  in: money(a.inflow),
+                                  out: money(a.outflow),
+                                })}
+                              </span>
+                              <span aria-hidden="true" className="flex items-center gap-2">
                                 <span className="line-clamp-2 min-w-0 flex-1 break-words text-base font-medium">
                                   {a.name}
                                 </span>

@@ -100,7 +100,8 @@ export type ValidationCode =
   | 'note_limit'
   | 'stale'
   | 'learning'
-  | 'out_of_range';
+  | 'out_of_range'
+  | 'pdf_too_long';
 
 export class ValidationError extends Error {
   readonly issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>;

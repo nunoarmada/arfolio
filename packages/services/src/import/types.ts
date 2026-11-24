@@ -13,16 +13,23 @@ export type ParsedRow =
   | { line: number; status: 'skipped'; reason: 'empty' | 'summary' | 'filtered' }
   | { line: number; status: 'error'; error: string };
 
+/** The leaf tags of one `<STMTTRN>` (first value of each, entities decoded), by upper-case name. */
+export type OfxTransaction = { line: number; tags: Record<string, string> };
+
+/**
+ * An OFX statement as read from the file. Amounts stay text until the account is known: their
+ * minor units depend on its currency (`ofxRows` in ofx.ts).
+ */
 export type OfxParse = {
   /** Statement currency (`CURDEF`), when present. */
   currency?: string;
-  rows: ParsedRow[];
+  transactions: OfxTransaction[];
 };
 
 /**
  * A statement file read into plain strings. CSV and XLSX give a `grid` (every line, including
- * title rows and footers), the detected header line and the data lines below it; OFX gives
- * already-normalised rows in `ofx` (its `grid` is empty).
+ * title rows and footers), the detected header line and the data lines below it; OFX gives its
+ * transactions in `ofx` (its `grid` is empty).
  */
 export type ParsedTable = {
   kind: TableKind;

@@ -276,6 +276,15 @@ export function ImportWizard({
     if (step === 'upload') first.current = true;
   }, [step]);
 
+  /** Goes on with the extraction already kept, without a request. */
+  function continueWithRead() {
+    if (!source || !file || !analysis || !mapping) return;
+    if (previewCurrent) return setStep('preview');
+    // The mapping was edited after the last preview: the Columns step brings it up to date.
+    first.current = false;
+    setStep('columns');
+  }
+
   function commit() {
     if (!file || !accountId || !previewCurrent) return;
     setError(null);
@@ -413,14 +422,25 @@ export function ImportWizard({
 
           {pdf ? <PdfNotice ai={ai} /> : null}
 
-          <Button
-            onClick={pdf ? extractPdf : analyse}
-            loading={pending}
-            disabled={pdf ? !accountId || !canReadPdf(ai) : !file || !accountId}
-            className="justify-self-start"
-          >
-            {pending ? t('upload.reading') : pdf ? t('upload.pdf.send') : t('upload.continue')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={pdf ? extractPdf : analyse}
+              loading={pending}
+              disabled={pdf ? !accountId || !canReadPdf(ai) : !file || !accountId}
+            >
+              {pending ? t('upload.reading') : pdf ? t('upload.pdf.send') : t('upload.continue')}
+            </Button>
+            {pdf && source && file && analysis && mapping ? (
+              <Button
+                variant="secondary"
+                disabled={pending}
+                onClick={continueWithRead}
+                data-testid="pdf-continue"
+              >
+                {t('upload.pdf.continueRead')}
+              </Button>
+            ) : null}
+          </div>
           {pdf ? (
             <p aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
               {pending ? t('upload.pdf.reading') : null}

@@ -32,17 +32,15 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger
-        aria-label={`${t('accountMenu')}: ${name}`}
-        className="group relative flex min-h-12 w-full items-center justify-center gap-3 rounded-md px-2 text-left transition-colors duration-[120ms] hover:bg-surface-2 xl:justify-start xl:bg-surface-2/60 xl:ring-1 xl:ring-border"
-      >
+      <DropdownMenu.Trigger className="group relative flex min-h-12 w-full items-center justify-center gap-3 rounded-md px-2 text-left transition-colors duration-[120ms] hover:bg-surface-2 xl:justify-start xl:bg-surface-2/60 xl:ring-1 xl:ring-border">
         <span
           aria-hidden="true"
           className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft-strong text-sm font-semibold text-primary-text"
         >
           {Array.from(name)[0]?.toUpperCase() ?? '?'}
         </span>
-        <span className="hidden min-w-0 flex-1 xl:block">
+        <span className="sr-only">{`${t('accountMenu')}: ${name}`}</span>
+        <span aria-hidden="true" className="hidden min-w-0 flex-1 xl:block">
           <span title={name} className="block truncate text-sm font-medium">
             {name}
           </span>

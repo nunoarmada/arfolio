@@ -1,12 +1,13 @@
-import webpush from 'web-push';
+import { sendNotification } from 'web-push';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWebPushSender, PUSH_SEND_TIMEOUT_MS } from '../src/index.js';
 
 vi.mock('web-push', () => ({
-  default: { sendNotification: vi.fn(), generateVAPIDKeys: vi.fn() },
+  sendNotification: vi.fn(),
+  generateVAPIDKeys: vi.fn(),
 }));
 
-const send = vi.mocked(webpush.sendNotification);
+const send = vi.mocked(sendNotification);
 const target = {
   endpoint: 'https://fcm.googleapis.com/fcm/send/x',
   keys: { p256dh: 'p', auth: 'a' },

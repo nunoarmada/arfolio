@@ -13,7 +13,7 @@ const result = await build({
   bundle: true,
   platform: 'node',
   format: 'esm',
-  target: 'node22',
+  target: 'node26',
   sourcemap: true,
   metafile: true,
   packages: 'external',

@@ -20,6 +20,11 @@ export default defineConfig({
     trace: 'retain-on-failure',
     ...devices['Desktop Chrome'],
     viewport: { width: 1280, height: 800 },
+    // Optional: run against an already installed Chromium instead of the build Playwright pins.
+    // Unset (the default, and in CI) leaves Playwright's own browser in charge.
+    launchOptions: process.env.E2E_CHROMIUM_PATH
+      ? { executablePath: process.env.E2E_CHROMIUM_PATH }
+      : {},
   },
   projects: [
     // Creates the household, the owner and the TOTP secret everything else builds on.

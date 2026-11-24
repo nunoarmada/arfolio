@@ -271,7 +271,7 @@ export const FAKE_ANTHROPIC_KEY = 'sk-ant-e2e-fake-key-statement';
 
 /** What the fake Messages API saw in its last request, reduced to what the contract needs. */
 export interface FakeAnthropicRequest {
-  apiKey: string | undefined;
+  authorization: string | undefined;
   documentMediaTypes: string[];
   hasTools: boolean;
 }
@@ -418,7 +418,7 @@ export async function startFakeAnthropic(): Promise<
         Array.isArray(m.content) ? (m.content as Record<string, unknown>[]) : [],
       );
       last = {
-        apiKey: req.headers['x-api-key'] as string | undefined,
+        authorization: req.headers.authorization,
         documentMediaTypes: (blocks ?? [])
           .filter((b) => b.type === 'document')
           .map((b) => String((b.source as { media_type?: string } | undefined)?.media_type)),
@@ -426,7 +426,7 @@ export async function startFakeAnthropic(): Promise<
       };
       if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
       if (
-        last.apiKey !== FAKE_ANTHROPIC_KEY ||
+        last.authorization !== `Bearer ${FAKE_ANTHROPIC_KEY}` ||
         !last.documentMediaTypes.includes('application/pdf') ||
         last.hasTools
       ) {

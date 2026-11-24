@@ -51,6 +51,13 @@ export interface CfbOptions {
   mini?: boolean;
   /** High 32 bits of the stream size, which old writers of 512-byte-sector files left as garbage. */
   sizeHigh?: number;
+  /**
+   * Put a sub-storage holding an empty `Workbook` stream ahead of the real stream in the directory
+   * (entries: root, storage, its stream, the real stream), the way a tree walk must skip it.
+   */
+  decoyStorage?: boolean;
+  /** Last-minute edit of the directory entries (128 bytes each), to build odd trees. */
+  dirPatch?: (directory: Buffer) => void;
   /** Last-minute edit of the FAT (sector index -> next sector), to build corrupt files. */
   fatPatch?: (fat: number[]) => void;
 }
@@ -96,15 +103,20 @@ export function buildCfb(stream: Buffer, opts: CfbOptions = {}): Buffer {
   header.fill(0xff, 76);
   for (let i = 0; i < fatSectors; i += 1) header.writeUInt32LE(dirSector + 1 + i, 76 + i * 4);
 
-  const directory = pad(
-    Buffer.concat([
-      mini
-        ? dirEntry('Root Entry', 5, 1, 0, miniSectors * MINI_SECTOR)
-        : dirEntry('Root Entry', 5, 1, END_OF_CHAIN, 0),
-      dirEntry(opts.name ?? 'Workbook', 2, FREE, 0, stream.length, opts.sizeHigh),
-    ]),
-    SECTOR,
-  );
+  const name = opts.name ?? 'Workbook';
+  const entries = [
+    mini
+      ? dirEntry('Root Entry', 5, 1, 0, miniSectors * MINI_SECTOR)
+      : dirEntry('Root Entry', 5, 1, END_OF_CHAIN, 0),
+  ];
+  if (opts.decoyStorage) {
+    const storage = dirEntry('Decoy', 1, 2, 0, 0);
+    storage.writeUInt32LE(3, 72); // right sibling: the real stream
+    entries.push(storage, dirEntry(name, 2, FREE, END_OF_CHAIN, 0));
+  }
+  entries.push(dirEntry(name, 2, FREE, 0, stream.length, opts.sizeHigh));
+  const directory = pad(Buffer.concat(entries), SECTOR);
+  opts.dirPatch?.(directory);
 
   return Buffer.concat([
     header,

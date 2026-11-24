@@ -51,4 +51,19 @@ describe('messages', () => {
       expect((value as string).trim(), key).not.toBe('');
     }
   });
+
+  // The AI service address is not a Settings field: the SDK reads ANTHROPIC_BASE_URL from the
+  // environment, so the copy names the variable instead of sending people to Services.
+  it.each(LOCALES)('%s names ANTHROPIC_BASE_URL where a model is not found', (locale) => {
+    const m = ALL[locale] as {
+      services: { test: { anthropic: { model_unavailable: string } } };
+      actionErrors: { reason: { ai_model_unavailable: string } };
+    };
+    for (const text of [
+      m.services.test.anthropic.model_unavailable,
+      m.actionErrors.reason.ai_model_unavailable,
+    ]) {
+      expect(text).toContain('ANTHROPIC_BASE_URL');
+    }
+  });
 });

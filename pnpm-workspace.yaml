@@ -4,3 +4,10 @@ packages:
 
 # Lets `pnpm deploy` use the lockfile (no --legacy), so the production image is lockfile-pinned.
 injectWorkspacePackages: true
+
+# pnpm 12 fails the install on unreviewed dependency build scripts. These packages ship prebuilt
+# binaries, so their install scripts stay off (the behaviour before pnpm 12).
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  esbuild: false

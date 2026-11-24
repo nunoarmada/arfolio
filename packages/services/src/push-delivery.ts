@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, inArray, isNull, lte } from 'drizzle-orm';
-import webpush from 'web-push';
+import { sendNotification } from 'web-push';
 import { schema, withHousehold, type Db } from '@arfolio/db';
 import { isPushEndpoint, type VapidKeys } from './push.js';
 import { payloadId, pushCopy, pushUrl, type PushKind } from './push-copy.js';
@@ -55,13 +55,12 @@ export function createWebPushSender(): PushSender {
       timer = setTimeout(() => reject(new Error('push send timed out')), PUSH_SEND_TIMEOUT_MS);
     });
     try {
-      const send = webpush
-        .sendNotification(target, JSON.stringify(payload), {
-          TTL: PUSH_MAX_AGE_MS / 1000,
-          urgency: 'normal',
-          timeout: PUSH_SEND_TIMEOUT_MS,
-          vapidDetails: vapid,
-        })
+      const send = sendNotification(target, JSON.stringify(payload), {
+        TTL: PUSH_MAX_AGE_MS / 1000,
+        urgency: 'normal',
+        timeout: PUSH_SEND_TIMEOUT_MS,
+        vapidDetails: vapid,
+      })
         .then((r) => ({ statusCode: r.statusCode }))
         // A rejection by the push service is an answer (404/410/…), not a transport failure.
         .catch((err: unknown) => {

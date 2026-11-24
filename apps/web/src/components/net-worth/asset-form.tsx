@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useMemo, useState, useTransition, type FormEvent } from 'react';
-import { AI_VALUATION_KINDS, aiReadiness } from '@arfolio/core';
+import { AI_VALUATION_KINDS, aiReadiness, minorDigits } from '@arfolio/core';
 import { parsePlanned } from '@/lib/amount-input';
 import { detailFieldsFor, detailsToValues, valuesToDetails } from '@/lib/asset-details-form';
 import { isIsoDate } from '@/lib/dates';
@@ -150,7 +150,7 @@ export function AssetForm({
 
     let initialValue: { asOf: string; amount: number } | null = null;
     if (!editing && !linked && values.value.trim() !== '') {
-      const parsed = parsePlanned(values.value);
+      const parsed = parsePlanned(values.value, minorDigits(values.currency));
       if (!parsed.ok) found.value = t('valueInvalid');
       if (!values.date) found.date = t('dateRequired');
       else if (!isIsoDate(values.date)) found.date = t('dateInvalid');

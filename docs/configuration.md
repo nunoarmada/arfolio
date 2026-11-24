@@ -103,6 +103,7 @@ These have no field on the Services page.
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | generated | Web Push key pair. When unset the app generates one on first use and stores it (private key encrypted). Set **both** or neither: one alone is a startup error. Generate with `npx web-push generate-vapid-keys`. |
 | `VAPID_SUBJECT`             | https `APP_URL`, else `mailto:no-reply@localhost` | `mailto:` or `https:` contact given to push services.                                                  |
 | `PUSH_ALLOWED_HOSTS`        | unset          | Extra push-service host suffixes, comma separated, for self-hosted push such as UnifiedPush. FCM, Mozilla, Windows and Apple are always allowed. |
+| `ANTHROPIC_BASE_URL`        | unset          | Sends AI requests to an Anthropic-compatible gateway at this address instead of the Anthropic API (read by the Anthropic SDK in the web app and the worker). Leave it unset normally. Compose and Helm do not pass it through: add it to the web and worker environment yourself if you need it. |
 | `MCP_ALLOWED_REDIRECT_URIS` | unset          | Extra exact OAuth redirect URIs for MCP clients other than claude.ai and local tools. See [Connect Claude](mcp.md).                              |
 
 `TRADING212_API_URL` exists for tests only (it points Trading 212 at a fake broker). Leave it unset.

@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import ExcelJS from 'exceljs';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { formatMoney } from '@arfolio/core';
 import { schema, withHousehold } from '@arfolio/db';
 import {
   archiveAccount,
@@ -645,6 +647,91 @@ describe('file import', () => {
       const batch = await commitImport(a, { accountId: x, file: file('revolut.csv') });
       await undoImport(a, batch.batchId);
       expect((await getTransaction(a, m1.id)).transferGroupId).toBeTruthy();
+    });
+  });
+
+  describe('amounts in the minor units of the account currency', () => {
+    const ofx = (currency: string, amount: string) => ({
+      filename: 's.ofx',
+      buffer: Buffer.from(
+        [
+          'OFXHEADER:100',
+          '<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS>',
+          `<CURDEF>${currency}`,
+          '<BANKTRANLIST>',
+          '<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260310<TRNAMT>' + amount,
+          '<FITID>F1<NAME>Mercado Central',
+          '</STMTTRN></BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>',
+        ].join('\n'),
+        'utf8',
+      ),
+    });
+    const xlsx = async (amount: number) => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('S');
+      ws.addRow(['Date', 'Description', 'Amount']);
+      ws.addRow(['2026-03-10', 'Mercado Central', amount]);
+      return { filename: 's.xlsx', buffer: Buffer.from(await wb.xlsx.writeBuffer()) };
+    };
+    // Explicit, so a layout preset saved by another test cannot apply (invertSign).
+    const mapping: ColumnMapping = {
+      dateColumn: 'Date',
+      descriptionColumn: 'Description',
+      amountColumn: 'Amount',
+      dateFormat: 'YMD',
+      headerRow: 0,
+    };
+    const stored = async (currency: string, f: { buffer: Buffer; filename: string }) => {
+      const acc = await account(a, currency);
+      const ofxFile = f.filename.endsWith('.ofx');
+      await commitImport(a, { accountId: acc, file: f, ...(ofxFile ? {} : { mapping }) });
+      const rows = await rowsOf(a, acc);
+      expect(rows).toHaveLength(1);
+      return Number(rows[0]!.amount);
+    };
+
+    it.each([
+      ['JPY', '-1234', -1234, '-¥1,234'],
+      ['EUR', '-1234.56', -123456, '-€1,234.56'],
+      ['KWD', '-1234.567', -1234567, '-KWD 1,234.567'],
+    ])('stores a CSV amount in %s as its minor units', async (currency, text, minor, shown) => {
+      const amount = await stored(
+        currency,
+        csvFile(`Date,Description,Amount\n2026-03-10,Mercado Central,${text}\n`),
+      );
+      expect(amount).toBe(minor);
+      expect(formatMoney(amount, currency, 'en').replace(/\s/g, ' ')).toBe(shown);
+    });
+
+    it.each([
+      ['JPY', -1234, -1234],
+      ['EUR', -1234.56, -123456],
+      ['KWD', -1234.567, -1234567],
+    ])('stores an XLSX amount in %s as its minor units', async (currency, value, minor) => {
+      expect(await stored(currency, await xlsx(value))).toBe(minor);
+    });
+
+    it.each([
+      ['JPY', '-1234', -1234],
+      ['EUR', '-1234.56', -123456],
+      ['KWD', '-1234.567', -1234567],
+    ])('stores an OFX amount in %s as its minor units', async (currency, text, minor) => {
+      expect(await stored(currency, ofx(currency, text))).toBe(minor);
+    });
+
+    it('reports an amount with more decimals than the currency as a row error', async () => {
+      const jpy = await account(a, 'JPY');
+      const preview = await previewImport(a, {
+        accountId: jpy,
+        file: csvFile('Date,Description,Amount\n2026-03-10,Mercado Central,-12.50\n'),
+        mapping,
+      });
+      expect(preview.stats).toMatchObject({ valid: 0, errors: 1 });
+      const sheet = await previewImport(a, { accountId: jpy, file: await xlsx(-12.5), mapping });
+      expect(sheet.rows[0]).toMatchObject({ status: 'error' });
+      const kwd = await account(a, 'KWD');
+      const statement = await previewImport(a, { accountId: kwd, file: ofx('KWD', '-1.2345') });
+      expect(statement.rows[0]).toMatchObject({ status: 'error' });
     });
   });
 });

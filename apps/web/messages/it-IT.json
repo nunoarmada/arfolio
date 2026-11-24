@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili, le valutazioni dei beni e le risposte del consulente.",
+      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili, le valutazioni dei beni e le risposte del consulente, e legge gli estratti conto in PDF importati. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
       "apiKey": "Chiave API di Anthropic",
       "apiKeyHint": "Creare una chiave nella console di Anthropic e incollarla qui.",
       "enableHint": "La chiave è configurata. Ogni nucleo familiare sceglie comunque se usare l’IA.",
@@ -500,7 +500,9 @@
         "invalid_key": "Anthropic ha rifiutato la chiave. Controllarla e sostituirla.",
         "rate_limited": "Anthropic sta limitando le richieste in questo momento. Riprovare tra un minuto.",
         "unreachable": "Impossibile contattare Anthropic. Controllare l’accesso a internet di questo server.",
-        "unavailable": "Anthropic non ha risposto come previsto. Riprovare più tardi."
+        "unavailable": "Anthropic non ha risposto come previsto. Riprovare più tardi.",
+        "model_unavailable": "La chiave funziona, ma il servizio di IA non ha riconosciuto questi modelli: {models}. Controllare i nomi dei modelli in Avanzate, o le variabili d’ambiente che li definiscono. Se l’installazione imposta un indirizzo personalizzato per il servizio di IA (la variabile d’ambiente ANTHROPIC_BASE_URL), controllare anche quello.",
+        "checks_incomplete": "Alcune verifiche dei modelli non hanno potuto essere completate. Riprovare più tardi."
       },
       "enableBanking": {
         "ok": "Enable Banking ha accettato le credenziali.",
@@ -689,7 +691,7 @@
       },
       "granted": "Connessa il {date}",
       "revoke": "Revoca accesso",
-      "revokeNamed": "Revoca l’accesso a {name}",
+      "revokeNamed": "Revoca accesso a {name}",
       "revokeTitle": "Revocare l’accesso a {name}?",
       "revokeBody": "{name} perde subito la possibilità di leggere o modificare i dati del nucleo familiare. Per ricollegarla sarà necessario consentire di nuovo l’accesso.",
       "revokeError": "Impossibile revocare l’accesso. Riprovare.",
@@ -834,13 +836,14 @@
       "rate_limited": "Troppi estratti conto PDF nell'ultima ora. Riprovare più tardi.",
       "not_a_pdf": "Il file non è un PDF.",
       "pdf_no_rows": "Nessun movimento trovato in questo PDF.",
-      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta (circa 200). Dividere il PDF e importare ogni parte.",
+      "pdf_too_long": "L'estratto conto ha troppi movimenti per essere letto in una volta (il limite è {max}). Dividere il PDF e importare ogni parte.",
       "ai_unusable": "L'IA non è riuscita a leggere questo estratto conto in modo affidabile. Non è stato importato nulla.",
       "ai_timeout": "Il servizio di IA ha impiegato troppo tempo a rispondere. Riprovare.",
       "ai_unreachable": "Impossibile raggiungere il servizio di IA. Riprovare più tardi.",
       "pdf_rejected": "Il servizio di IA non è riuscito a leggere questo PDF. Potrebbe essere protetto da password, troppo lungo o danneggiato.",
       "ai_key_rejected": "Il servizio di IA ha rifiutato la chiave API dell'installazione. Chiedere a un proprietario di verificarla in Impostazioni › Servizi.",
       "ai_busy": "Il servizio di IA è occupato. Riprovare tra qualche minuto.",
+      "ai_model_unavailable": "Il servizio di IA non ha trovato il modello configurato. Chiedere a un proprietario di controllare i nomi dei modelli in Impostazioni › Servizi e, se l’installazione imposta un indirizzo personalizzato per il servizio di IA (la variabile d’ambiente ANTHROPIC_BASE_URL), anche quell’indirizzo.",
       "pdf_multiple_accounts": "Questo PDF elenca movimenti di più di un conto, quindi non può essere importato in un solo conto.",
       "connection_lost": "La connessione è stata interrotta. Riprovare.",
       "invalid_input": "Alcuni valori non sono validi. Controllare i campi e riprovare."
@@ -1230,6 +1233,7 @@
         "setUp": "Configura l’IA",
         "askOwner": "Chiedere a un proprietario del nucleo familiare di attivarla.",
         "send": "Invia e leggi file",
+        "continueRead": "Continua con quanto letto",
         "reading": "Lettura dell’estratto conto. Può richiedere un minuto."
       }
     },
@@ -1307,7 +1311,7 @@
     "rowErrors": {
       "currency": "La riga è in {row}, ma il conto è in {account}",
       "date": "Data non valida",
-      "decimals": "L’importo ha più di 2 decimali",
+      "decimals": "{digits, plural, =0 {L’importo non può avere decimali in questa valuta} one {L’importo ha più di # decimale} other {L’importo ha più di # decimali}}",
       "amount": "Importo non valido",
       "description": "Descrizione mancante",
       "other": "Riga illeggibile"

@@ -436,7 +436,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic redacta las sugerencias de categorías, los informes mensuales, las valoraciones de bienes y las respuestas del asesor.",
+      "description": "Anthropic redacta las sugerencias de categorías, los informes mensuales, las valoraciones de bienes y las respuestas del asesor, y lee los extractos en PDF que importa. Los extractos son el único uso que envía archivos completos, y solo tras confirmar cada archivo.",
       "apiKey": "Clave de API de Anthropic",
       "apiKeyHint": "Cree una clave en la consola de Anthropic y péguela aquí.",
       "enableHint": "La clave está configurada. Cada hogar decide aún si usa la IA.",
@@ -500,7 +500,9 @@
         "invalid_key": "Anthropic ha rechazado la clave. Revísela y sustitúyala.",
         "rate_limited": "Anthropic está limitando las solicitudes en este momento. Inténtelo de nuevo en un minuto.",
         "unreachable": "No se pudo contactar con Anthropic. Compruebe el acceso a internet de este servidor.",
-        "unavailable": "Anthropic no respondió como se esperaba. Inténtelo de nuevo más tarde."
+        "unavailable": "Anthropic no respondió como se esperaba. Inténtelo de nuevo más tarde.",
+        "model_unavailable": "La clave funciona, pero el servicio de IA no reconoció estos modelos: {models}. Revise los nombres de los modelos en Avanzado, o las variables de entorno que los definen. Si la instalación define una dirección propia para el servicio de IA (la variable de entorno ANTHROPIC_BASE_URL), revísela también.",
+        "checks_incomplete": "Algunas comprobaciones de modelos no pudieron completarse. Inténtelo de nuevo más tarde."
       },
       "enableBanking": {
         "ok": "Enable Banking ha aceptado las credenciales.",
@@ -689,7 +691,7 @@
       },
       "granted": "Conectada el {date}",
       "revoke": "Revocar acceso",
-      "revokeNamed": "Revocar el acceso de {name}",
+      "revokeNamed": "Revocar acceso de {name}",
       "revokeTitle": "¿Revocar el acceso de {name}?",
       "revokeBody": "{name} pierde de inmediato el acceso para leer o modificar los datos del hogar. Para volver a conectar, deberá permitir el acceso de nuevo.",
       "revokeError": "No se pudo revocar el acceso. Inténtelo de nuevo.",
@@ -834,13 +836,14 @@
       "rate_limited": "Demasiados extractos en PDF en la última hora. Inténtelo de nuevo más tarde.",
       "not_a_pdf": "El archivo no es un PDF.",
       "pdf_no_rows": "No se encontraron movimientos en este PDF.",
-      "pdf_too_long": "El extracto tiene demasiados movimientos para leerlo de una vez (unos 200). Divida el PDF e importe cada parte.",
+      "pdf_too_long": "El extracto tiene demasiados movimientos para leerlo de una vez (el límite es {max}). Divida el PDF e importe cada parte.",
       "ai_unusable": "La IA no pudo leer este extracto de forma fiable. No se importó nada.",
       "ai_timeout": "El servicio de IA tardó demasiado en responder. Inténtelo de nuevo.",
       "ai_unreachable": "No se pudo contactar con el servicio de IA. Inténtelo de nuevo más tarde.",
       "pdf_rejected": "El servicio de IA no pudo leer este PDF. Puede estar protegido con contraseña, ser demasiado largo o estar dañado.",
       "ai_key_rejected": "El servicio de IA rechazó la clave de API de la instalación. Pida a un propietario que la revise en Ajustes › Servicios.",
       "ai_busy": "El servicio de IA está ocupado. Inténtelo de nuevo dentro de unos minutos.",
+      "ai_model_unavailable": "El servicio de IA no encontró el modelo configurado. Pida a un propietario que revise los nombres de los modelos en Ajustes › Servicios y, si la instalación define una dirección propia para el servicio de IA (la variable de entorno ANTHROPIC_BASE_URL), también esa dirección.",
       "pdf_multiple_accounts": "Este PDF incluye movimientos de más de una cuenta, por lo que no puede importarse en una sola cuenta.",
       "connection_lost": "La conexión se interrumpió. Inténtelo de nuevo.",
       "invalid_input": "Algunos valores no son válidos. Revise los campos e inténtelo de nuevo."
@@ -1230,6 +1233,7 @@
         "setUp": "Configurar la IA",
         "askOwner": "Pida a un propietario del hogar que la active.",
         "send": "Enviar y leer archivo",
+        "continueRead": "Continuar con lo que se leyó",
         "reading": "Leyendo el extracto. Puede tardar un minuto."
       }
     },
@@ -1307,7 +1311,7 @@
     "rowErrors": {
       "currency": "La fila está en {row}, pero la cuenta está en {account}",
       "date": "Fecha no válida",
-      "decimals": "El importe tiene más de 2 decimales",
+      "decimals": "{digits, plural, =0 {El importe no puede tener decimales en esta moneda} one {El importe tiene más de # decimal} other {El importe tiene más de # decimales}}",
       "amount": "Importe no válido",
       "description": "Falta la descripción",
       "other": "Fila ilegible"

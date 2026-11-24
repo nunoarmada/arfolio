@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type Anthropic from '@anthropic-ai/sdk';
 import { schema } from '@arfolio/db';
 import {
+  AiKeyChangedError,
   claimDueAssetValuations,
   createAccount,
   DEFAULT_VALUATION_PORTALS,
@@ -722,6 +723,19 @@ describe('AI asset valuation', () => {
       expect(await estimateAssetValue(deps(client), due)).toBe('api_error');
       expect(await assetRow(a.id)).toMatchObject({ aiLastError: 'api_error', aiRequestedAt: null });
       expect(logs.join('\n')).not.toMatch(/secret provider text/);
+    });
+
+    it('marks nothing and rethrows when the AI key changed during the run', async () => {
+      const { a, due } = await claimed();
+      const before = await assetRow(a.id);
+      const { client } = fake(new AiKeyChangedError());
+
+      await expect(estimateAssetValue(deps(client), due)).rejects.toBeInstanceOf(AiKeyChangedError);
+      expect(await assetRow(a.id)).toMatchObject({
+        aiLastError: before.aiLastError,
+        aiRequestedAt: before.aiRequestedAt,
+      });
+      expect(await valuationsOf(a.id)).toHaveLength(0);
     });
 
     it('never logs the details or the rationale', async () => {

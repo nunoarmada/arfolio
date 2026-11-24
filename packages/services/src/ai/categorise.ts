@@ -15,6 +15,7 @@ import {
   type PromptRow,
   type SystemBlock,
 } from './prompt.js';
+import { AiKeyChangedError } from './key-changed.js';
 import { resolveFallbackCategory } from './fallback-category.js';
 import { redactForAi } from './redact.js';
 import { awaitingT212Export } from '../t212-pending.js';
@@ -128,12 +129,12 @@ const EMPTY: Omit<AiCategoriseResult, 'status'> = {
 };
 
 /**
- * Rate limits, provider outages, a network failure or timeout, and a broken key or account (401,
- * 403, billing or quota 400s) end the run and never count an attempt: the next run tries again
+ * Rate limits, provider outages, a network failure or timeout, a broken key or account (401,
+ * 403, billing or quota 400s) and a key removed or replaced during the run end the run and never count an attempt: the next run tries again
  * once it is fixed. Only failures about the batch itself count.
  */
 export function isStopError(err: unknown): boolean {
-  if (err instanceof APIConnectionError) return true;
+  if (err instanceof APIConnectionError || err instanceof AiKeyChangedError) return true;
   const { status, message } = (err ?? {}) as { status?: unknown; message?: unknown };
   if (typeof status !== 'number') return false;
   if (status === 429 || status === 401 || status === 403 || status >= 500) return true;

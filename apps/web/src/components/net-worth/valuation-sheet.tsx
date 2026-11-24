@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useState, useTransition } from 'react';
+import { minorDigits } from '@arfolio/core';
 import { parsePlanned } from '@/lib/amount-input';
 import { isIsoDate } from '@/lib/dates';
 import { formatDayYear } from '@/lib/net-worth-format';
@@ -22,6 +23,7 @@ import { useFailureMessage } from '../use-action-error';
 export function ValuationSheet({
   mode,
   recordId,
+  currency,
   today,
   existingDates,
   open,
@@ -29,6 +31,8 @@ export function ValuationSheet({
 }: {
   mode: 'asset' | 'liability';
   recordId: string;
+  /** The record's currency: the typed value is read in its minor units. */
+  currency: string;
   today: string;
   /** Days that already hold a value or balance. */
   existingDates: string[];
@@ -67,7 +71,7 @@ export function ValuationSheet({
     const found: { date?: string; amount?: string } = {};
     if (!date) found.date = t('form.dateRequired');
     else if (!isIsoDate(date)) found.date = t('form.dateInvalid');
-    const parsed = parsePlanned(amount);
+    const parsed = parsePlanned(amount, minorDigits(currency));
     if (amount.trim() === '') found.amount = t('form.valueRequired');
     else if (!parsed.ok) found.amount = t('form.valueInvalid');
     setErrors(found);

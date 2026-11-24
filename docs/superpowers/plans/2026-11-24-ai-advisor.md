@@ -27,7 +27,7 @@ migrations, PostgreSQL 17 with RLS, pg-boss, `@anthropic-ai/sdk` 0.135.0, zod 4,
 - Model answers in the household locale (`household_settings.locale`) and household currency. Prompts contain no country, bank, tax product or regulation specifics.
 - No product-specific investment advice (system prompt rule).
 - Defaults (env, optional): `AI_ADVISOR_MODEL=claude-opus-5-5`, `ADVISOR_LEARNING_MONTHS=3`, `ADVISOR_WEEKLY_CAP=2`, `ADVISOR_DAILY_MESSAGES=50`, `ADVISOR_MAX_TOOL_CALLS=8`.
-- Migration `0050_advisor.sql`, additive, with journal entry and snapshot; `prettier --write` on `meta/*.json`.
+- Migration `0051_advisor.sql`, additive, with journal entry and snapshot; `prettier --write` on `meta/*.json`.
 - Audit for applied proposals: `actor: 'web'`, action `advisor.apply.<kind>` (the DB check allows only `mcp|web`; do not alter it).
 - Conventional Commits, signed off (`git commit -s`). Run `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test` before each commit (focused `pnpm vitest run <path>` while iterating).
 - Tests need `DATABASE_URL_TEST`; DB tests use `startTestDb()` from `packages/db/test/pg.ts`.
@@ -66,7 +66,7 @@ migrations, PostgreSQL 17 with RLS, pg-boss, `@anthropic-ai/sdk` 0.135.0, zod 4,
 
 **Files:**
 - Create: `packages/db/src/schema/advisor.ts`; export from `packages/db/src/schema/index.ts`
-- Create: `packages/db/migrations/0050_advisor.sql`, `packages/db/migrations/meta/0050_snapshot.json`; modify `meta/_journal.json` (`idx: 50`, `tag: "0050_advisor"`)
+- Create: `packages/db/migrations/0051_advisor.sql`, `packages/db/migrations/meta/0051_snapshot.json`; modify `meta/_journal.json` (`idx: 51`, `tag: "0051_advisor"`)
 - Create: `packages/services/src/advisor/store.ts`; export from `packages/services/src/index.ts`
 - Modify: `apps/web/src/server/members.ts` (`removeMember`: delete the removed user's advisor rows in the same transaction)
 - Test: `packages/services/src/advisor/store.test.ts`, `apps/web/src/server/members.test.ts`

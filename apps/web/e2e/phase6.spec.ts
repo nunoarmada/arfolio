@@ -548,7 +548,7 @@ test.describe('phase 6: integrations (MCP)', () => {
     await axeBoth(page, 'connected apps');
     await expectNoOverflowAt320(page, 'connected apps');
 
-    await page.getByRole('button', { name: 'Revogar o acesso de Claude' }).click();
+    await page.getByRole('button', { name: 'Revogar acesso de Claude' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Revogar o acesso de Claude?' });
     await expect(dialog).toContainText('terá de autorizar o acesso de novo');
     await axeBoth(page, 'revoke app dialog');

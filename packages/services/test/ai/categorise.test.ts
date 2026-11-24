@@ -4,6 +4,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { schema, withHousehold } from '@arfolio/db';
 import { APIConnectionError, APIConnectionTimeoutError } from '@anthropic-ai/sdk';
 import {
+  AiKeyChangedError,
   aiCategorise,
   categoriseTransaction,
   createAccount,
@@ -780,6 +781,25 @@ describe('aiCategorise', () => {
       );
       expect(result.status).toBe('rate_limited');
       expect(await stored(id)).toMatchObject({ aiAttempts: 2, categoryId: null });
+    });
+
+    it('stops the run without counting an attempt when the AI key changed during the run', async () => {
+      const first = await insertTx({ rawDescription: 'FIRST', aiAttempts: 1 });
+      const second = await insertTx({ rawDescription: 'SECOND', aiAttempts: 1 });
+      const result = await aiCategorise(
+        deps(
+          () => {
+            throw new AiKeyChangedError();
+          },
+          { batchSize: 1 },
+        ),
+        { householdId: ctx.householdId },
+      );
+      expect(result.status).toBe('rate_limited');
+      expect(calls).toHaveLength(1);
+      for (const id of [first, second]) {
+        expect(await stored(id)).toMatchObject({ aiAttempts: 1, categoryId: null });
+      }
     });
 
     it('counts a 400 about the content of the request', async () => {

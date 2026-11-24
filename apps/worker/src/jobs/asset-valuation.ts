@@ -1,6 +1,7 @@
 import type { PgBoss } from 'pg-boss';
 import type { Db } from '@arfolio/db';
 import {
+  AiKeyChangedError,
   claimDueAssetValuations,
   DEFAULT_VALUATION_PORTALS,
   estimateAssetValue,
@@ -63,6 +64,11 @@ export async function runAssetValuationSweep(
       const result = await estimateAssetValue({ ...deps, logger: log, now, tz }, row);
       counts[result] += 1;
     } catch (err) {
+      if (err instanceof AiKeyChangedError) {
+        // Nothing was sent: the rest of the batch waits for a run with the current key.
+        log.warn('ai valuations stopped: the AI key changed during the run');
+        break;
+      }
       // One asset failing must not stop the batch. The error class only: never its message.
       log.warn(`ai valuation failed unexpectedly (${errorClass(err)})`);
       counts.api_error += 1;

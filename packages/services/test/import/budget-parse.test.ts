@@ -11,8 +11,11 @@ import {
 } from '../fixtures/budget-sheet.js';
 
 /** `today` defaults to after every month of the fixture, so no month is a projection. */
-async function parse(opts?: BudgetSheetOptions, today = '2027-12-31') {
-  return parseBudgetWorkbook(await readBudgetWorkbook(await buildBudgetSheet(opts)), { today });
+async function parse(opts?: BudgetSheetOptions, today = '2027-12-31', minorDigits?: number) {
+  return parseBudgetWorkbook(await readBudgetWorkbook(await buildBudgetSheet(opts)), {
+    today,
+    ...(minorDigits === undefined ? {} : { minorDigits }),
+  });
 }
 
 const flat = (cents: number) => Array<number>(12).fill(cents);
@@ -388,6 +391,17 @@ describe('budget sheet: numeric cells', () => {
     [1e-7, 0],
   ])('converts %s to %s minor units without float arithmetic', (n, minor) => {
     expect(numberToMinor(n)).toBe(minor);
+  });
+
+  it.each([
+    [1234, 0, 1234],
+    [400 / 12, 0, 33],
+    [12.5, 0, 12],
+    [1.234, 3, 1234],
+    [400 / 12, 3, 33_333],
+    [-50, 3, -50_000],
+  ])('converts %s with %i minor digits to %s minor units', (n, digits, minor) => {
+    expect(numberToMinor(n, digits)).toBe(minor);
   });
 
   it('rejects numbers that are not amounts', () => {
@@ -848,5 +862,56 @@ describe('budget sheet: Objetivos', () => {
     expect(ok.goals).toHaveLength(100);
     const error = await parse({ extraGoals: extra(99) }).catch((e: unknown) => e);
     expect((error as ValidationError).params).toEqual({ section: 'goals', max: 100 });
+  });
+});
+
+describe('budget sheet: the household currency minor units', () => {
+  const amountsOf = (sheet: Awaited<ReturnType<typeof parse>>) => ({
+    lines: sheet.lines.map((l) => l.amounts),
+    subscriptions: sheet.subscriptions.map((x) => x.amount),
+    assets: sheet.patrimonio?.assets.map((x) => x.values.map((v) => v.amount)),
+    liabilities: sheet.patrimonio?.liabilities.map((x) => x.values.map((v) => v.amount)),
+    goals: sheet.goals?.map((g) => [g.target, g.saved]),
+  });
+  const scaled = (value: unknown, f: (n: number) => number): unknown => {
+    if (Array.isArray(value)) return value.map((v) => scaled(v, f));
+    if (typeof value === 'number') return value === 0 ? 0 : f(value);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, scaled(v, f)]));
+    }
+    return value;
+  };
+
+  it.each([false, true])(
+    'reads a three-decimal currency in thousandths (numeric cells: %s)',
+    async (numericAmounts) => {
+      const cents = await parse({ numericAmounts });
+      const kwd = await parse({ numericAmounts }, undefined, 3);
+      expect(
+        amountsOf(cents)
+          .lines.flat()
+          .some((n) => n !== 0),
+      ).toBe(true);
+      expect(amountsOf(kwd)).toEqual(scaled(amountsOf(cents), (n) => n * 10));
+    },
+  );
+
+  it('reads the whole amounts of a zero-decimal currency unscaled', async () => {
+    const cents = await parse();
+    const yen = await parse(undefined, undefined, 0);
+    expect(
+      amountsOf(cents)
+        .lines.flat()
+        .every((n) => n % 100 === 0),
+    ).toBe(true);
+    expect(amountsOf(yen)).toEqual(scaled(amountsOf(cents), (n) => n / 100));
+  });
+
+  it('reports a text amount with cents in a zero-decimal currency', async () => {
+    await expect(
+      parse({ patchBudget: [{ row: 9, col: 'D', value: '12,50' }] }, undefined, 0),
+    ).rejects.toMatchObject({
+      code: 'invalid_amount',
+    });
   });
 });

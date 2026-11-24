@@ -580,6 +580,7 @@ function TestRow({
   disabledHint: string;
 }) {
   const t = useTranslations('services');
+  const format = useFormatter();
   const [pending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -599,7 +600,16 @@ function TestRow({
         });
         return;
       }
-      const { ok, message } = result.data;
+      const { ok, message, unavailableModels, incomplete } = result.data;
+      if (message === 'model_unavailable' && unavailableModels?.length) {
+        const models = format.list(unavailableModels.map((field) => t(`ai.${field}Model`)));
+        const text = t('test.anthropic.model_unavailable', { models });
+        setOutcome({
+          ok,
+          text: incomplete ? `${text} ${t('test.anthropic.checks_incomplete')}` : text,
+        });
+        return;
+      }
       const key = `test.${service}.${message}` as Parameters<typeof t>[0];
       setOutcome({ ok, text: t.has(key) ? t(key) : t(ok ? 'test.ok' : 'test.failed') });
     });

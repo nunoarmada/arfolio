@@ -355,8 +355,15 @@
     {
       "idx": 50,
       "version": "7",
-      "when": 1795531061665,
-      "tag": "0050_advisor",
+      "when": 1795536386907,
+      "tag": "0050_settings_changed_notify",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1795541061665,
+      "tag": "0051_advisor",
       "breakpoints": true
     }
   ]

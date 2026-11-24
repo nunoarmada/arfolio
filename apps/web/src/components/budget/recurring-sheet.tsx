@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition, type FormEvent } from 'react';
+import { minorDigits } from '@arfolio/core';
 import { parsePlanned, toPlannedInput } from '@/lib/amount-input';
 import { truncateName } from '@/lib/budget-import-copy';
 import type { Cadence, RecurringDto } from '@/lib/recurring-display';
@@ -70,7 +71,9 @@ export function RecurringSheet({
   const common = useTranslations('common');
   const toast = useToast();
   const failure = useFailureMessage();
-  const { locale } = useHouseholdFormat();
+  const { locale, currency: householdCurrency } = useHouseholdFormat();
+  // A declared payment is in the household currency (the service's default); an edit keeps its own.
+  const digits = minorDigits(item?.currency ?? householdCurrency);
   const [form, setForm] = useState<Form>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +91,7 @@ export function RecurringSheet({
         ? {
             name: item.name,
             direction: item.amount > 0 ? 'receipt' : 'payment',
-            amount: toPlannedInput(Math.abs(item.amount), locale),
+            amount: toPlannedInput(Math.abs(item.amount), locale, digits),
             cadence: item.cadence,
             nextExpectedOn: item.nextExpectedOn ?? '',
             accountId: item.accountId ?? '',
@@ -97,7 +100,7 @@ export function RecurringSheet({
           }
         : empty,
     );
-  }, [open, item, locale]);
+  }, [open, item, locale, digits]);
 
   const confirming = item?.status === 'detected';
 
@@ -105,7 +108,7 @@ export function RecurringSheet({
     e.preventDefault();
     const found: Record<string, string> = {};
     if (!form.name.trim()) found.name = t('nameRequired');
-    const amount = parsePlanned(form.amount);
+    const amount = parsePlanned(form.amount, digits);
     if (!amount.ok || amount.minor === 0) {
       found.amount =
         !amount.ok && amount.reason === 'negative' ? t('amountNegative') : t('amountInvalid');

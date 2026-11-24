@@ -25,22 +25,25 @@ const DETAIL_CODES: ReadonlySet<string> = new Set([
   'asset_disposed',
 ]);
 
+/** The `actionErrors` translator, loosened so the copy can take the failure's parameters. */
+export type FailureT = (key: string, values?: Record<string, string | number>) => string;
+
+/** The sentence for a failed action; the failure's parameters fill the copy's placeholders. */
+export function failureText(t: FailureT, failure: ActionFailure): string {
+  if (failure.code === 'forbidden') return t('forbidden');
+  if (failure.code === 'validation') {
+    const code = failure.detail?.code;
+    if (code && DETAIL_CODES.has(code)) return t(`detail.${code}`);
+    return t(`reason.${failure.reason}`, failure.detail?.params);
+  }
+  if (failure.code === 'conflict') return t(`conflict.${failure.conflict}`);
+  return t('generic');
+}
+
 /** The user-facing sentence for a failed action: what happened, in the user's language. */
 export function useFailureMessage(): (failure: ActionFailure) => string {
-  const t = useTranslations('actionErrors');
-  return useCallback(
-    (failure) => {
-      if (failure.code === 'forbidden') return t('forbidden');
-      if (failure.code === 'validation') {
-        const code = failure.detail?.code;
-        if (code && DETAIL_CODES.has(code)) return t(`detail.${code}`);
-        return t(`reason.${failure.reason}`);
-      }
-      if (failure.code === 'conflict') return t(`conflict.${failure.conflict}`);
-      return t('generic');
-    },
-    [t],
-  );
+  const t = useTranslations('actionErrors') as unknown as FailureT;
+  return useCallback((failure) => failureText(t, failure), [t]);
 }
 
 /** Shows a failed action as an error toast (403 included). */

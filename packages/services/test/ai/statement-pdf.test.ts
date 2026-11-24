@@ -76,10 +76,21 @@ const rejects = async (p: Promise<unknown>, message: string) => {
   expect((err as ValidationError).message).toBe(message);
 };
 
-const roundTrip = async (csv: string) =>
-  applyMapping(await parseFile(Buffer.from(csv), 'x.csv'), PDF_STATEMENT_MAPPING, {
-    currency: 'EUR',
-  });
+const rejectsTooMany = async (p: Promise<unknown>) => {
+  const err = await p.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(err).toBeInstanceOf(ValidationError);
+  expect((err as ValidationError).message).toBe(
+    `The PDF statement has too many movements (maximum ${MAX_PDF_STATEMENT_ROWS})`,
+  );
+  expect((err as ValidationError).code).toBe('pdf_too_long');
+  expect((err as ValidationError).params).toEqual({ max: MAX_PDF_STATEMENT_ROWS });
+};
+
+const roundTrip = async (csv: string, currency = 'EUR') =>
+  applyMapping(await parseFile(Buffer.from(csv), 'x.csv'), PDF_STATEMENT_MAPPING, { currency });
 
 describe('extractPdfStatement', () => {
   it('sends one request with the PDF as a base64 document block, a strict output format and no tools', async () => {
@@ -203,19 +214,19 @@ describe('extractPdfStatement', () => {
 
   it('rejects more than the row limit', async () => {
     const t = setup(() => parsed(Array.from({ length: MAX_PDF_STATEMENT_ROWS + 1 }, () => row())));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('rejects an answer cut off at the token limit as too many movements', async () => {
     const t = setup(() => parsed([row()], 'EUR', 'max_tokens'));
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('rejects a truncated answer cut off at the token limit as too many movements', async () => {
     const t = setup(() =>
       message([text('{"currency":"EUR","rows":[{"date":"2026-03-')], 'max_tokens'),
     );
-    await rejects(t.run(), 'The PDF statement has too many movements (maximum 200)');
+    await rejectsTooMany(t.run());
   });
 
   it('reads the text block after a thinking block', async () => {
@@ -228,9 +239,49 @@ describe('extractPdfStatement', () => {
     expect((await t.run()).rows).toBe(1);
   });
 
+  it('asks for every decimal the statement prints, so the account currency decides', async () => {
+    const t = setup();
+    await t.run();
+    const system = JSON.stringify(t.calls[0]!.system);
+    expect(system).toMatch(/as many decimals as the statement prints/);
+    expect(system).not.toMatch(/two decimals|2 decimals/);
+  });
+
+  it.each([
+    ['JPY', '-1234', -1234],
+    ['JPY', '-1234.00', -1234],
+    ['EUR', '-1234.5', -123450],
+    ['KWD', '-1234.567', -1234567],
+    ['KWD', '12.5', 12500],
+  ])(
+    'imports a %s amount %j in the account currency minor units',
+    async (currency, amount, minor) => {
+      const t = setup(() => parsed([row({ amount })], currency));
+      const out = await t.run({ accountCurrency: currency });
+      expect((await roundTrip(out.csv, currency))[0]).toMatchObject({
+        status: 'ok',
+        row: { amount: minor, currency },
+      });
+    },
+  );
+
+  it.each([
+    ['JPY', '-12.5'],
+    ['EUR', '-12.345'],
+    ['KWD', '-1.2345'],
+  ])('rejects a %s amount %j with more decimals than the currency', async (currency, amount) => {
+    const t = setup(() => parsed([row({ amount })], currency));
+    await rejects(t.run({ accountCurrency: currency }), 'The AI answer could not be used');
+  });
+
   it('rejects a statement in another currency than the account', async () => {
     const t = setup(() => parsed([row()], 'USD'));
     await rejects(t.run(), 'The statement is in USD but the account is in EUR');
+  });
+
+  it('names the currency mismatch even when the amounts do not fit the account currency', async () => {
+    const t = setup(() => parsed([row({ amount: '-1.234' })], 'KWD'));
+    await rejects(t.run(), 'The statement is in KWD but the account is in EUR');
   });
 
   it.each([
@@ -265,7 +316,7 @@ describe('extractPdfStatement', () => {
     [429, 'The AI service is busy'],
     [529, 'The AI service is busy'],
     [500, 'The AI service could not be reached'],
-    [404, 'The AI service could not be reached'],
+    [404, 'The AI service did not find the configured model or address'],
   ])('reports HTTP %i without provider text', async (status, expected) => {
     const t = setup(() => {
       throw APIError.generate(

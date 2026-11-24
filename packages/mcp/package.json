@@ -12,15 +12,15 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.135.0",
-    "@modelcontextprotocol/server": "2.3.1",
+    "@anthropic-ai/sdk": "1.12.0",
+    "@modelcontextprotocol/server": "2.4.0",
     "@arfolio/core": "workspace:*",
     "@arfolio/db": "workspace:*",
     "@arfolio/services": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/client": "2.4.0",
     "@types/pg": "8.23.1",
     "drizzle-orm": "0.45.4",
     "pg": "8.23.1"
