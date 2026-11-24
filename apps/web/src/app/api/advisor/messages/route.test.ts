@@ -19,6 +19,7 @@ vi.mock('@/lib/env', () => ({
     ADVISOR_WEEKLY_CAP: 2,
     ADVISOR_DAILY_MESSAGES: 2,
     ADVISOR_MAX_TOOL_CALLS: 8,
+    APP_URL: 'https://app.example.test',
   }),
 }));
 vi.mock('@/server/session', () => ({ getSessionContext: async () => state.session }));
@@ -57,13 +58,20 @@ describe('POST /api/advisor/messages', () => {
       user: { id: ctx.userId },
     };
   };
-  const post = (body: unknown, init: { signal?: AbortSignal } = {}) =>
+  const post = (
+    body: unknown,
+    init: { signal?: AbortSignal; headers?: Record<string, string> } = {},
+  ) =>
     POST(
       new Request('http://localhost/api/advisor/messages', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'sec-fetch-site': 'same-origin',
+          ...init.headers,
+        },
         body: JSON.stringify(body),
-        ...init,
+        ...(init.signal ? { signal: init.signal } : {}),
       }) as never,
     );
 
@@ -79,6 +87,66 @@ describe('POST /api/advisor/messages', () => {
     state.session = null;
     state.cfg = integrationConfigFixture({ anthropicApiKey: 'sk-ant-e2e-fake-key-1' });
     state.client = fakeClient();
+  });
+
+  describe('request origin', () => {
+    const ok = async (headers: Record<string, string>, remove: string[] = []) => {
+      signIn(await t.member(hh));
+      const all = { 'content-type': 'application/json', ...headers };
+      for (const name of remove) delete all[name];
+      const res = await POST(
+        new Request('http://localhost/api/advisor/messages', {
+          method: 'POST',
+          headers: all,
+          body: JSON.stringify({ text: 'hi' }),
+        }) as never,
+      );
+      await res.text();
+      return res.status;
+    };
+
+    it('answers 415 unless the body is JSON, before anything is stored or called', async () => {
+      const ctx = await t.member(hh);
+      signIn(ctx);
+      for (const type of [
+        'text/plain',
+        'application/x-www-form-urlencoded',
+        'multipart/form-data',
+      ]) {
+        const res = await post({ text: 'hi' }, { headers: { 'content-type': type } });
+        expect(res.status).toBe(415);
+      }
+      expect(calls).toHaveLength(0);
+      expect(await listMessages(ctx, {})).toEqual([]);
+    });
+
+    it('accepts JSON with a charset', async () => {
+      signIn(await t.member(hh));
+      const res = await post(
+        { text: 'hi' },
+        { headers: { 'content-type': 'application/json; charset=utf-8' } },
+      );
+      expect(res.status).toBe(200);
+      await res.text();
+    });
+
+    it.each(['cross-site', 'same-site', 'none'])(
+      'answers 403 for Sec-Fetch-Site %s',
+      async (site) => {
+        const ctx = await t.member(hh);
+        signIn(ctx);
+        const res = await post({ text: 'hi' }, { headers: { 'sec-fetch-site': site } });
+        expect(res.status).toBe(403);
+        expect(calls).toHaveLength(0);
+        expect(await listMessages(ctx, {})).toEqual([]);
+      },
+    );
+
+    it('without Sec-Fetch-Site, accepts only the configured origin', async () => {
+      expect(await ok({ origin: 'https://app.example.test' }, ['sec-fetch-site'])).toBe(200);
+      expect(await ok({ origin: 'https://evil.example' }, ['sec-fetch-site'])).toBe(403);
+      expect(await ok({}, ['sec-fetch-site'])).toBe(403);
+    });
   });
 
   it('answers 401 without a signed-in member', async () => {
