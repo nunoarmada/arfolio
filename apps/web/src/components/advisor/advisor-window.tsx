@@ -80,7 +80,7 @@ export function AdvisorWindow() {
   useEffect(() => {
     if (wasVisible.current && !visible && desktop) advisor.restoreFocus();
     wasVisible.current = visible;
-  }, [visible]);
+  }, [visible, desktop]);
 
   if (!advisor.available || !advisor.everOpened) return null;
 

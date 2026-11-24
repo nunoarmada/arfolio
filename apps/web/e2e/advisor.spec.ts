@@ -47,7 +47,7 @@ test.describe('Financial advisor', () => {
     await sql(`delete from audit_log where action like 'advisor.%'`);
     await sql(`delete from notification where kind = 'advisor_message'`);
     await sql('update household_settings set ai_enabled = $1', [originalAiEnabled]);
-    await context.close();
+    await context?.close();
   });
 
   test('the launcher opens the window, streams an answer and Escape returns focus', async () => {

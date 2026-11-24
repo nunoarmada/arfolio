@@ -278,6 +278,8 @@ export async function runAdvisorTurn(
       messages.push({ role: 'user', content: results });
     }
 
+    // The loop ends on `end_turn` or when the reply was cut at `max_tokens`: a cut reply with text
+    // is kept as complete (the member has what was written); one without text is a failure.
     if (answer.trim().length === 0) throw new Error('empty answer');
     await finishMessage(ctx, pending.id, { text: answer, status: 'complete' });
     return { messageId: pending.id };
