@@ -65,6 +65,36 @@ describe('advisor store', () => {
     await expect(getProposal(a, 'not-a-uuid')).rejects.toBeInstanceOf(NotFoundError);
   });
 
+  it('never returns the internal amounts snapshot in the proposal basis', async () => {
+    const { a } = await pair();
+    const msg = await say(a, 'hello');
+    const save = (basis: unknown) =>
+      saveProposal(a, {
+        messageId: msg!.id,
+        kind: 'budget_line_amount',
+        payload: {},
+        basis,
+        targetUpdatedAt: null,
+      });
+    const figures = { months: 3, min: 1, max: 5, median: 3, currency: 'EUR' };
+    const mixed = await save({ ...figures, amountsSnapshot: [1, 2, 3] });
+    const onlySnapshot = await save({ amountsSnapshot: [1, 2, 3] });
+    const plain = await save(figures);
+    expect(mixed.basis).toEqual(figures);
+    expect(onlySnapshot.basis).toBeNull();
+    const [view] = await listMessages(a, {});
+    const byId = new Map(view!.proposals.map((p) => [p.id, p.basis]));
+    expect(byId.get(mixed.id)).toEqual(figures);
+    expect(byId.get(onlySnapshot.id)).toBeNull();
+    expect(byId.get(plain.id)).toEqual(figures);
+    expect((await getProposal(a, mixed.id)).basis).toEqual(figures);
+    // Stored raw: apply still compares against the snapshot.
+    const [raw] = await withHousehold(a.db, a.householdId, (tx) =>
+      tx.select().from(schema.advisorProposal).where(eq(schema.advisorProposal.id, mixed.id)),
+    );
+    expect(raw!.basis).toEqual({ ...figures, amountsSnapshot: [1, 2, 3] });
+  });
+
   it('dedupes proactive messages by event key', async () => {
     const { a } = await pair();
     const base = {

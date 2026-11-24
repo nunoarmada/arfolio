@@ -30,6 +30,23 @@ const settingsInput = z.strictObject({
   weeklyCap: z.number().int().min(0).max(14).nullable(),
 });
 
+/**
+ * The basis as UI and model may see it: the judged figures without the internal `amountsSnapshot`
+ * (which only `applyProposal` reads, from the raw row). `null` when nothing else remains.
+ */
+export function publicBasis(basis: unknown): unknown {
+  if (basis === null || typeof basis !== 'object' || Array.isArray(basis)) return basis ?? null;
+  const rest = { ...(basis as Record<string, unknown>) };
+  delete rest.amountsSnapshot;
+  return Object.keys(rest).length > 0 ? rest : null;
+}
+
+/** A stored proposal as it leaves the service: the basis is the public one. */
+const toProposalView = (row: AdvisorProposal): AdvisorProposal => ({
+  ...row,
+  basis: publicBasis(row.basis),
+});
+
 /** Conversations are private per member: every statement filters household AND user. */
 const mine = <T extends typeof advisorMessage | typeof advisorProposal | typeof advisorNote>(
   table: T,
@@ -138,7 +155,7 @@ export async function listMessages(
     return rows.map((r) => ({
       ...r,
       status: r.status === 'pending' && r.createdAt.getTime() < expiry ? 'failed' : r.status,
-      proposals: proposals.filter((p) => p.messageId === r.id),
+      proposals: proposals.filter((p) => p.messageId === r.id).map(toProposalView),
     }));
   });
 }
@@ -172,7 +189,7 @@ export async function saveProposal(
         targetUpdatedAt: p.targetUpdatedAt,
       })
       .returning();
-    return row!;
+    return toProposalView(row!);
   });
 }
 
@@ -185,7 +202,7 @@ export async function getProposal(ctx: ServiceCtx, id: string): Promise<AdvisorP
       .from(advisorProposal)
       .where(and(eq(advisorProposal.id, id), mine(advisorProposal, ctx)));
     if (!row) throw new NotFoundError('Proposal');
-    return row;
+    return toProposalView(row);
   });
 }
 
