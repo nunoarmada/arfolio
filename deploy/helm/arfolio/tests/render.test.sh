@@ -193,6 +193,7 @@ helm template pfm "$CHART" --set fullnameOverride=pfm --set app.url=https://x --
 # The chart-name-derived label app.kubernetes.io/part-of is deliberately not asserted: labels on objects and pod
 # templates are mutable.
 [ "$(tenv "$D" Deployment pfm-web BRAND_NAME .value)" = "Arfolio" ]; check "defaults: BRAND_NAME is Arfolio" $?
+[ "$(tenv "$D" Deployment pfm-worker BRAND_NAME .value)" = "Arfolio" ]; check "defaults: worker BRAND_NAME is Arfolio (advisor name)" $?
 for n in pfm-postgres; do
   [ "$(field "$D" StatefulSet $n '.metadata.name')" = "$n" ]; check "compat: StatefulSet $n" $?
   [ "$(field "$D" Service $n '.metadata.name')" = "$n" ]; check "compat: Service $n" $?

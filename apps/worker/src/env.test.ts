@@ -11,6 +11,7 @@ describe('loadEnv', () => {
       ENCRYPTION_KEY: KEY,
       WORKER_HEALTH_PORT: 8081,
       TZ: 'UTC',
+      BRAND_NAME: 'Arfolio',
       ENABLE_BANKING_API_URL: 'https://api.enablebanking.com',
       TRADING212_API_URL: 'https://live.trading212.com/api/v0',
       AI_CATEGORISATION_MODEL: 'claude-haiku-5-5',
@@ -39,6 +40,12 @@ describe('loadEnv', () => {
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
     expect(env.ENABLE_BANKING_API_URL).toBe('https://api.enablebanking.com');
     expect(env.AI_CATEGORISATION_MODEL).toBe('claude-haiku-5-5');
+  });
+
+  it('reads BRAND_NAME for the advisor, defaulting when unset or empty', () => {
+    const base = { DATABASE_URL: 'postgres://x', ENCRYPTION_KEY: KEY };
+    expect(loadEnv({ ...base, BRAND_NAME: 'Acme Ledger' }).BRAND_NAME).toBe('Acme Ledger');
+    expect(loadEnv({ ...base, BRAND_NAME: '' }).BRAND_NAME).toBe('Arfolio');
   });
 
   it('reads the MERCHANT_LOGOS switch: on by default, empty means unset, anything else fails', () => {

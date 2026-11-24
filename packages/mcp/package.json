@@ -5,7 +5,8 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./advisor": "./src/advisor/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

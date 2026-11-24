@@ -489,6 +489,18 @@ export {
   validateDraft,
 } from './advisor/proposals.js';
 export type { DraftVerdict, ProposalBasis, ProposalDraft } from './advisor/proposals.js';
+export {
+  detectEvents,
+  loadHouseholdSignals,
+  loadSentState,
+  notifyAdvisorMessage,
+} from './advisor/events.js';
+export type {
+  AdvisorEvent,
+  AdvisorEventType,
+  EventInput as AdvisorEventInput,
+  HouseholdSignals,
+} from './advisor/events.js';
 export { completeMonths, typicalSpend } from './advisor/profile.js';
 export type { SpendingProfile, TypicalSpend } from './advisor/profile.js';
 export { loadSpendingProfile } from './advisor/profile-data.js';

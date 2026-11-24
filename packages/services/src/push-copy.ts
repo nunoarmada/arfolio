@@ -120,6 +120,25 @@ const COPY: Record<PushKind, Record<AppLocale, PushCopy>> = {
     'it-IT': { title: 'Report mensile pronto', body: 'Il suo report del mese è disponibile.' },
     en: { title: 'Monthly report ready', body: 'Your report for the month is ready.' },
   },
+  advisor_message: {
+    'pt-PT': {
+      title: 'Nova mensagem do assistente',
+      body: 'O assistente financeiro tem uma mensagem para si.',
+    },
+    'es-ES': {
+      title: 'Nuevo mensaje del asistente',
+      body: 'El asistente financiero tiene un mensaje para usted.',
+    },
+    'fr-FR': {
+      title: 'Nouveau message de l’assistant',
+      body: 'L’assistant financier a un message pour vous.',
+    },
+    'it-IT': {
+      title: 'Nuovo messaggio dell’assistente',
+      body: 'L’assistente finanziario ha un messaggio per lei.',
+    },
+    en: { title: 'New advisor message', body: 'Your financial advisor has a message for you.' },
+  },
   push_test: {
     'pt-PT': {
       title: 'Notificações ativas',

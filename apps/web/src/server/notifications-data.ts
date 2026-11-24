@@ -69,6 +69,12 @@ export interface AiReportNotificationDto extends Base {
   month: string | null;
 }
 
+export interface AdvisorNotificationDto extends Base {
+  kind: 'advisor_message';
+  /** The advisor message it announces; null when the payload is malformed. Never its text. */
+  messageId: string | null;
+}
+
 /** Client-safe notification, one shape per kind. The payload is jsonb: read it defensively. */
 export type NotificationDto =
   | ConnectionNotificationDto
@@ -76,7 +82,8 @@ export type NotificationDto =
   | UnallocatedNotificationDto
   | RecurringMissedNotificationDto
   | RecurringPriceNotificationDto
-  | AiReportNotificationDto;
+  | AiReportNotificationDto
+  | AdvisorNotificationDto;
 
 /** What the notifications refer to, as it is now: renamed or deleted targets resolve here. */
 export interface NotificationLookups {
@@ -147,6 +154,8 @@ export function toNotificationDto(
         month: month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : null,
       };
     }
+    case 'advisor_message':
+      return { ...base, kind: row.kind, messageId: id(p.messageId) };
     case 'budget_unallocated_negative': {
       const budgetId = id(p.budgetId);
       const budget = budgetId ? known.budgets.get(budgetId) : undefined;

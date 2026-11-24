@@ -1868,7 +1868,10 @@
     "aiReportReady": "Your {month} report is ready",
     "aiReportReadyNoMonth": "Your monthly report is ready",
     "aiReportReadyBody": "Read the AI summary of the month.",
-    "viewReport": "View report"
+    "viewReport": "View report",
+    "advisorMessage": "The advisor has a message for you",
+    "advisorMessageBody": "Open the conversation to read it.",
+    "viewAdvisor": "Open advisor"
   },
   "ai": {
     "badge": "AI",

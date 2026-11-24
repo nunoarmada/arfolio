@@ -79,7 +79,7 @@ These are read by the web app (and `TZ` by the worker). With Compose, set them i
 
 | Variable                | Default       | Meaning                                                                                                 |
 | ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `BRAND_NAME`            | `Arfolio`     | Product name: UI wordmark, page titles, manifest, social cards.                                         |
+| `BRAND_NAME`            | `Arfolio`     | Product name: UI wordmark, page titles, manifest, social cards, and the name the AI advisor writes under (the worker reads it too).                                         |
 | `BRAND_PRIMARY_COLOR`   | `#2F5BC2`     | Interface colour (derived per light and dark mode) and the tile colour of every icon.                   |
 | `BRAND_LOGO_URL`        | unset         | Replaces the mark in the UI (sign-in, setup, sidebar). Needs an origin your CSP allows.                 |
 | `DEFAULT_LOCALE`        | `en`          | Language before a person picks theirs: `en`, `pt-PT`, `es-ES`, `fr-FR` or `it-IT`.                                          |
@@ -97,7 +97,7 @@ These have no field on the Services page.
 | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `MERCHANT_LOGOS`            | `on`           | `on` lets the worker fetch each merchant's favicon through Google's favicon service (it learns the merchant's domain, not your transactions). `off` disables it. |
 | `ADVISOR_LEARNING_MONTHS`   | `3`            | Months of history the AI advisor needs before it proposes anything (1-24). |
-| `ADVISOR_WEEKLY_CAP`        | `2`            | Proactive advisor proposals per household and week (0-14). `0` turns them off. |
+| `ADVISOR_WEEKLY_CAP`        | `2`            | Proactive advisor messages per member and week (0-14); a member can set their own. The welcome and the "what I learned" message do not count. `0` turns the rest off. |
 | `ADVISOR_DAILY_MESSAGES`    | `50`           | Chat messages one member may send to the advisor per day (1-1000).         |
 | `ADVISOR_MAX_TOOL_CALLS`    | `8`            | Tool calls the advisor may make while answering one message (1-20).        |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | generated | Web Push key pair. When unset the app generates one on first use and stores it (private key encrypted). Set **both** or neither: one alone is a startup error. Generate with `npx web-push generate-vapid-keys`. |

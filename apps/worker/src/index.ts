@@ -1,7 +1,8 @@
 import type { PgBoss } from 'pg-boss';
-import { EnvError } from '@arfolio/core';
+import { advisorLimits, EnvError } from '@arfolio/core';
 import { loadEncryptionKey } from '@arfolio/core/server';
 import { createDb, schema } from '@arfolio/db';
+import { createAdvisorClient } from '@arfolio/mcp/advisor';
 import {
   createIntegrationConfigCache,
   createWebPushSender,
@@ -12,6 +13,7 @@ import { startBoss } from './boss.js';
 import { createWorkerConnectors } from './connectors.js';
 import { loadEnv } from './env.js';
 import { createHealthServer } from './health.js';
+import { registerAdvisorProactive } from './jobs/advisor-proactive.js';
 import { createAnthropicMemo, registerAiCategorise } from './jobs/ai-categorise.js';
 import { registerAiReport } from './jobs/ai-report.js';
 import {
@@ -186,6 +188,19 @@ async function main(): Promise<void> {
     await registerPruneSyncData(boss, db, env.TZ);
     await registerRecurringDetect(boss, db, env.TZ, afterNotify);
     await registerBudgetAlerts(boss, db, env.TZ, afterNotify);
+    // Proactive advisor messages: one model client per pass (no SDK retries, see the advisor client).
+    await registerAdvisorProactive(
+      boss,
+      {
+        db,
+        getConfig,
+        getClient: (apiKey) => createAdvisorClient(apiKey),
+        limits: advisorLimits(env),
+        brandName: env.BRAND_NAME,
+      },
+      env.TZ,
+      afterNotify,
+    );
     await registerNetWorthSnapshot(boss, db, env.TZ);
     if (stopping) return;
     await new Promise<void>((resolve, reject) => {

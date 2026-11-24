@@ -178,6 +178,9 @@ importers:
       '@arfolio/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@arfolio/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@arfolio/services':
         specifier: workspace:*
         version: link:../../packages/services

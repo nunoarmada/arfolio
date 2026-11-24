@@ -9,6 +9,11 @@ const schema = z
     TZ: z.string().min(1).default('UTC'),
     /** Public URL of the app (as in the web Deployment): the default VAPID subject when https. */
     APP_URL: z.preprocess((v) => (v === '' ? undefined : v), z.url().optional()),
+    /** The product name the advisor writes under (the web app's `BRAND_NAME`). */
+    BRAND_NAME: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(1).default('Arfolio'),
+    ),
     ...integrationEnvShape,
   })
   .superRefine(refineIntegrationEnv);

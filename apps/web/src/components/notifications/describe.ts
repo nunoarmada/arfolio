@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   CalendarX,
+  MessageCircle,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -155,6 +156,14 @@ export function describeNotification(n: NotificationDto, deps: Deps): Described 
         },
       };
     }
+    case 'advisor_message':
+      return {
+        icon: MessageCircle,
+        tone: 'info',
+        title: t('advisorMessage'),
+        body: t('advisorMessageBody'),
+        action: { href: notificationPath(n.kind), label: t('viewAdvisor') },
+      };
     default: {
       const name = n.name ?? t('unknownConnection');
       // The path comes from the shared function; only the bank renew link is the web's own.

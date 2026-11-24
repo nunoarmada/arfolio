@@ -1868,7 +1868,10 @@
     "aiReportReady": "Su informe de {month} está listo",
     "aiReportReadyNoMonth": "Su informe mensual está listo",
     "aiReportReadyBody": "Lea el resumen del mes elaborado por la IA.",
-    "viewReport": "Ver informe"
+    "viewReport": "Ver informe",
+    "advisorMessage": "El asistente tiene un mensaje para usted",
+    "advisorMessageBody": "Abra la conversación para leerlo.",
+    "viewAdvisor": "Abrir asistente"
   },
   "ai": {
     "badge": "IA",
