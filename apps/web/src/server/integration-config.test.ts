@@ -26,7 +26,7 @@ beforeEach(() => {
   resolve.mockReset();
   listen.mockReset();
   listen.mockReturnValue({ close: async () => {} });
-  delete (globalThis as Record<symbol, unknown>)[Symbol.for('arfolio.settingsListener')];
+  delete (globalThis as Record<symbol, unknown>)[Symbol.for('arfolio.integrationConfig')];
   resolve.mockImplementation(async () => integrationConfigFixture());
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -63,26 +63,61 @@ describe('getIntegrationConfig', () => {
     expect(resolve).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps one listener when the module is re-evaluated (dev reload) and closes the old one', async () => {
-    const closes = [vi.fn(async () => {}), vi.fn(async () => {})];
-    listen.mockReturnValueOnce({ close: closes[0] }).mockReturnValueOnce({ close: closes[1] });
+  it('shares one cache and one listener between two module instances alive at once', async () => {
+    // `next start` bundles this module twice (page layer and server-action layer).
+    const pages = await fresh();
+    const actions = await fresh();
+    await pages.getIntegrationConfig();
+    await actions.getIntegrationConfig();
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(listen).toHaveBeenCalledTimes(1);
 
+    // A save in a server action is seen by the page layer, and the other way round.
+    actions.invalidateIntegrationConfig();
+    await pages.getIntegrationConfig();
+    await actions.getIntegrationConfig();
+    expect(resolve).toHaveBeenCalledTimes(2);
+    pages.invalidateIntegrationConfig();
+    await actions.getIntegrationConfig();
+    await pages.getIntegrationConfig();
+    expect(resolve).toHaveBeenCalledTimes(3);
+
+    // A notification from another process drops the one shared cache.
+    const onChange = listen.mock.calls[0]?.[1] as () => void;
+    onChange();
+    await pages.getIntegrationConfig();
+    await actions.getIntegrationConfig();
+    expect(resolve).toHaveBeenCalledTimes(4);
+    expect(listen).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the cache and the listener when the module is re-evaluated (dev reload)', async () => {
+    const close = vi.fn(async () => {});
+    listen.mockReturnValue({ close });
     const first = await fresh();
     await first.getIntegrationConfig();
     const second = await fresh();
-    await second.getIntegrationConfig();
+    second.invalidateIntegrationConfig();
     await second.getIntegrationConfig();
 
+    expect(listen).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+    expect(resolve).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not count a listener that failed to start, and tries again on the next read', async () => {
+    listen.mockImplementationOnce(() => {
+      throw new Error('no connection');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const m = await fresh();
+    // Reads keep working (the TTL is the backstop); the failure is logged, message only.
+    await expect(m.getIntegrationConfig()).resolves.toBeDefined();
+    expect(error).toHaveBeenCalledWith('settings listener: no connection');
+    await m.getIntegrationConfig();
     expect(listen).toHaveBeenCalledTimes(2);
-    expect(closes[0]).toHaveBeenCalledTimes(1);
-    expect(closes[1]).not.toHaveBeenCalled();
-
-    // The surviving listener drops the cache of the current module instance.
-    const onChange = listen.mock.calls[1]?.[1] as () => void;
-    await second.getIntegrationConfig();
-    const before = resolve.mock.calls.length;
-    onChange();
-    await second.getIntegrationConfig();
-    expect(resolve.mock.calls.length).toBe(before + 1);
+    await m.getIntegrationConfig();
+    expect(listen).toHaveBeenCalledTimes(2);
+    error.mockRestore();
   });
 });
