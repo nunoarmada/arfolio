@@ -435,7 +435,7 @@
     },
     "ai": {
       "title": "IA",
-      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni, e legge gli estratti conto in PDF che importi. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
+      "description": "Anthropic scrive i suggerimenti di categoria, i report mensili e le valutazioni dei beni, e legge gli estratti conto in PDF importati. Gli estratti conto sono l'unico uso che invia file interi, e solo dopo la conferma di ogni file.",
       "apiKey": "Chiave API di Anthropic",
       "apiKeyHint": "Creare una chiave nella console di Anthropic e incollarla qui.",
       "enableHint": "La chiave è configurata. Ogni nucleo familiare sceglie comunque se usare l’IA.",
