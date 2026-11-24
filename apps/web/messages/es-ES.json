@@ -1308,7 +1308,7 @@
     "rowErrors": {
       "currency": "La fila está en {row}, pero la cuenta está en {account}",
       "date": "Fecha no válida",
-      "decimals": "El importe tiene más de 2 decimales",
+      "decimals": "{digits, plural, =0 {El importe no puede tener decimales en esta moneda} one {El importe tiene más de # decimal} other {El importe tiene más de # decimales}}",
       "amount": "Importe no válido",
       "description": "Falta la descripción",
       "other": "Fila ilegible"

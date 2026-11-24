@@ -1308,7 +1308,7 @@
     "rowErrors": {
       "currency": "The row is in {row}, but the account is in {account}",
       "date": "Invalid date",
-      "decimals": "The amount has more than 2 decimals",
+      "decimals": "{digits, plural, =0 {The amount must be a whole number in this currency} one {The amount has more than # decimal} other {The amount has more than # decimals}}",
       "amount": "Invalid amount",
       "description": "Missing description",
       "other": "Unreadable row"

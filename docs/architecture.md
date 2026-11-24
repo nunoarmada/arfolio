@@ -32,7 +32,7 @@ The web app, the worker and the MCP server all call the same services, so a rule
 
 ## Money and time
 
-Amounts are integers in minor units (cents) with an ISO currency, never floats. A household has a currency, a time zone and a fiscal-year start month; the budget year and every "this month" view follow them.
+Amounts are integers in the minor units of their ISO 4217 currency (cents for EUR, whole yen for JPY, thousandths for KWD), never floats; parsing and display both take the currency's decimals from `minorDigits` in `packages/core`. A household has a currency, a time zone and a fiscal-year start month; the budget year and every "this month" view follow them.
 
 ## Tenancy, roles and isolation
 

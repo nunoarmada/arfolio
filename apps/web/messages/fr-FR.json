@@ -1308,7 +1308,7 @@
     "rowErrors": {
       "currency": "La ligne est en {row}, mais le compte est en {account}",
       "date": "Date invalide",
-      "decimals": "Le montant comporte plus de 2 décimales",
+      "decimals": "{digits, plural, =0 {Le montant ne peut pas avoir de décimales dans cette devise} one {Le montant comporte plus de # décimale} other {Le montant comporte plus de # décimales}}",
       "amount": "Montant invalide",
       "description": "Libellé manquant",
       "other": "Ligne illisible"

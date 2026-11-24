@@ -64,3 +64,46 @@ describe('tidyPlannedInput', () => {
     expect(tidyPlannedInput('-5', 'pt-PT')).toBeNull();
   });
 });
+
+describe('the currency minor digits', () => {
+  it.each([
+    ['1234', 0, 1234],
+    ['1.234', 0, 1234],
+    ['1 234 ¥', 0, 1234],
+    ['120,50', 2, 12050],
+    ['1,234', 3, 1234],
+    ['1.234,567', 3, 1234567],
+    ['12', 3, 12000],
+  ])('parsePlanned reads %j with %i digits as %i', (raw, digits, minor) => {
+    expect(parsePlanned(raw, digits)).toEqual({ ok: true, minor });
+  });
+
+  it('refuses more decimals than the currency has', () => {
+    expect(parsePlanned('12,5', 0)).toEqual({ ok: false, reason: 'invalid' });
+    expect(parsePlanned('1.2345', 3)).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('writes and round-trips amounts in the currency minor digits', () => {
+    expect(toPlannedInput(1234, 'pt-PT', 0)).toBe('1234');
+    expect(toPlannedInput(1234, 'en', 3)).toBe('1.234');
+    expect(toPlannedInput(1200, 'pt-PT', 3)).toBe('1,200');
+    expect(toPlannedInput(12000, 'en', 3)).toBe('12');
+    expect(toPlannedInput(5, 'en', 3)).toBe('0.005');
+    for (const digits of [0, 2, 3]) {
+      for (const minor of [1, 99, 100, 1000, 12050, 120050, 99999999]) {
+        for (const locale of LOCALES) {
+          expect(parsePlanned(toPlannedInput(minor, locale, digits), digits)).toEqual({
+            ok: true,
+            minor,
+          });
+        }
+      }
+    }
+  });
+
+  it('tidies in the currency minor digits', () => {
+    expect(tidyPlannedInput('1.234', 'pt-PT', 0)).toBe('1234');
+    expect(tidyPlannedInput('1,5', 'pt-PT', 3)).toBe('1,500');
+    expect(tidyPlannedInput('12,5', 'pt-PT', 0)).toBeNull();
+  });
+});

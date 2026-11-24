@@ -1,6 +1,6 @@
 import { and, asc, eq, getTableColumns, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { normalizeDescription, type BudgetKind } from '@arfolio/core';
+import { minorDigits, normalizeDescription, type BudgetKind } from '@arfolio/core';
 import { schema, withHousehold, type Tx } from '@arfolio/db';
 import {
   assertCanWrite,
@@ -681,11 +681,13 @@ export async function previewBudgetImport(
   }
   const workbook = await readBudgetWorkbook(Buffer.from(file.bytes));
   // Património months that have not ended in the household's calendar are projections.
-  const { timezone } = await withHousehold(ctx.db, ctx.householdId, (tx) =>
+  // Amounts are in the household currency: its minor units decide the scale.
+  const { timezone, currency } = await withHousehold(ctx.db, ctx.householdId, (tx) =>
     loadSettings(tx, ctx.householdId),
   );
   const sheet = parseBudgetWorkbook(workbook, {
     today: localDay(opts.now ?? new Date(), timezone),
+    minorDigits: minorDigits(currency),
   });
   const fileName = file.fileName.slice(0, 255);
 

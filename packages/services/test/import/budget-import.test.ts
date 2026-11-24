@@ -421,6 +421,17 @@ describe('budget spreadsheet import', () => {
       expect((await getBudget(ctx, result.budgetId)).name).toBe(name);
     });
 
+    it.each([
+      ['JPY', 600, [-240, -90, -12, -5]],
+      ['KWD', 600_000, [-240_000, -90_000, -12_000, -5_000]],
+    ])('imports the amounts of a %s household in its minor units', async (currency, rent, subs) => {
+      const ctx = await t.household({ currency });
+      const { result } = await importAll(ctx);
+      const detail = await getBudget(ctx, result.budgetId);
+      expect(detail.lines.find((l) => l.name === 'Renda')!.amounts).toEqual(flat(rent));
+      expect((await importRows(ctx)).map((r) => r.amount).sort((a, b) => a - b)).toEqual(subs);
+    });
+
     it('imports a workbook whose amounts are numbers', async () => {
       const ctx = await t.household();
       const { result } = await importAll(ctx, { numericAmounts: true });

@@ -1308,7 +1308,7 @@
     "rowErrors": {
       "currency": "A linha está em {row}, mas a conta é em {account}",
       "date": "Data inválida",
-      "decimals": "O valor tem mais de 2 casas decimais",
+      "decimals": "{digits, plural, =0 {O valor não pode ter casas decimais nesta moeda} one {O valor tem mais de # casa decimal} other {O valor tem mais de # casas decimais}}",
       "amount": "Valor inválido",
       "description": "Falta a descrição",
       "other": "Linha ilegível"
