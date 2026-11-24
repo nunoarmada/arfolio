@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { schema, withHousehold } from '@arfolio/db';
 import {
@@ -77,6 +77,34 @@ describe('advisor store', () => {
     expect(await appendMessage(a, base)).toBeNull();
   });
 
+  it('accepts the same event key for a different member', async () => {
+    const { a, b } = await pair();
+    const base = {
+      role: 'assistant',
+      origin: 'proactive',
+      text: 'Hi',
+      eventKey: 'shared',
+    } as const;
+    expect(await appendMessage(a, base)).not.toBeNull();
+    expect(await appendMessage(b, base)).not.toBeNull();
+  });
+
+  it('pages without skipping rows that share a millisecond', async () => {
+    const { a } = await pair();
+    const ids: string[] = [];
+    for (const text of ['m1', 'm2', 'm3']) ids.push((await say(a, text))!.id);
+    // Same millisecond, different microseconds: a JS Date cursor cannot tell them apart.
+    for (const [i, id] of ids.entries()) {
+      await t.owner.execute(
+        sql`update advisor_message set created_at = '2026-03-01T10:00:00.123000Z'::timestamptz + ${i * 100} * interval '1 microsecond' where id = ${id}`,
+      );
+    }
+    const first = await listMessages(a, { limit: 1 });
+    const second = await listMessages(a, { before: first[0]!.id, limit: 1 });
+    const third = await listMessages(a, { before: second[0]!.id, limit: 1 });
+    expect([first, second, third].map((p) => p[0]!.text)).toEqual(['m3', 'm2', 'm1']);
+  });
+
   it('lists newest first with proposals, paged by before', async () => {
     const { a } = await pair();
     const first = await say(a, 'one');
@@ -95,7 +123,7 @@ describe('advisor store', () => {
     expect(page[0]!.proposals).toEqual([]);
     const older = await listMessages(a, { before: page[1]!.id, limit: 2 });
     expect(older.map((m) => m.id)).toEqual([first!.id]);
-    expect(third).not.toBeNull();
+    expect(third!.id).toBe(page[0]!.id);
   });
 
   it('finishes, deletes and expires pending messages', async () => {
@@ -106,7 +134,9 @@ describe('advisor store', () => {
       text: '',
       status: 'pending',
     });
-    await finishMessage(a, msg!.id, { text: 'done', status: 'complete' });
+    expect(await finishMessage(a, msg!.id, { text: 'done', status: 'complete' })).toBe(true);
+    // Only a pending message can be finished: a second call changes nothing.
+    expect(await finishMessage(a, msg!.id, { text: 'again', status: 'failed' })).toBe(false);
     expect((await listMessages(a, {}))[0]).toMatchObject({ text: 'done', status: 'complete' });
 
     const stale = await appendMessage(a, {

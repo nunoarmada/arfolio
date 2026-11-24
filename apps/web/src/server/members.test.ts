@@ -304,6 +304,29 @@ describe('members management', () => {
     expect(await counts(away)).toEqual([1, 1, 1, 1]);
   });
 
+  it('leaving through Better Auth directly also deletes the advisor data', async () => {
+    const email = 'advisor-leaver@example.com';
+    const inv = await createInvitation({ headers: owner, email, role: 'member' }, deps());
+    await acceptInvitationAndRegister(
+      { invitationId: inv.invitationId, token: inv.token, name: 'Lea', password: PASSWORD },
+      deps(),
+    );
+    const headers = new Headers(await signInHeaders(auth, email));
+    const uid = await userId(email);
+    await withHousehold(db, householdId, async (tx) => {
+      await tx
+        .insert(schema.advisorMessage)
+        .values({ householdId, userId: uid, role: 'user', origin: 'chat', text: 'hi' });
+      await tx.insert(schema.advisorNote).values({ householdId, userId: uid, text: 'n' });
+    });
+    await auth.api.leaveOrganization({ headers, body: { organizationId: householdId } });
+    const left = await withHousehold(db, householdId, async (tx) => [
+      await tx.select().from(schema.advisorMessage).where(eq(schema.advisorMessage.userId, uid)),
+      await tx.select().from(schema.advisorNote).where(eq(schema.advisorNote.userId, uid)),
+    ]);
+    expect(left).toEqual([[], []]);
+  });
+
   describe('push devices when a membership ends through Better Auth directly', () => {
     const device = (path: string) => ({
       endpoint: `https://fcm.googleapis.com/fcm/send/${path}`,

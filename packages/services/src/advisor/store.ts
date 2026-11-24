@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { schema, withHousehold, type Tx } from '@arfolio/db';
 import {
@@ -71,14 +71,22 @@ export async function finishMessage(
   ctx: ServiceCtx,
   id: string,
   result: { text: string; status: 'complete' | 'failed' },
-): Promise<void> {
+): Promise<boolean> {
   assertUuid(id, 'Message');
-  await withHousehold(ctx.db, ctx.householdId, (tx) =>
+  const updated = await withHousehold(ctx.db, ctx.householdId, (tx) =>
     tx
       .update(advisorMessage)
       .set({ text: result.text, status: result.status })
-      .where(and(eq(advisorMessage.id, id), mine(advisorMessage, ctx))),
+      .where(
+        and(
+          eq(advisorMessage.id, id),
+          eq(advisorMessage.status, 'pending'),
+          mine(advisorMessage, ctx),
+        ),
+      )
+      .returning({ id: advisorMessage.id }),
   );
+  return updated.length > 0;
 }
 
 export async function deleteMessage(ctx: ServiceCtx, id: string): Promise<void> {
@@ -99,14 +107,12 @@ export async function listMessages(
     if (opts.before !== undefined) {
       assertUuid(opts.before, 'Message');
       const [anchor] = await tx
-        .select({ createdAt: advisorMessage.createdAt })
+        .select({ id: advisorMessage.id })
         .from(advisorMessage)
         .where(and(eq(advisorMessage.id, opts.before), mine(advisorMessage, ctx)));
       if (!anchor) throw new NotFoundError('Message');
-      cursor = or(
-        lt(advisorMessage.createdAt, anchor.createdAt),
-        and(eq(advisorMessage.createdAt, anchor.createdAt), lt(advisorMessage.id, opts.before)),
-      );
+      // Compared in SQL: a JS Date would truncate the microseconds of created_at.
+      cursor = sql`(${advisorMessage.createdAt}, ${advisorMessage.id}) < (select a.created_at, a.id from advisor_message a where a.id = ${opts.before})`;
     }
     const rows = await tx
       .select()

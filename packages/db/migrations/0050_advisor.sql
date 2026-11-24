@@ -70,3 +70,21 @@ ALTER TABLE "advisor_note" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE POLICY "household_isolation" ON "advisor_note" AS PERMISSIVE FOR ALL USING ("household_id" = current_setting('app.household_id', true)) WITH CHECK ("household_id" = current_setting('app.household_id', true));--> statement-breakpoint
 ALTER TABLE "advisor_member_settings" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE POLICY "household_isolation" ON "advisor_member_settings" AS PERMISSIVE FOR ALL USING ("household_id" = current_setting('app.household_id', true)) WITH CHECK ("household_id" = current_setting('app.household_id', true));
+--> statement-breakpoint
+-- Advisor conversations are private to a member of one household and end with the membership, through
+-- any door (our removeMember, Better Auth's remove-member / leave, cascades). Same pattern as 0028:
+-- SECURITY DEFINER because these tables have RLS and those paths run without app.household_id; it
+-- only deletes the OLD row's own (household, user) pair.
+CREATE FUNCTION "drop_advisor_data_of_member"() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+BEGIN
+  DELETE FROM public."advisor_proposal" WHERE "household_id" = OLD."organization_id" AND "user_id" = OLD."user_id";
+  DELETE FROM public."advisor_message" WHERE "household_id" = OLD."organization_id" AND "user_id" = OLD."user_id";
+  DELETE FROM public."advisor_note" WHERE "household_id" = OLD."organization_id" AND "user_id" = OLD."user_id";
+  DELETE FROM public."advisor_member_settings" WHERE "household_id" = OLD."organization_id" AND "user_id" = OLD."user_id";
+  RETURN OLD;
+END
+$$;--> statement-breakpoint
+REVOKE ALL ON FUNCTION "drop_advisor_data_of_member"() FROM PUBLIC;--> statement-breakpoint
+CREATE TRIGGER "member_drop_advisor_data" AFTER DELETE ON "member"
+  FOR EACH ROW EXECUTE FUNCTION "drop_advisor_data_of_member"();
