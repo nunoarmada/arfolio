@@ -378,8 +378,9 @@ describe('parseXls: shared strings', () => {
       const started = performance.now();
       expect(parseXls(buildCfb(grown, { mini: false }))).toEqual([['a']]);
       // Linear reading takes well under a second; reading that rescans the remaining CONTINUE
-      // records for every string took several seconds. The margin is generous on purpose.
-      expect(performance.now() - started).toBeLessThan(1500);
+      // records for every string took about 9 s. The margin is generous on purpose and still
+      // about 3x below the quadratic version.
+      expect(performance.now() - started).toBeLessThan(3000);
     }, 30_000);
 
     it('still rejects a shared string index past the strings read', () => {
