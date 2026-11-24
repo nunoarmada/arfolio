@@ -20,8 +20,16 @@ import { categoriseTransaction } from '../transactions.js';
 import { getProposal, type AdvisorProposal } from './store.js';
 import type { SpendingProfile, TypicalSpend } from './profile.js';
 
-const { advisorMessage, advisorProposal, budget, budgetLine, category, financialAccount, goal } =
-  schema;
+const {
+  advisorMessage,
+  advisorProposal,
+  budget,
+  budgetAmount,
+  budgetLine,
+  category,
+  financialAccount,
+  goal,
+} = schema;
 const { transaction } = schema;
 
 /** How many of the member's latest messages can vouch for an amount they "stated". */
@@ -93,8 +101,32 @@ export type ProposalBasis = {
 };
 
 export type DraftVerdict =
-  | { ok: true; basis: ProposalBasis | null; targetUpdatedAt: Date | null }
+  | {
+      ok: true;
+      basis: ProposalBasis | null;
+      targetUpdatedAt: Date | null;
+      /**
+       * Budget line proposals only: the line's planned amounts from `fromMonth` to the end of the
+       * budget year when the draft was judged. Internal: keep it in the stored basis
+       * (`storedBasis`), never show it to the model.
+       */
+      amountsSnapshot?: number[];
+    }
   | { ok: false; code: 'learning' | 'out_of_range' | 'not_found' | 'invalid' };
+
+/** What to save as `basis` for a validated draft: the figures plus the internal snapshot. */
+export function storedBasis(verdict: Extract<DraftVerdict, { ok: true }>): object | null {
+  if (!verdict.basis && !verdict.amountsSnapshot) return null;
+  return {
+    ...verdict.basis,
+    ...(verdict.amountsSnapshot ? { amountsSnapshot: verdict.amountsSnapshot } : {}),
+  };
+}
+
+const snapshotOf = (basis: unknown): number[] | null => {
+  const parsed = z.object({ amountsSnapshot: z.array(z.number().int()) }).safeParse(basis ?? {});
+  return parsed.success ? parsed.data.amountsSnapshot : null;
+};
 
 const refuse = (code: Extract<DraftVerdict, { ok: false }>['code']): DraftVerdict => ({
   ok: false,
@@ -198,8 +230,17 @@ export async function validateDraft(
   judge: Judge,
 ): Promise<DraftVerdict> {
   const { currency, learning } = judge.profile;
-  const ok = (basis: ProposalBasis | null = null, targetUpdatedAt: Date | null = null) =>
-    ({ ok: true, basis, targetUpdatedAt }) satisfies DraftVerdict;
+  const ok = (
+    basis: ProposalBasis | null = null,
+    targetUpdatedAt: Date | null = null,
+    amountsSnapshot?: number[],
+  ) =>
+    ({
+      ok: true,
+      basis,
+      targetUpdatedAt,
+      ...(amountsSnapshot ? { amountsSnapshot } : {}),
+    }) satisfies DraftVerdict;
 
   const amounts: Record<string, number> = {};
   for (const [key, text] of [
@@ -257,13 +298,22 @@ export async function validateDraft(
               )
           : [];
         if (!row) return refuse('not_found');
-        if (budgetMonthIndex(row.startMonth, draft.fromMonth) === null) return refuse('invalid');
+        const from = budgetMonthIndex(row.startMonth, draft.fromMonth);
+        if (from === null) return refuse('invalid');
+        const planned = await tx
+          .select({ monthIndex: budgetAmount.monthIndex, amount: budgetAmount.amount })
+          .from(budgetAmount)
+          .where(eq(budgetAmount.budgetLineId, draft.lineId));
+        const snapshot = Array.from(
+          { length: 13 - from },
+          (_, i) => planned.find((a) => a.monthIndex === from + i)?.amount ?? 0,
+        );
         const typical = judge.profile.budgetLines.find((l) => l.lineId === draft.lineId)?.typical;
         const basis = typical ? basisOf(typical, currency) : null;
         const inside = typical && amounts.line! >= typical.min && amounts.line! <= typical.max;
         const stated =
           draft.statedByMember && mentionsAmount(judge.recentUserTexts, draft.monthlyAmount);
-        return inside || stated ? ok(basis, row.updatedAt) : refuse('out_of_range');
+        return inside || stated ? ok(basis, row.updatedAt, snapshot) : refuse('out_of_range');
       }
       case 'rule_create':
         return (await categoryExists(tx, ctx, draft.categoryId)) ? ok() : refuse('not_found');
@@ -326,7 +376,14 @@ async function notPending(ctx: ServiceCtx, proposalId: string): Promise<never> {
   throw new ConflictError('proposal_not_pending', 'The proposal was already resolved');
 }
 
-async function recentUserTexts(ctx: ServiceCtx, until: Date): Promise<string[]> {
+/**
+ * The member's latest user messages up to `upTo` (default now), newest first: the window that can
+ * vouch for an amount they "stated". Validation and apply must use this same window.
+ */
+export async function recentUserTexts(
+  ctx: ServiceCtx,
+  opts: { upTo?: Date; limit?: number } = {},
+): Promise<string[]> {
   const rows = await withHousehold(ctx.db, ctx.householdId, (tx) =>
     tx
       .select({ text: advisorMessage.text })
@@ -336,11 +393,11 @@ async function recentUserTexts(ctx: ServiceCtx, until: Date): Promise<string[]> 
           eq(advisorMessage.householdId, ctx.householdId),
           eq(advisorMessage.userId, ctx.userId),
           eq(advisorMessage.role, 'user'),
-          lte(advisorMessage.createdAt, until),
+          lte(advisorMessage.createdAt, opts.upTo ?? new Date()),
         ),
       )
       .orderBy(desc(advisorMessage.createdAt), desc(advisorMessage.id))
-      .limit(RECENT_USER_MESSAGES),
+      .limit(opts.limit ?? RECENT_USER_MESSAGES),
   );
   return rows.map((r) => r.text);
 }
@@ -435,19 +492,23 @@ export async function applyProposal(
   if (!claimed) return notPending(ctx, proposalId);
 
   let done: { targetType: string; targetId: string };
+  // A proposal that can never apply (unreadable, target gone or changed) is closed as stale.
+  let outcome: 'pending' | 'stale' = 'pending';
   try {
     const parsed = proposalDraftSchema.safeParse(claimed.payload);
     if (!parsed.success || parsed.data.kind !== claimed.kind) {
+      outcome = 'stale';
       throw new ValidationError('The stored proposal is not valid', [], undefined);
     }
     const draft = parsed.data;
     const verdict = await validateDraft(ctx, draft, {
       profile: opts.profile,
-      recentUserTexts: await recentUserTexts(ctx, claimed.createdAt),
+      recentUserTexts: await recentUserTexts(ctx, { upTo: claimed.createdAt }),
     });
     if (!verdict.ok) {
       const targeted = draft.kind === 'goal_update' || draft.kind === 'budget_line_amount';
       if (verdict.code === 'not_found') {
+        outcome = 'stale';
         throw targeted ? stale() : new NotFoundError('Proposal target');
       }
       throw new ValidationError(
@@ -463,13 +524,19 @@ export async function applyProposal(
     ) {
       throw stale();
     }
+    if (draft.kind === 'budget_line_amount') {
+      // `updated_at` does not move when only amounts change: compare the amounts themselves.
+      // A proposal stored without its snapshot cannot be shown to be current.
+      const was = snapshotOf(claimed.basis);
+      const now = verdict.amountsSnapshot;
+      if (!was || !now || was.length !== now.length || was.some((v, i) => v !== now[i])) {
+        throw stale();
+      }
+    }
     done = await perform(ctx, draft, opts.profile.currency);
   } catch (err) {
-    if (err instanceof ValidationError && err.code === 'stale') {
-      await transition(ctx, proposalId, 'applied', 'stale');
-    } else {
-      await transition(ctx, proposalId, 'applied', 'pending');
-    }
+    const isStale = outcome === 'stale' || (err instanceof ValidationError && err.code === 'stale');
+    await transition(ctx, proposalId, 'applied', isStale ? 'stale' : 'pending');
     throw err;
   }
 

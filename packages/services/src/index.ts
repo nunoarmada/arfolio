@@ -480,6 +480,8 @@ export {
   applyProposal,
   dismissProposal,
   proposalDraftSchema,
+  recentUserTexts,
+  storedBasis,
   validateDraft,
 } from './advisor/proposals.js';
 export type { DraftVerdict, ProposalBasis, ProposalDraft } from './advisor/proposals.js';
