@@ -33,7 +33,7 @@ Behaviour worth knowing:
 - **Secrets are write-only.** A saved API key, private key or SMTP address is never shown again, never sent back to the browser, and never written to logs or the audit log (which records only which setting changed). You can only replace or remove it.
 - **Fresh sign-in.** Changing these settings requires that you signed in within the last 10 minutes. If the page says so, sign out and in again, then retry.
 - **When changes take effect.** Saving applies at once for the web app; the worker picks the change up within about a minute. Environment variables are read at start-up, so restart after changing them.
-- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
+- **Defaults.** Models default to `claude-haiku-5-5` (categories), `claude-opus-5-5` (reports), `claude-opus-5-5` (the advisor), `claude-opus-5-5` (valuations) and `claude-opus-5-5` (statement import). The Enable Banking API address defaults to `https://api.enablebanking.com`. The portal lists default to the Portuguese listing sites (see [AI features](ai.md)).
 - **Invalid or unreadable values.** A saved value that no longer validates is ignored and the page asks you to enter it again. A saved value that cannot be decrypted (the `ENCRYPTION_KEY` changed) is treated as not set and shown as unreadable: enter it again to replace it.
 
 ### The encryption key

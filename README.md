@@ -24,6 +24,7 @@ A budget is only a plan until it is compared with what actually happened, and do
 - **Goals:** savings goals with projections.
 - **Net worth:** accounts, investments, property, vehicles and other assets, minus mortgages, loans and debts, with monthly history. Optional AI valuation of property, vehicles and valuables from comparable listings.
 - **Insights:** charts, anomalies and an AI-written monthly report (optional).
+- **Financial advisor:** an optional AI chat that answers questions about your spending, budget and goals and proposes changes you apply yourself, with a learning period and a weekly cap on the messages it starts.
 - **Claude, via MCP:** connect claude.ai or Claude Code to ask about your money and, if you allow it, record things.
 - **Phone-friendly:** installable PWA with push notifications and an offline read-only shell.
 - **Households:** members, invitations, roles, two-step verification, audit log.
@@ -70,7 +71,7 @@ Server basics (database, secrets, public URL) are environment variables in `.env
 Your data stays in your database. Arfolio talks to these outside services only when you set them up:
 
 - **Enable Banking**, to connect European banks. Their restricted production mode is meant for linking your own accounts; see [enablebanking.com](https://enablebanking.com) for their current terms. The [bank sync guide](docs/bank-sync.md) walks through it.
-- **Anthropic**, if you add your own API key and a household switches AI on. Descriptions are redacted (IBANs, card numbers, emails, phone numbers and long digit runs removed) and reports use aggregates only. The exception is PDF statement import, which sends the whole file as it is, after a confirmation per file. [AI features](docs/ai.md) lists exactly what is sent.
+- **Anthropic**, if you add your own API key and a household switches AI on. Descriptions are redacted (IBANs, card numbers, emails, phone numbers and long digit runs removed) and reports use aggregates only. The exceptions are PDF statement import, which sends the whole file as it is, after a confirmation per file, and the financial advisor, which sends the data it asks for while answering (redacted descriptions, amounts, account and category names, goals). [AI features](docs/ai.md) lists exactly what is sent.
 - **Google's favicon service**, to show merchant logos. It learns the merchant's website, never your transactions. Turn it off with `MERCHANT_LOGOS=off`.
 
 Without an Enable Banking application and an Anthropic key Arfolio still works: add accounts by hand or import statements.
