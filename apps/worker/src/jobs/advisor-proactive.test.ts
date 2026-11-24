@@ -4,7 +4,16 @@ import type { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { createDb, schema, type Db } from '@arfolio/db';
-import { createBudget, saveMemberSettings, type ServiceCtx } from '@arfolio/services';
+import {
+  createBudget,
+  createCategory,
+  createCategoryGroup,
+  linkCategories,
+  saveMemberSettings,
+  setLineAmounts,
+  upsertBudgetLine,
+  type ServiceCtx,
+} from '@arfolio/services';
 import type { AdvisorModelClient } from '@arfolio/mcp/advisor';
 import { APP_PASSWORD, startTestDb, type TestDb } from '../../../../packages/db/test/pg.js';
 import { log } from '../log.js';
@@ -281,6 +290,74 @@ describe('advisor-proactive job', () => {
     await runAdvisorProactive(depsFor(client), f.householdId);
     expect(await proactive(f.householdId, f.users.owner!.userId)).toHaveLength(0);
     expect((await proactive(f.householdId, f.users.member!.userId)).length).toBeGreaterThan(0);
+  });
+
+  /** One complete month of data (October) so a one-month learning period is over. */
+  async function learnedHousehold() {
+    const f = await household({ detected: 0 });
+    const [account] = await owner
+      .insert(schema.financialAccount)
+      .values({ householdId: f.householdId, name: 'Main', type: 'checking', currency: 'EUR' })
+      .returning();
+    const add = (bookingDate: string, amount: number, categoryId?: string) =>
+      owner
+        .insert(schema.transaction)
+        .values({
+          householdId: f.householdId,
+          accountId: account!.id,
+          dedupeHash: randomUUID(),
+          bookingDate,
+          amount,
+          currency: 'EUR',
+          status: 'booked',
+          rawDescription: 'Example',
+          source: 'manual',
+          ...(categoryId ? { categoryId } : {}),
+        })
+        .returning({ id: schema.transaction.id });
+    await add('2026-10-01', -20_000);
+    await add('2026-10-02', 300_000);
+    return { f, add };
+  }
+  const oneMonth = { ...LIMITS, learningMonths: 1 };
+  const eventKeys = async (f: Fixture) =>
+    (await proactive(f.householdId, f.users.owner!.userId)).map((r) => r.eventKey ?? '');
+
+  it('writes about an unusual inflow, from the booked rows of the last days', async () => {
+    const { f, add } = await learnedHousehold();
+    const [big] = await add('2026-11-23', 200_000);
+    await add('2026-11-23', 1_000); // far below half of a typical income
+    await add('2026-11-10', 250_000); // older than three days
+    const { client } = fakeClient();
+    await runAdvisorProactive(depsFor(client, { limits: oneMonth }), f.householdId);
+    expect((await eventKeys(f)).filter((k) => k.startsWith('income:'))).toEqual([
+      `income:${big!.id}`,
+    ]);
+  });
+
+  it('writes about a budget line clearly over its plan this month', async () => {
+    const { f, add } = await learnedHousehold();
+    const ctx = f.users.owner!;
+    const group = await createCategoryGroup(ctx, { name: 'Food', kind: 'expense' });
+    const dining = await createCategory(ctx, { groupId: group.id, name: 'Dining' });
+    const budget = await createBudget(ctx, { startMonth: '2026-01-01' });
+    const line = await upsertBudgetLine(ctx, budget.id, { kind: 'expense', name: 'Dining out' });
+    await setLineAmounts(
+      ctx,
+      line.id,
+      Array.from({ length: 12 }, () => 10_000),
+    );
+    await linkCategories(ctx, line.id, [dining.id]);
+    await add('2026-11-05', -11_000, dining.id); // exactly 110 %: not over
+    const { client } = fakeClient();
+    await runAdvisorProactive(depsFor(client, { limits: oneMonth }), f.householdId);
+    expect((await eventKeys(f)).filter((k) => k.startsWith('budget:'))).toEqual([]);
+
+    await add('2026-11-06', -500, dining.id); // 115 %
+    await runAdvisorProactive(depsFor(client, { limits: oneMonth }), f.householdId);
+    expect((await eventKeys(f)).filter((k) => k.startsWith('budget:'))).toEqual([
+      `budget:${line.id}:2026-11`,
+    ]);
   });
 
   it('sends no capped message when the member cap is 0', async () => {
