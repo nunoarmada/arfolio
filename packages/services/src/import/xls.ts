@@ -97,12 +97,14 @@ export function readWorkbookStream(buf: Buffer): Buffer {
     // The entries form a red-black tree per storage. Walk the root's own tree only: storages are
     // not entered, so a stream of the same name inside one is never mistaken for the workbook.
     const streams = new Map<string, Buffer>();
-    const seen = new Set<number>();
+    const seen = new Set<number>([0]);
     const pending = [root.readUInt32LE(DIR_CHILD)];
     while (pending.length > 0) {
       const id = pending.pop()!;
       if (id === DIR_NO_ENTRY) continue;
-      if (seen.has(id) || seen.size >= entryCount) throw notXls();
+      // Each id is visited once, so the walk takes at most one step per entry. The root (id 0)
+      // counts as visited: a pointer back at it is a loop.
+      if (seen.has(id)) throw notXls();
       seen.add(id);
       const node = entryAt(id);
       pending.push(node.readUInt32LE(DIR_RIGHT), node.readUInt32LE(DIR_LEFT));
@@ -197,7 +199,15 @@ class RecordReader {
   private segment = 0;
   private pos = 0;
 
-  constructor(private readonly segments: Buffer[]) {}
+  /** Bytes left from the start of each segment to the end of the last one. */
+  private readonly remaining: number[];
+
+  constructor(private readonly segments: Buffer[]) {
+    this.remaining = new Array<number>(segments.length + 1).fill(0);
+    for (let i = segments.length - 1; i >= 0; i -= 1) {
+      this.remaining[i] = this.remaining[i + 1]! + segments[i]!.length;
+    }
+  }
 
   /** A record's data followed by the data of every CONTINUE record directly after it. */
   static at(wb: Buffer, first: BiffRecord): { reader: RecordReader; next: number } {
@@ -257,8 +267,7 @@ class RecordReader {
 
   /** True when every byte of the record and its CONTINUE records has been read. */
   get done(): boolean {
-    const left = this.segments.slice(this.segment).reduce((sum, part) => sum + part.length, 0);
-    return left - this.pos <= 0;
+    return (this.remaining[this.segment] ?? 0) - this.pos <= 0;
   }
 
   /** A string with a 16-bit character count: flags, optional rich-text and phonetic blocks. */

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { MAX_IMPORT_ROWS, ValidationError } from '../../src/index.js';
 import { parseXls, readWorkbookStream } from '../../src/import/xls.js';
 import { MAX_XLSX_CELL_CHARS, MAX_XLSX_COLUMNS } from '../../src/import/xlsx.js';
-import { buildCfb, buildWorkbookStream, buildXls, type XlsCell } from './xls-builder.js';
+import { buildCfb, buildWorkbookStream, buildXls, rec, type XlsCell } from './xls-builder.js';
 
 const INVALID = 'The file is not a valid XLS workbook';
 
@@ -116,6 +116,36 @@ describe('readWorkbookStream', () => {
         dirPatch: (dir) => dir.writeUInt32LE(1, entryAt(1) + LEFT),
       });
       expectInvalid(() => readWorkbookStream(loopBeforeStream));
+    });
+
+    it('rejects a sibling that points back at the root entry', () => {
+      const file = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => dir.writeUInt32LE(0, entryAt(1) + RIGHT),
+      });
+      expectInvalid(() => readWorkbookStream(file));
+    });
+
+    it('matches the stream name in any letter case', () => {
+      expect(readWorkbookStream(buildCfb(payload, { name: 'WORKBOOK' })).equals(payload)).toBe(
+        true,
+      );
+    });
+
+    it('prefers Workbook over Book when both are children of the root', () => {
+      const file = buildCfb(payload, {
+        decoyStorage: true,
+        dirPatch: (dir) => {
+          // Turn the storage, which comes first in the tree, into an empty stream named Book.
+          const book = dir.subarray(entryAt(1), entryAt(2));
+          book.fill(0, 0, 64);
+          book.write('Book', 0, 'utf16le');
+          book.writeUInt16LE(10, 64);
+          book[66] = 2;
+          book.writeUInt32LE(0xfffffffe, 116);
+        },
+      });
+      expect(readWorkbookStream(file).equals(payload)).toBe(true);
     });
 
     it('rejects a sibling id outside the directory', () => {
@@ -329,6 +359,28 @@ describe('parseXls: shared strings', () => {
       const stream = buildWorkbookStream([{ rows }], { sstChunk: 7 });
       expect(parseXls(declare(stream, 9))).toEqual(rows);
     });
+
+    it('reads a table of many empty strings over many CONTINUE records in linear time', () => {
+      // 5000 CONTINUE records of 300 empty strings each (3 bytes a string): about 4.5 MB, 1.5M strings.
+      const perRecord = 300;
+      const records = 5000;
+      const stream = buildWorkbookStream([{ rows: [['a']] }]);
+      const sst = stream.indexOf(Buffer.from([0xfc, 0x00]));
+      const sstEnd = sst + 4 + stream.readUInt16LE(sst + 2);
+      const extra = Buffer.concat(
+        Array.from({ length: records }, () => rec(0x3c, Buffer.alloc(perRecord * 3))),
+      );
+      stream.writeUInt32LE(1 + perRecord * records, sst + 8);
+      const bound = stream.indexOf(Buffer.from([0x85, 0x00]));
+      // The sheet starts after the globals, which just grew by the inserted records.
+      stream.writeUInt32LE(stream.readUInt32LE(bound + 4) + extra.length, bound + 4);
+      const grown = Buffer.concat([stream.subarray(0, sstEnd), extra, stream.subarray(sstEnd)]);
+      const started = performance.now();
+      expect(parseXls(buildCfb(grown, { mini: false }))).toEqual([['a']]);
+      // Linear reading takes well under a second; reading that rescans the remaining CONTINUE
+      // records for every string took several seconds. The margin is generous on purpose.
+      expect(performance.now() - started).toBeLessThan(1500);
+    }, 30_000);
 
     it('still rejects a shared string index past the strings read', () => {
       const stream = buildWorkbookStream([{ rows: [['a', { sst: 1 }]] }]);
