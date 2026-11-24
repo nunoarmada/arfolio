@@ -243,6 +243,9 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: 0.135.0
+        version: 0.135.0(zod@4.6.7)
       '@arfolio/core':
         specifier: workspace:*
         version: link:../core
