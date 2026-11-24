@@ -41,6 +41,7 @@ export type ValidationReason =
   | 'pdf_rejected'
   | 'ai_key_rejected'
   | 'ai_busy'
+  | 'ai_model_unavailable'
   | 'pdf_multiple_accounts'
   /** Set by the client when a request got no answer at all; no service message maps to it. */
   | 'connection_lost'
@@ -59,6 +60,7 @@ const REASONS: Array<[RegExp, ValidationReason]> = [
   [/AI service could not read this PDF/, 'pdf_rejected'],
   [/AI service rejected the API key/, 'ai_key_rejected'],
   [/AI service is busy/, 'ai_busy'],
+  [/configured AI model is not available/, 'ai_model_unavailable'],
   [/movements of more than one account/, 'pdf_multiple_accounts'],
   [/recognise the file layout/i, 'unrecognised_layout'],
   [/file is too large|too large when unpacked/i, 'file_too_large'],

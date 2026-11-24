@@ -85,13 +85,19 @@ export type TestMessage =
   | 'rate_limited'
   | 'unreachable'
   | 'unavailable'
+  | 'model_unavailable'
   | 'mail_sent'
   | 'verify_failed'
   | 'send_failed';
 
+/** The AI model settings a key test checks, named by the part of the app that uses them. */
+export type AiModelField = 'categorisation' | 'report' | 'valuation' | 'import';
+
 export interface TestOutcome {
   ok: boolean;
   message: TestMessage;
+  /** With `model_unavailable`: the model settings whose model the AI service does not know. */
+  unavailableModels?: AiModelField[];
 }
 
 interface SmtpTransport {
@@ -111,7 +117,7 @@ export interface ServiceSettingsDeps {
   appUrl: string;
   brandName: string;
   /** Test seams; the defaults are the real clients. */
-  ping?: (apiKey: string) => Promise<AnthropicPingResult>;
+  ping?: (apiKey: string, models: readonly string[]) => Promise<AnthropicPingResult>;
   createBankClient?: (config: {
     appId: string;
     privateKeyPem: string;
@@ -282,11 +288,27 @@ export async function removeSetting(
 
 const fail = (message: TestMessage): TestOutcome => ({ ok: false, message });
 
-async function testAnthropic(cfg: IntegrationConfig, deps: ServiceSettingsDeps) {
+const AI_MODEL_FIELDS = ['categorisation', 'report', 'valuation', 'import'] as const;
+
+async function testAnthropic(
+  cfg: IntegrationConfig,
+  deps: ServiceSettingsDeps,
+): Promise<TestOutcome> {
   const apiKey = cfg.anthropicApiKey.value;
   if (apiKey === undefined) return fail('not_configured');
-  const result = await (deps.ping ?? pingAnthropic)(apiKey);
-  return result.ok ? { ok: true, message: 'ok' as const } : fail(result.reason);
+  const fields = AI_MODEL_FIELDS.map((field) => ({ field, id: cfg.models[field].value }));
+  const ids = fields.flatMap(({ id }) => (id === undefined ? [] : [id]));
+  const result = await (deps.ping ?? ((key, models) => pingAnthropic(key, { models })))(
+    apiKey,
+    ids,
+  );
+  if (!result.ok) return fail(result.reason);
+  const unavailableModels = fields.flatMap(({ field, id }) =>
+    id !== undefined && result.unavailableModels.includes(id) ? [field] : [],
+  );
+  return unavailableModels.length > 0
+    ? { ok: false, message: 'model_unavailable', unavailableModels }
+    : { ok: true, message: 'ok' };
 }
 
 /** The country of the household's latest bank consent, else Finland (a country Enable Banking lists). */

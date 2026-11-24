@@ -265,7 +265,7 @@ describe('extractPdfStatement', () => {
     [429, 'The AI service is busy'],
     [529, 'The AI service is busy'],
     [500, 'The AI service could not be reached'],
-    [404, 'The AI service could not be reached'],
+    [404, 'The configured AI model is not available'],
   ])('reports HTTP %i without provider text', async (status, expected) => {
     const t = setup(() => {
       throw APIError.generate(

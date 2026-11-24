@@ -497,7 +497,8 @@
         "invalid_key": "Anthropic ha rechazado la clave. Revísela y sustitúyala.",
         "rate_limited": "Anthropic está limitando las solicitudes en este momento. Inténtelo de nuevo en un minuto.",
         "unreachable": "No se pudo contactar con Anthropic. Compruebe el acceso a internet de este servidor.",
-        "unavailable": "Anthropic no respondió como se esperaba. Inténtelo de nuevo más tarde."
+        "unavailable": "Anthropic no respondió como se esperaba. Inténtelo de nuevo más tarde.",
+        "model_unavailable": "La clave funciona, pero el servicio de IA no ofrece estos modelos: {models}. Revise los nombres de los modelos en Avanzado."
       },
       "enableBanking": {
         "ok": "Enable Banking ha aceptado las credenciales.",
@@ -838,6 +839,7 @@
       "pdf_rejected": "El servicio de IA no pudo leer este PDF. Puede estar protegido con contraseña, ser demasiado largo o estar dañado.",
       "ai_key_rejected": "El servicio de IA rechazó la clave de API de la instalación. Pida a un propietario que la revise en Ajustes › Servicios.",
       "ai_busy": "El servicio de IA está ocupado. Inténtelo de nuevo dentro de unos minutos.",
+      "ai_model_unavailable": "El modelo de IA definido para esta instalación no está disponible. Pida a un propietario que revise los nombres de los modelos en Ajustes › Servicios.",
       "pdf_multiple_accounts": "Este PDF incluye movimientos de más de una cuenta, por lo que no puede importarse en una sola cuenta.",
       "connection_lost": "La conexión se interrumpió. Inténtelo de nuevo.",
       "invalid_input": "Algunos valores no son válidos. Revise los campos e inténtelo de nuevo."

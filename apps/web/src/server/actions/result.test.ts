@@ -136,6 +136,7 @@ describe('validationReason', () => {
     ['The AI service could not read this PDF', 'pdf_rejected'],
     ['The AI service rejected the API key', 'ai_key_rejected'],
     ['The AI service is busy', 'ai_busy'],
+    ['The configured AI model is not available', 'ai_model_unavailable'],
     ['The PDF holds movements of more than one account', 'pdf_multiple_accounts'],
     ['Something unforeseen', 'invalid_input'],
   ])('%s -> %s', (message, reason) => {

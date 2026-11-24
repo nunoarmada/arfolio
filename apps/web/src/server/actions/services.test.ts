@@ -356,9 +356,33 @@ describe('services settings actions', () => {
       const result = await run(() =>
         runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping })),
       );
-      expect(ping).toHaveBeenCalledWith(SECRET);
+      expect(ping).toHaveBeenCalledWith(SECRET, expect.any(Array));
       expect(result).toEqual({ ok: true, data: { ok: false, message: 'invalid_key' } });
       expect(JSON.stringify(result)).not.toContain(SECRET);
+    });
+
+    it('anthropic: names the model fields whose model the API does not know', async () => {
+      await writeInstanceSetting(db, encKey, 'anthropic.apiKey', SECRET, 'owner');
+      await writeInstanceSetting(db, encKey, 'ai.reportModel', 'claude-gone', 'owner');
+      await writeInstanceSetting(db, encKey, 'ai.importModel', 'claude-gone', 'owner');
+      const ping = vi.fn<NonNullable<ServiceSettingsDeps['ping']>>(async () => ({
+        ok: true,
+        unavailableModels: ['claude-gone'],
+      }));
+      const result = await run(() =>
+        runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping })),
+      );
+      const asked = ping.mock.calls[0]![1];
+      expect(asked).toContain('claude-gone');
+      expect(asked).toHaveLength(4);
+      expect(result).toEqual({
+        ok: true,
+        data: { ok: false, message: 'model_unavailable', unavailableModels: ['report', 'import'] },
+      });
+      const fine = vi.fn(async () => ({ ok: true as const, unavailableModels: [] }));
+      expect(
+        await run(() => runServiceTest(owner, { service: 'anthropic' }, depsWith({ ping: fine }))),
+      ).toEqual({ ok: true, data: { ok: true, message: 'ok' } });
     });
 
     it('bank: lists banks with a client built from the resolved config', async () => {

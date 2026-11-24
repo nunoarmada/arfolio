@@ -13,7 +13,7 @@ const reply = (status: number, body: unknown) =>
 describe('pingAnthropic', () => {
   it('lists one model with the key and reports ok', async () => {
     const fetch = reply(200, { data: [], has_more: false, first_id: null, last_id: null });
-    expect(await pingAnthropic('sk-test', { fetch })).toEqual({ ok: true });
+    expect(await pingAnthropic('sk-test', { fetch })).toEqual({ ok: true, unavailableModels: [] });
     const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(String(url)).toContain('/v1/models');
     expect(String(url)).toContain('limit=1');
@@ -35,6 +35,72 @@ describe('pingAnthropic', () => {
       const result = await pingAnthropic('sk-leak', { fetch: reply(status, quoted) });
       expect(result).toEqual({ ok: false, reason });
     }
+  });
+
+  it('checks each distinct model once and names the ones the API does not know', async () => {
+    const fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/v1/models/claude-gone')) {
+        return new Response(
+          JSON.stringify({
+            type: 'error',
+            error: { type: 'not_found_error', message: 'model: x' },
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      const body = url.includes('limit=1')
+        ? { data: [], has_more: false, first_id: null, last_id: null }
+        : {
+            id: 'claude-here',
+            type: 'model',
+            display_name: 'X',
+            created_at: '2025-01-01T00:00:00Z',
+          };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof globalThis.fetch;
+    const result = await pingAnthropic('sk-test', {
+      fetch,
+      models: ['claude-here', 'claude-gone', 'claude-here', 'claude-gone'],
+    });
+    expect(result).toEqual({ ok: true, unavailableModels: ['claude-gone'] });
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls.filter((u) => u.includes('/v1/models/claude-here'))).toHaveLength(1);
+    expect(urls.filter((u) => u.includes('/v1/models/claude-gone'))).toHaveLength(1);
+  });
+
+  it('does not check models when the key is rejected, and maps a model check failure to a fixed reason', async () => {
+    const quoted = { type: 'error', error: { type: 'authentication_error', message: 'sk-leak' } };
+    const rejected = reply(401, quoted);
+    expect(await pingAnthropic('sk-leak', { fetch: rejected, models: ['claude-x'] })).toEqual({
+      ok: false,
+      reason: 'invalid_key',
+    });
+    expect(vi.mocked(rejected)).toHaveBeenCalledTimes(1);
+
+    let calls = 0;
+    const limited = vi.fn(async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response(
+            JSON.stringify({ data: [], has_more: false, first_id: null, last_id: null }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          )
+        : new Response(JSON.stringify(quoted), {
+            status: 429,
+            headers: { 'content-type': 'application/json' },
+          });
+    }) as unknown as typeof fetch;
+    expect(await pingAnthropic('sk-leak', { fetch: limited, models: ['claude-x'] })).toEqual({
+      ok: false,
+      reason: 'rate_limited',
+    });
   });
 
   it('reports an unreachable API', async () => {
