@@ -76,8 +76,8 @@ function dateOf(text: string, format: DateFormat): string {
  * Plain numbers written by the XLSX reader ("-23.45") use a dot whatever the sheet's locale, so
  * a comma setting must not reinterpret them.
  *
- * Rule for XLSX amounts with more decimals than the account currency has (`digits`), such as
- * "1.234" in EUR: the reader cannot tell a sheet number (1.234) from a text cell written with a
+ * Rule for XLSX amounts with more (non-zero) decimals than the account currency has (`digits`),
+ * such as "1.234" in EUR: the reader cannot tell a sheet number (1.234) from a text cell written with a
  * thousands dot ("1.234" meaning 1234), and guessing would scale the amount by 1000, so such cells
  * are row errors whatever the decimal setting. Text such as "1.234,56" is unaffected.
  */
@@ -89,7 +89,8 @@ function amountOf(
 ): number {
   if (text.length > MAX_NUMERIC_CELL) throw new ValidationError('Invalid amount');
   const sheetNumber = kind === 'xlsx' ? /^-?\d+(?:\.(\d+))?$/.exec(text.trim()) : null;
-  if (sheetNumber && (sheetNumber[1]?.length ?? 0) > digits) {
+  // Trailing zeros beyond the currency's decimals change nothing ("1234.00" in JPY).
+  if (sheetNumber && /[1-9]/.test((sheetNumber[1] ?? '').slice(digits))) {
     throw new ValidationError(`Amount has more than ${digits} decimals: ${text.trim()}`);
   }
   return parseAmount(text, {
