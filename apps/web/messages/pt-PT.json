@@ -267,7 +267,6 @@
       "see": "Ver contas",
       "manualOnly": "Contas atualizadas por importação ou à mão.",
       "error": "Não foi possível carregar as contas e ligações.",
-      "more": "{count, plural, one {Mais # conta} other {Mais # contas}}",
       "list": "Contas",
       "connections": "Ligações"
     },

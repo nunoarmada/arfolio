@@ -267,7 +267,6 @@
       "see": "See accounts",
       "manualOnly": "Accounts updated by import or by hand.",
       "error": "Couldn't load accounts and connections.",
-      "more": "{count, plural, one {# more account} other {# more accounts}}",
       "list": "Accounts",
       "connections": "Connections"
     },

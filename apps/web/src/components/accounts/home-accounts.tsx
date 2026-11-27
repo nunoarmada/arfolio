@@ -7,13 +7,10 @@ import { ConnectionsStrip } from '@/components/connections/connections-strip';
 import type { HomeAccountItem } from '@/server/home-data';
 import type { ConnectionDto } from '@/server/serialize';
 
-/** Mini-cards shown before "Mais N contas". */
-const MAX_CARDS = 8;
-
 /**
  * "Contas e ligações": what is available to spend, one mini-card per account and how fresh the
  * connections are, side by side, because a balance means little without knowing when it was last
- * synced. The full account list is one tap away.
+ * synced. Every open account and card is listed; the accounts page has the details.
  */
 export async function HomeAccounts({
   available,
@@ -35,8 +32,6 @@ export async function HomeAccounts({
   timeZone: string;
 }) {
   const [t, accountsT] = await Promise.all([getTranslations('home'), getTranslations('accounts')]);
-  const shown = items.slice(0, MAX_CARDS);
-  const hidden = items.length - shown.length;
   return (
     <Card
       as="section"
@@ -59,12 +54,12 @@ export async function HomeAccounts({
             </span>
           ) : null}
         </div>
-        {shown.length > 0 ? (
+        {items.length > 0 ? (
           <ul
             aria-label={t('accounts.list')}
             className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] sm:gap-3"
           >
-            {shown.map((a) => {
+            {items.map((a) => {
               const Icon = TYPE_ICONS[a.type];
               return (
                 <li key={a.id} className="min-w-0">
@@ -97,9 +92,6 @@ export async function HomeAccounts({
               );
             })}
           </ul>
-        ) : null}
-        {hidden > 0 ? (
-          <p className="text-sm text-muted-foreground">{t('accounts.more', { count: hidden })}</p>
         ) : null}
         {connections.length > 0 ? (
           <ConnectionsStrip
