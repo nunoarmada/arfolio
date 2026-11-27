@@ -929,11 +929,12 @@ describe('sync engine', () => {
         ]);
         expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toHaveLength(2);
 
-        // Same day again: the names are known, so none is fetched, and snapshots are replaced.
+        // Same day again, only prices moved: the names are known, so none is fetched, and
+        // snapshots are replaced.
         t212.calls.length = 0;
         t212.pies = [
-          { id: '101', invested: 41_000, value: 46_000 },
-          { id: '102', invested: 10_000, value: 9_000 },
+          { id: '101', invested: 40_000, value: 46_000 },
+          { id: '102', invested: 10_000, value: 9_500 },
         ];
         now = new Date(now.getTime() + 10 * MIN);
         await makeDue(connectionId);
@@ -943,7 +944,7 @@ describe('sync engine', () => {
           .select()
           .from(investmentBucketSnapshot)
           .where(eq(investmentBucketSnapshot.accountId, accountId));
-        expect(again.map((s) => s.investedMinor).sort()).toEqual([10_000, 41_000]);
+        expect(again.map((s) => s.valueMinor).sort()).toEqual([46_000, 9_500]);
       });
 
       it('stores the instruments of each pie read that day and keeps them on a same-day rerun', async () => {
@@ -1006,6 +1007,55 @@ describe('sync engine', () => {
         const next = (await holdings()).filter((r) => r[1] === '2026-10-19');
         expect(next).toEqual([
           ['101', '2026-10-19', 'EXB_EQ', '3.0000000000', 15_000, 16_000, 'EUR'],
+        ]);
+      });
+
+      it('reads again the same day the detail of a pie whose invested amount changed', async () => {
+        const { ctx, t212, deps, connectionId } = await broker();
+        t212.pies = [
+          { id: '101', invested: 40_000, value: 45_000 },
+          { id: '102', invested: 10_000, value: 9_000 },
+        ];
+        t212.pieInstruments = {
+          '101': [
+            { ticker: 'EXA_EQ', quantity: '1.5', invested: 30_000, value: 34_000 },
+            { ticker: 'EXB_EQ', quantity: '2', invested: 10_000, value: 11_000 },
+          ],
+          '102': [{ ticker: 'EXA_EQ', quantity: '0.25', invested: 10_000, value: 9_000 }],
+        };
+        await run(deps, ctx, connectionId);
+        const accountId = await linkAccountId(connectionId);
+
+        // Later that day money is taken out of pie 101 and only the prices of pie 102 move.
+        t212.calls.length = 0;
+        t212.pies = [
+          { id: '101', invested: 15_000, value: 17_000 },
+          { id: '102', invested: 10_000, value: 9_500 },
+        ];
+        t212.pieInstruments = {
+          '101': [{ ticker: 'EXA_EQ', quantity: '0.75', invested: 15_000, value: 17_000 }],
+          '102': [{ ticker: 'EXA_EQ', quantity: '0.25', invested: 10_000, value: 9_500 }],
+        };
+        now = new Date(now.getTime() + 10 * MIN);
+        await makeDue(connectionId);
+        await run(deps, ctx, connectionId);
+        expect(t212.calls.filter((c) => c.startsWith('getPieDetail'))).toEqual([
+          'getPieDetail:101',
+        ]);
+        const buckets = await t.owner
+          .select()
+          .from(investmentBucket)
+          .where(eq(investmentBucket.accountId, accountId));
+        const ext = new Map(buckets.map((b) => [b.id, b.externalId]));
+        const rows = await t.owner
+          .select()
+          .from(investmentBucketHolding)
+          .where(eq(investmentBucketHolding.accountId, accountId));
+        expect(
+          rows.map((r) => [ext.get(r.bucketId), r.ticker, r.quantity, r.investedMinor]).sort(),
+        ).toEqual([
+          ['101', 'EXA_EQ', '0.7500000000', 15_000],
+          ['102', 'EXA_EQ', '0.2500000000', 10_000],
         ]);
       });
 
