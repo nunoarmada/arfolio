@@ -267,7 +267,6 @@
       "see": "Vai ai conti",
       "manualOnly": "Conti aggiornati tramite importazione o a mano.",
       "error": "Impossibile caricare conti e connessioni.",
-      "more": "{count, plural, one {# altro conto} other {# altri conti}}",
       "list": "Conti",
       "connections": "Connessioni"
     },

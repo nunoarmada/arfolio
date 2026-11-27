@@ -406,8 +406,9 @@ async function savePositions(
 
 /**
  * Stores the account's pies (investment buckets) and replaces its snapshots for the day. A pie's
- * detail (name and instruments) is fetched only for a pie that is new or has no instruments stored
- * for the day, or for every pie when the account has no snapshot for the day yet.
+ * detail (name and instruments) is fetched only for a pie that is new, has no instruments stored
+ * for the day or whose invested amount changed since the day's snapshot (money put in or taken
+ * out), or for every pie when the account has no snapshot for the day yet.
  */
 async function saveBuckets(
   deps: SyncDeps,
@@ -423,15 +424,17 @@ async function saveBuckets(
         .from(investmentBucket)
         .where(eq(investmentBucket.accountId, accountId)),
       tx
-        .select({ bucketId: investmentBucketSnapshot.bucketId })
+        .select({
+          bucketId: investmentBucketSnapshot.bucketId,
+          investedMinor: investmentBucketSnapshot.investedMinor,
+        })
         .from(investmentBucketSnapshot)
         .where(
           and(
             eq(investmentBucketSnapshot.accountId, accountId),
             eq(investmentBucketSnapshot.asOf, day),
           ),
-        )
-        .limit(1),
+        ),
       tx
         .selectDistinct({ bucketId: investmentBucketHolding.bucketId })
         .from(investmentBucketHolding)
@@ -449,9 +452,18 @@ async function saveBuckets(
   // the day (its detail failed). An empty pie (value 0) has nothing to read.
   const missing = new Set(known.filter((b) => !held.has(b.id)).map((b) => b.externalId));
   const refreshAll = snapshotToday.length === 0;
+  // The invested amount moves only when money goes in or out (not with prices): the instruments
+  // read earlier in the day no longer match the pie, so its detail is read again.
+  const externalOf = new Map(known.map((b) => [b.id, b.externalId]));
+  const investedToday = new Map(
+    snapshotToday.map((r) => [externalOf.get(r.bucketId), r.investedMinor]),
+  );
+  const changed = (pie: ProviderPie) =>
+    investedToday.has(pie.id) && investedToday.get(pie.id) !== pie.invested;
   const details = new Map<string, ProviderPieDetail>();
   for (const pie of pies) {
-    if (!refreshAll && knownIds.has(pie.id) && !(missing.has(pie.id) && pie.value > 0)) continue;
+    const stale = (missing.has(pie.id) && pie.value > 0) || changed(pie);
+    if (!refreshAll && knownIds.has(pie.id) && !stale) continue;
     try {
       details.set(pie.id, await client.getPieDetail(pie.id, currency));
     } catch (error) {

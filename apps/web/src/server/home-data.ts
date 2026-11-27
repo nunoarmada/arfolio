@@ -106,7 +106,7 @@ export type HomeAccounts =
       available: number;
       /** Accounts behind `available` (the "em N contas" of the KPI). */
       availableCount: number;
-      /** Every open account, for the mini-cards (the block shows the first few). */
+      /** Every open account, for the mini-cards (the block lists them all). */
       items: HomeAccountItem[];
       currency: string;
       /** Counted accounts in another currency: named, never added in. */

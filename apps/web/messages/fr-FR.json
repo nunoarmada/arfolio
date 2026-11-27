@@ -267,7 +267,6 @@
       "see": "Voir les comptes",
       "manualOnly": "Comptes mis à jour par import ou manuellement.",
       "error": "Impossible de charger les comptes et les connexions.",
-      "more": "{count, plural, one {# autre compte} other {# autres comptes}}",
       "list": "Comptes",
       "connections": "Connexions"
     },
